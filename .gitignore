@@ -1,0 +1,7 @@
+build/
+*.rbxl.lock
+*.rbxlx.lock
+sourcemap.json
+# fichiers de place Studio (sauvegarder a part si besoin)
+*.rbxl
+*.rbxlx

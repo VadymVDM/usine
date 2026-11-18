@@ -1,0 +1,52 @@
+{
+  "name": "MonUsineDeBoissons",
+  "servePort": 34850,
+  "globIgnorePaths": ["**/.gitkeep"],
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "$ignoreUnknownInstances": true,
+      "Shared": {
+        "$path": "src/shared"
+      }
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "$ignoreUnknownInstances": true,
+      "Server": {
+        "$path": "src/server"
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "$ignoreUnknownInstances": true,
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "$ignoreUnknownInstances": true,
+        "Client": {
+          "$path": "src/client"
+        }
+      }
+    },
+    "StarterGui": {
+      "$className": "StarterGui",
+      "$ignoreUnknownInstances": true,
+      "$path": "src/gui"
+    },
+    "Workspace": {
+      "$className": "Workspace",
+      "$ignoreUnknownInstances": true
+    },
+    "ServerStorage": {
+      "$className": "ServerStorage",
+      "$ignoreUnknownInstances": true
+    },
+    "HttpService": {
+      "$className": "HttpService",
+      "$properties": {
+        "HttpEnabled": false
+      }
+    }
+  }
+}
