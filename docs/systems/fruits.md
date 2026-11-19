@@ -1,6 +1,6 @@
 # Systeme : Fruits, raretes, arbre et index
 
-**Statut :** a concevoir
+**Statut :** en cours (Config faite au lot A ; arbre au lot C)
 **Derniere mise a jour :** 2026-11-19
 
 ## Role
@@ -12,7 +12,7 @@ decouvre (index) et comment le rebirth ouvre les raretes suivantes.
 
 | Fichier | Cote | Role |
 |---|---|---|
-| `src/shared/Config/Fruits.luau` | partage | Liste des fruits, raretes, valeurs, couleurs (a creer) |
+| `src/shared/Config/Fruits.luau` | partage | 100 fruits : id, nom, rarete, valeur, couleur du jus, poids (fait le 2026-11-19) |
 | `src/server/Services/TreeService.luau` | serveur | Tirage des fruits, niveaux de l'arbre (a creer) |
 | `src/client/Controllers/IndexController.luau` | client | Ecran Index (a creer) |
 
@@ -113,6 +113,14 @@ Niveau Luck et niveau Speed de l'arbre, liste des fruits decouverts (index), nom
 
 `src/shared/Config/Fruits.luau` : nom, rarete, valeur, couleur du jus, poids de tirage.
 Les poids exacts s'equilibrent en test.
+
+Valeurs validees le 2026-11-19 (argent entier, Apple = 5, environ +20 % par fruit, x25 par rarete,
+arrondi a 3 chiffres) : Common 5, 6, 7, 9, 10, 12, 15, 18, 21, 26 ; Uncommon 125 -> 645 ;
+Rare 3 120 -> 16 100 ; ... Infinity 19.1T -> 98.4T (liste complete dans le fichier).
+
+Poids : `BaseWeight (1000) x 0.8^(position-1) x 0.1^(rarete-1)` (calcule au chargement ;
+`weightOverride` possible par fruit). Ids sauvegardes : nom en PascalCase (`DragonFruit`,
+`BuddhasHand`, `Fruit404`). `Fruits.MaxLuck(rebirths)` = 10 x (3 + rebirths), max 100.
 
 ## Problemes connus / a faire
 

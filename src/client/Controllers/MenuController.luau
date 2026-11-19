@@ -224,6 +224,10 @@ local function bindFeedback(button: GuiButton)
 	end
 
 	connect(button.MouseEnter, function()
+		-- Ecran tactile sans souris : un appui declenche MouseEnter (son + bouton bloque agrandi)
+		if UserInputService.TouchEnabled and not UserInputService.MouseEnabled then
+			return
+		end
 		setHovered(true)
 	end)
 	connect(button.MouseLeave, function()
@@ -280,7 +284,12 @@ local function setHUDHidden(hidden: boolean)
 		local frame = state.frame
 		local target = state.home
 		if hidden then
-			local position, size = frame.AbsolutePosition, frame.AbsoluteSize
+			-- Position de repos (pas la position du moment : le groupe peut etre en pleine animation
+			-- de retour si on rouvre un menu tres vite). Seul l'offset change pendant les animations.
+			local current = frame.Position
+			local position = frame.AbsolutePosition
+				- Vector2.new(current.X.Offset - state.home.X.Offset, current.Y.Offset - state.home.Y.Offset)
+			local size = frame.AbsoluteSize
 			local dx, dy = 0, 0
 			-- Marge en plus pour que contours, ombres et enfants agrandis sortent completement.
 			if state.direction == "Up" then
@@ -323,6 +332,15 @@ local function setBackdrop(open: boolean)
 		{ Size = if open then 24 else 0 }
 	)
 	blurTween = newBlurTween
+	if open then
+		blur.Enabled = true
+	else
+		newBlurTween.Completed:Once(function(state: Enum.PlaybackState)
+			if state == Enum.PlaybackState.Completed then
+				blur.Enabled = false
+			end
+		end)
+	end
 	newBlurTween:Play()
 
 	local camera = workspace.CurrentCamera
@@ -733,6 +751,7 @@ local function setup()
 	blur = Instance.new("BlurEffect")
 	blur.Name = "MenuBackgroundBlur"
 	blur.Size = 0
+	blur.Enabled = false -- active seulement quand un menu est ouvert
 	blur.Parent = Lighting
 
 	soundFolder = Instance.new("Folder")
@@ -740,8 +759,20 @@ local function setup()
 	soundFolder.Parent = player:WaitForChild("PlayerGui")
 end
 
+local ready = false
+
+-- Attend que les menus du pack soient prets (setup fait dans Start). Faux apres le delai.
+function MenuController.WaitUntilReady(timeoutSeconds: number): boolean
+	local startedAt = os.clock()
+	while not ready and os.clock() - startedAt < timeoutSeconds do
+		task.wait(0.1)
+	end
+	return ready
+end
+
 function MenuController:Start()
 	setup()
+	ready = true
 
 	for _, name in SOUND_NAMES do
 		prepareSound(name)

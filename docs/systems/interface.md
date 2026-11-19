@@ -21,6 +21,7 @@ sont encore ceux du pack (textes "[Name]", "Item Name", "$123,456,789"), pas bra
 | `src/client/Controllers/ShopController.luau` | client | Construit le contenu du menu Shop |
 | `src/client/Controllers/OffersController.luau` | client | Offres animees a droite de l ecran |
 | `src/client/Controllers/WelcomeBackController.luau` | client | Ecran "Welcome Back!" (gains hors ligne) |
+| `src/client/Controllers/NotifyController.luau` | client | Message court du serveur en haut au centre (remote `Notify`), 3.5 s puis fondu |
 | `src/client/UI/PackStyle.luau` | client | Briques de style communes (texte, boutons, Robux, prix) |
 | `src/shared/Config/Shop.luau` | partage | Boosts, passes, packs d'argent (prix, ids Roblox) |
 | `src/shared/Config/Icons.luau` | partage | Ids des images de l'interface |
@@ -146,5 +147,12 @@ sinon Rojo l'ecrase.
   par le panier du menu Shop (97176673928357).
 - Un id d'image (203785492) n'est pas du bon type ("Asset type does not match").
 - Textes du pack a remplacer par les vrais (argent, Friend Boost, offres, contenus des menus).
-- Brancher l'argent reel, les offres Robux, l'Index (fruits), Offline Earnings.
+- Argent reel branche le 2026-11-19 (`MoneyHudController`, voir `argent.md`). Reste : offres Robux,
+  l'Index (fruits), Offline Earnings.
 - Pas encore teste sur telephone (Device Simulator).
+- 2026-11-19 (revue lot B) : Welcome Back utilise `NumberFormat.Money` (meme format que le HUD) et
+  ne se referme plus si `Show` est appele menu ouvert ; flou des menus desactive a 0 ; pas d'effet
+  de survol au toucher ; rotation des offres protegee par `pcall` ; texte "($0)" retire sous les
+  packs d'argent (montant a calculer en phase 2-3). Restent : `WaitForChild` sans delai dans
+  certains controleurs, attente de 1 s de MenuController dans OffersController, textes des offres
+  petits sur telephone.

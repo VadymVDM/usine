@@ -369,7 +369,7 @@ local function buildCashPacks()
 		label(frame, pack.title, "PackTitle", UDim2.fromScale(0.5, 0.05), UDim2.fromScale(0.9, 0.12))
 		label(frame, `{formatDuration(pack.minutes)} of profit`, "PackLine", UDim2.fromScale(0.36, 0.22), UDim2.fromScale(0.62, 0.1))
 		label(frame, "instantly", "PackLine", UDim2.fromScale(0.36, 0.32), UDim2.fromScale(0.62, 0.1))
-		local amount = label(frame, "($0)", "PackAmount", UDim2.fromScale(0.36, 0.44), UDim2.fromScale(0.62, 0.12))
+		local amount = label(frame, "", "PackAmount", UDim2.fromScale(0.36, 0.44), UDim2.fromScale(0.62, 0.12))
 		amount.Name = "Amount"
 		image(frame, "Cash", UDim2.fromScale(0.8, 0.2), UDim2.fromScale(0.34, 0.38))
 		local buy = priceButton(frame, pack.price, UDim2.fromScale(0.5, 0.64), UDim2.fromScale(0.6, 0.27), "PackPrice")

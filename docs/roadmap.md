@@ -35,15 +35,22 @@ Methode decidee : une phase a la fois, l'utilisateur teste dans Studio, puis pha
 
 
 - [ ] **Sauvegarde** joueur (ProfileStore ou DataStore, `roblox-data`) : schema de `game-design.md` (Sauvegarde)
+  - 2026-11-19 lot A : ProfileStore 1.0.3 + `DataService` (code, a valider par l'utilisateur ;
+    non teste avec le vrai DataStore : acces API Studio desactive, teste en mode Mock)
   - Prealable : Game Settings > Security > **Enable Studio Access to API Services**
 - [ ] **Argent** cote serveur (MoneyService) + affichage HUD + classement (leaderstats)
+  - 2026-11-19 lot A : `MoneyService`, leaderstats Cash/Rebirths, HUD `$1K` (code, verifie en
+    playtest Studio via `DebugService` ; a valider par l'utilisateur)
 - [ ] **Carte** : route + 6 bases blocky (dans Studio, pas dans Rojo), attribution d'une base par joueur
+  - 2026-11-19 lot B : carte + `BaseTemplate` reconstruits par `tools/build-map/` (style refait a la
+    demande de l'utilisateur), `BaseService` (attribution, panneau, apparition, nettoyage, 7e joueur),
+    remote `Notify` (verifie en playtest Studio a 1 joueur ; 2 joueurs et telephone non testes)
 - [ ] **Arbre** : chute des fruits (tirage selon Luck), Speed, plafond 30 fruits au sol, modeles des
       30 premiers fruits (style blocky)
 - [ ] **Ramassage** (marcher dessus, pile au-dessus de la tete), **bacs**, **presse-fruits**, pile de jus
 - [ ] **Comptoir**, **clients** (minuteur serveur + PNJ visuels), **tas d'argent** a ramasser
-- [ ] **Boutons d'amelioration sur les murs** (prix argent + prix Robux) et **employes** (ramasseur,
-      presseur, serveur)
+- [ ] **Pads d'amelioration** avec carte flottante (prix argent + prix Robux) et **employes**
+      (ramasseur, presseur, serveur) - pads et cartes poses au lot B, achat au lot E
 - [ ] Remotes verifies cote serveur (`roblox-security`, `roblox-networking`)
 
 ## Phase 2 : premiere session (A FAIRE)
@@ -93,7 +100,8 @@ Methode decidee : une phase a la fois, l'utilisateur teste dans Studio, puis pha
 
 ## Dette technique et points a surveiller
 
-- Rien n'est commite dans git depuis la creation du projet : **faire un commit**.
+- Commit de la phase 0 fait le 2026-11-19 (9daae84). `api.txt` (cle API de l'utilisateur) est ignore
+  par git : ne jamais le commiter.
 - Studio "usine" : `127.0.0.1:34851` pas autorise en HTTP -> les `.rbxm` se modifient via le Studio du
   pack (ou a la main). Mise en page du HUD et taille des menus sont dans `MenuController` (code).
 - `ShopController` a ses propres briques de style, en double avec `UI/PackStyle.luau` (a regrouper).

@@ -1,6 +1,6 @@
 # Systeme : Argent, HUD et classement
 
-**Statut :** a concevoir
+**Statut :** en cours (code fait et teste en Studio sans sauvegarde reelle)
 **Derniere mise a jour :** 2026-11-19
 
 ## Role
@@ -14,17 +14,27 @@ montant en bas a gauche et le classement du serveur (leaderstats) montre l'argen
 |---|---|---|
 | `src/server/Services/MoneyService.luau` | serveur | `Add`, `TrySpend`, `Get` ; leaderstats |
 | `src/client/Controllers/MoneyHudController.luau` | client | Affiche l'argent dans `HUD.Canvas.Money.Cash.Money` |
-| `src/shared/Util/NumberFormat.luau` | partage | Suffixes K/M/B/T (affichage seulement) |
+| `src/shared/Util/NumberFormat.luau` | partage | Suffixes K/M/B/T... (affichage seulement, arrondi vers le bas) |
+| `src/server/Services/DebugService.luau` | serveur | Studio seulement : `ServerStorage.Debug.Call` pour les tests |
 
 ## Fonctionnement
 
-- Argent **toujours entier** et jamais negatif. `Add(player, montant, raison)` refuse les montants
+- Argent **toujours entier**, jamais negatif, plafonne a `GameConfig.MaxMoney` (1e15). `Add(player, montant, raison)` refuse les montants
   non entiers, negatifs, NaN ou infinis. `TrySpend(player, prix)` retire seulement si le joueur a
   assez et renvoie vrai/faux. Aucun remote ne modifie l'argent.
 - L'argent vit dans la sauvegarde (`Data.Money`) ; MoneyService met a jour aussi
   `leaderstats.Cash` (IntValue) et `leaderstats.Rebirths`.
 - Le HUD lit `leaderstats.Cash` (replique par Roblox, pas de remote) et affiche "$1.25K" etc.
+- `leaderstats` (Cash, Rebirths) est cree des l'arrivee (valeurs 0), puis rempli quand la
+  sauvegarde est chargee. Tant qu'elle n'est pas chargee, `Add`/`TrySpend` renvoient faux.
 - Le "+" jaune (packs d'argent) reste non branche (phase 3).
+
+## Tests
+
+En playtest Studio (serveur) : `game.ServerStorage.Debug.Call:Invoke("Money", "Add", "<Nom>", 100)`
+(aussi `TrySpend`, `Get`, et `"Data", "Get"`). Verifie le 2026-11-19 : +1250 accepte ; -5, 1.5,
+NaN, inf refuses ; depense de 2000 refusee avec 1250 ; depense de 250 acceptee -> 1000 ;
+leaderstats = 1000 ; HUD = "$1K".
 
 ## Remotes
 
@@ -36,9 +46,11 @@ Aucun (le client lit `leaderstats`).
 
 ## Configuration
 
-`GameConfig.StartingMoney` (0).
+`GameConfig.StartingMoney` (0), `GameConfig.MaxMoney` (1e15).
 
 ## Problemes connus / a faire
 
-- Au-dela de 2^53 (~9 quadrillions) les entiers ne sont plus exacts : a revoir en phase 4
-  (raretes tres hautes + multiplicateurs de rebirth).
+- Plafond 1e15 (= "$1Qa") : au-dela de 2^53 les entiers ne sont plus exacts. A revoir en phase 4
+  (raretes tres hautes + multiplicateurs de rebirth : il faudra un autre format de nombre).
+- `WelcomeBackController` a encore son propre `formatMoney` (pas de refactor de l'interface en
+  phase 1) : a remplacer par `NumberFormat` plus tard.

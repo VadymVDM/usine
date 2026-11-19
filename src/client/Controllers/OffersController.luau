@@ -370,10 +370,14 @@ function OffersController:Start()
 	layout.Parent = column
 	column.Parent = hud
 
-	task.wait(1) -- laisser MenuController enregistrer les menus du pack
-	buildPopup()
+	-- Attendre que MenuController ait enregistre les menus du pack (au lieu d'un delai fixe)
+	if menuController().WaitUntilReady(15) then
+		buildPopup()
+	else
+		warn("[OffersController] Menus pas prets apres 15 s : fenetre des offres indisponible")
+	end
 
-	RunService.RenderStepped:Connect(function(dt)
+	RunService.Heartbeat:Connect(function(dt)
 		for _, glow in glows do
 			glow.Rotation = (glow.Rotation + GLOW_SPEED * dt) % 360
 		end
@@ -381,7 +385,10 @@ function OffersController:Start()
 	hud:GetAttributeChangedSignal("ActiveMenu"):Connect(slideColumn)
 
 	while true do
-		tick()
+		local ok, err = pcall(tick)
+		if not ok then
+			warn(`[OffersController] tick : {err}`)
+		end
 		task.wait(1)
 	end
 end

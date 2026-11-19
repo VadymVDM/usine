@@ -1,6 +1,6 @@
 # Systeme : Sauvegarde des joueurs
 
-**Statut :** a concevoir
+**Statut :** en cours (code fait ; teste en mode Mock seulement, acces API desactive)
 **Derniere mise a jour :** 2026-11-19
 
 ## Role
@@ -23,15 +23,25 @@ serveur a la fois peut modifier la sauvegarde d'un joueur (verrou de session).
   automatique, BindToClose et `UpdateAsync` deja faits et eprouves ; ecrire tout ca a la main est
   la premiere source de pertes de donnees. Sans accord : DataStore a la main (UpdateAsync,
   3 tentatives, verrou maison), plus long et plus risque.
-- Arrivee : `StartSessionAsync("player_<UserId>")` avec delai maximum 30 s. Echec -> le joueur est
-  renvoye avec un message propre ("Your data could not be loaded. Please rejoin."). Jamais de
-  profil vide a la place d'un profil qui n'a pas pu etre lu.
+- Arrivee : `StartSessionAsync("player_<UserId>")` avec delai maximum 30 s (`LoadTimeoutSeconds`).
+  Echec ou erreur -> le joueur est renvoye avec un message propre ("Your data could not be loaded.
+  Please rejoin."). Jamais de profil vide a la place d'un profil qui n'a pas pu etre lu.
+- Sauvegarde illisible (champ du mauvais type qui fait planter la preparation) : la session est
+  fermee sans jouer avec, le joueur est renvoye. Les valeurs simplement impossibles (argent
+  negatif, niveau hors limites, table manquante) sont corrigees avec un avertissement.
+- Session terminee ailleurs (fermeture du serveur, autre serveur) : les services sont prevenus
+  (`OnPlayerRemoving`) et le joueur est renvoye ("Your data session ended."), sauf a la fermeture.
 - Puis `Reconcile()` (ajoute les champs absents) et migration selon `SchemaVersion`.
 - Premiere visite = profil neuf (premier chargement). Sert a poser 3 pommes au sol.
 - Depart : `EndSession()`. Fermeture du serveur : ProfileStore termine les sessions ouvertes.
-- DataStore indisponible (Studio sans "Enable Studio Access to API Services") : ProfileStore
-  passe en mode hors ligne, un avertissement clair est ecrit dans la console, le jeu reste
-  jouable, rien n'est ecrit. Chaque session compte alors comme une premiere visite.
+- DataStore indisponible (Studio sans "Enable Studio Access to API Services") : `DataService`
+  teste lui-meme l'acces (ProfileStore ne reconnait pas l'erreur 502 "Studio access to APIs is not
+  allowed") et utilise `ProfileStore.Mock` : avertissement `[DataService] DataStore indisponible...`
+  dans la console, jeu jouable, rien n'est ecrit. Chaque session compte alors comme une premiere
+  visite.
+- Ordre de demarrage non garanti : les autres services s'abonnent avec
+  `DataService.OnPlayerLoaded(fn)` (appele aussi pour les joueurs deja charges) et
+  `DataService.OnPlayerRemoving(fn)` (avant la derniere sauvegarde).
 - Une seule porte : les autres services lisent/modifient les donnees par `DataService`, et
   chaque champ a un seul proprietaire (Money -> MoneyService, Upgrades -> UpgradeService,
   DiscoveredFruits -> TreeService).
@@ -72,3 +82,7 @@ passage de version (`1 -> 2`...) si un champ change de forme.
 
 - Acces API desactive dans Studio "usine" (constate le 2026-11-19) : la sauvegarde ne peut pas
   etre testee tant que l'utilisateur ne l'active pas (Game Settings > Security).
+- En mode Mock, ProfileStore ignore le delai `Cancel` (sans effet : le Mock ne fait pas attendre).
+- Pas encore teste : quitter puis revenir avec le vrai DataStore, deux serveurs en meme temps.
+- Revue adversariale du lot A faite (2026-11-19) : erreurs de chargement protegees, nettoyage sur
+  fin de session externe, plafond d'argent, `math.clamp` retire.

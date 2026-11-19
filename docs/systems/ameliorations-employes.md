@@ -1,29 +1,35 @@
-# Systeme : Tableaux d'ameliorations et employes
+# Systeme : Pads d'ameliorations et employes
 
-**Statut :** a concevoir
+**Statut :** en cours (pads et cartes poses au lot B ; achat au lot E)
 **Derniere mise a jour :** 2026-11-19
 
 ## Role
 
-Les tableaux places dans la base permettent d'acheter les ameliorations et les employes avec
+Les pads places dans la base permettent d'acheter les ameliorations et les employes avec
 l'argent du jeu. Les employes automatisent la chaine.
 
 ## Fichiers
 
 | Fichier | Cote | Role |
 |---|---|---|
-| `src/server/Services/UpgradeService.luau` | serveur | Plaques d'achat, verification, niveaux |
+| `src/server/Services/UpgradeService.luau` | serveur | Pads d'achat, verification, niveaux, cartes |
 | `src/server/Services/EmployeeService.luau` | serveur | Ramasseur, Serveur (deplacements + travail) |
 | `src/shared/Config/Upgrades.luau` | partage | Effets, prix argent, prix Robux (A VALIDER), niveaux max |
 
 ## Fonctionnement
 
-- Chaque bouton = une tuile coloree (une couleur par type) : "actuel -> suivant", prix en argent
-  (vert), prix Robux (violet + icone). Devant : une **plaque au sol** a fouler pour acheter
-  (proposition) ; a cote, la plaque Robux magenta neon, inactive ("Coming soon") en phase 1.
-- Achat : le serveur voit le joueur sur la plaque (sa base seulement), verifie niveau max et
-  argent (`MoneyService.TrySpend`), monte le niveau. Il faut quitter la plaque pour racheter.
-  Pas assez d'argent : la tuile clignote en rouge.
+- **Decision du 2026-11-19 (lot B, apres avis de l'utilisateur : "trop de boutons") :** plus de
+  tableaux muraux ni de plaques Robux au sol. Chaque amelioration = **1 pad rond** au sol
+  (`Base.Upgrades.Pad_<Id>`, attribut `UpgradeId`) avec son icone (champ `icon` de la Config) et
+  une **carte flottante** au style de l'interface (`IconPlate.Card`, visible a moins de 32 studs) :
+  titre, icone, "actuel -> suivant" (`Value`), bouton vert `Price`, bouton violet `Robux`
+  (A VALIDER, branche en phase 3). Les cartes du modele montrent le niveau de depart : le lot E
+  les met a jour pour le proprietaire.
+- Emplacements : Tree Speed / Tree Luck pres de l'arbre, Juice Limit derriere la palette de jus,
+  Counter Limit / Customer Speed / Customers derriere l'etal, les 3 employes devant la cabane STAFF.
+- Achat : le serveur voit le joueur sur le pad (sa base seulement), verifie niveau max et
+  argent (`MoneyService.TrySpend`), monte le niveau. Il faut quitter le pad pour racheter.
+  Pas assez d'argent : la carte clignote en rouge.
 - Ameliorations : TreeSpeed, TreeLuck, JuiceLimit, CounterLimit, CustomerSpeed, CustomerCount.
 - Employes (1 niveau chacun en phase 1, PNJ blocky visibles) :
   - Ramasseur (Collector) : porte les fruits du sol vers les bacs.
@@ -65,7 +71,7 @@ A reprendre en playtest.
 
 ## Remotes
 
-Aucun : achat par plaque au sol detectee par le serveur.
+Aucun : achat par pad au sol detecte par le serveur.
 
 ## Donnees sauvegardees
 
@@ -77,4 +83,5 @@ Aucun : achat par plaque au sol detectee par le serveur.
 
 ## Problemes connus / a faire
 
-- Tester la plaque au sol sur telephone.
+- Tester le pad au sol sur telephone.
+- Positions des pads : en haut de `tools/build-map/02e-base-staff-pads.luau`.

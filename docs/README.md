@@ -21,13 +21,13 @@ Un fichier par systeme dans `systems/`, a partir de [systems/_TEMPLATE.md](syste
 
 | Systeme | Doc | Statut |
 |---|---|---|
-| Fruits, raretes, arbre, index | [systems/fruits.md](systems/fruits.md) | a concevoir |
+| Fruits, raretes, arbre, index | [systems/fruits.md](systems/fruits.md) | en cours (Config faite, arbre au lot C) |
 | Interface (HUD et menus) | [systems/interface.md](systems/interface.md) | en cours |
-| Sauvegarde des joueurs | [systems/sauvegarde.md](systems/sauvegarde.md) | a concevoir |
-| Argent, HUD et classement | [systems/argent.md](systems/argent.md) | a concevoir |
-| Carte, bases et attribution | [systems/carte-bases.md](systems/carte-bases.md) | a concevoir |
+| Sauvegarde des joueurs | [systems/sauvegarde.md](systems/sauvegarde.md) | en cours (teste en mode Mock seulement) |
+| Argent, HUD et classement | [systems/argent.md](systems/argent.md) | en cours (teste sans sauvegarde reelle) |
+| Carte, bases et attribution | [systems/carte-bases.md](systems/carte-bases.md) | fonctionne (a tester a 2 joueurs) |
 | Chaine de production (arbre, ramassage, bacs, presse, jus) | [systems/chaine-production.md](systems/chaine-production.md) | a concevoir |
 | Comptoir, clients et tas d'argent | [systems/clients.md](systems/clients.md) | a concevoir |
-| Tableaux d'ameliorations et employes | [systems/ameliorations-employes.md](systems/ameliorations-employes.md) | a concevoir |
+| Pads d'ameliorations et employes | [systems/ameliorations-employes.md](systems/ameliorations-employes.md) | en cours (pads poses au lot B, achat au lot E) |
 
 Statuts possibles : `a concevoir`, `en cours`, `fonctionne`, `a corriger`.

@@ -10,6 +10,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local PackStyle = require(script.Parent.Parent:WaitForChild("UI"):WaitForChild("PackStyle"))
+local NumberFormat = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Util"):WaitForChild("NumberFormat"))
 
 local WelcomeBackController = {}
 
@@ -27,17 +28,9 @@ local function formatDuration(seconds: number): string
 	return `{hours}h {minutes}m`
 end
 
+-- Meme format que le HUD (NumberFormat) : "$5K", "$1.2M"...
 local function formatMoney(amount: number): string
-	if amount >= 1e12 then
-		return string.format("$%.2fT", amount / 1e12)
-	elseif amount >= 1e9 then
-		return string.format("$%.2fB", amount / 1e9)
-	elseif amount >= 1e6 then
-		return string.format("$%.2fM", amount / 1e6)
-	elseif amount >= 1e3 then
-		return string.format("$%.2fK", amount / 1e3)
-	end
-	return `${math.floor(amount)}`
+	return NumberFormat.Money(amount)
 end
 
 local function menuController(): any
@@ -51,7 +44,10 @@ function WelcomeBackController.Show(seconds: number, amount: number)
 	end
 	subtitle.Text = `You were offline for {formatDuration(seconds)} and earned:`
 	amountLabel.Text = formatMoney(amount)
-	menuController().Open(MENU_NAME)
+	-- Open() bascule : ne pas refermer l'ecran s'il est deja ouvert
+	if menuController().GetActiveMenu() ~= MENU_NAME then
+		menuController().Open(MENU_NAME)
+	end
 end
 
 local function build(menu: Frame, shopConfig: any, icons: any)
