@@ -8,13 +8,14 @@ Ces regles s'appliquent a tout agent (Claude Code, Codex, Cursor...). Les suivre
 1. Lire ce fichier en entier.
 2. Lire `docs/README.md` (index de la doc) et le dernier fichier de `docs/journal/`.
 3. Lire la doc du ou des systemes touches dans `docs/systems/`.
-4. **Revoir le skill.** Ouvrir `.claude/skills/roblox-dev/SKILL.md`, suivre sa table de routage
-   et lire les fichiers du sujet (`quick.md`, puis `full.md` si besoin) AVANT d'ecrire du code.
-   - Nouveau systeme de tycoon : `.claude/skills/roblox-dev/genres/genre-tycoon.md`.
-   - Argent, achats, remotes : `brain/core/roblox-security` + `brain/core/roblox-networking`.
-   - Sauvegardes : `brain/core/roblox-data`.
-   - Avant de dire "fini" : `workflows/code-review.md`.
-   - Respecter les regles de conflit du skill (ProfileStore, noms d'outils MCP actuels, `task.*`).
+4. **Revoir les skills Roblox** (`.claude/skills/roblox-*`, source : roblox-brain). Charger d'abord
+   `roblox-collaboration-mode`, puis le ou les skills du sujet : lire `SKILL.md`, puis
+   `references/full.md` si besoin, AVANT d'ecrire du code.
+   - Nouveau systeme de tycoon / equilibrage : `roblox-game-design` + `roblox-architecture`.
+   - Argent, achats, remotes : `roblox-security` + `roblox-networking` (+ `roblox-monetization` si Robux).
+   - Sauvegardes : `roblox-data`.
+   - Interface : `roblox-gui`. Rojo, StyLua, Selene : `roblox-tooling`. Studio via MCP : `roblox-studio-mcp`.
+   - Avant de dire "fini" : relire le code avec `roblox-security` et `roblox-luau-patterns`.
 
 ## 2. Documentation : un fichier .md par systeme (obligatoire)
 
@@ -63,6 +64,8 @@ Ces regles s'appliquent a tout agent (Claude Code, Codex, Cursor...). Les suivre
 - Prix, vitesses de production et recompenses dans `src/shared/Config/`, jamais en dur ailleurs.
 - `task.wait` / `task.spawn` / `task.delay` uniquement. Deconnecter les connexions inutiles.
 - Noms de code en anglais (`MoneyService`, `MachineController`), doc et commentaires en francais.
+- **Tout ce que le joueur voit est en anglais** (UI, panneaux, messages). Laisser `AutoLocalize`
+  actif sur l'interface pour la traduction automatique de Roblox.
 - Formatage : StyLua (`stylua.toml`). Analyse : Selene (`selene.toml`), si installes.
 
 ## 6. Fin d'intervention

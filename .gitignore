@@ -5,3 +5,7 @@ sourcemap.json
 # fichiers de place Studio (sauvegarder a part si besoin)
 *.rbxl
 *.rbxlx
+
+# secrets et raccourcis locaux (ne jamais commiter)
+api.txt
+*.lnk

@@ -1,7 +1,9 @@
 {
   "name": "MonUsineDeBoissons",
   "servePort": 34850,
-  "globIgnorePaths": ["**/.gitkeep"],
+  "globIgnorePaths": [
+    "**/.gitkeep"
+  ],
   "tree": {
     "$className": "DataModel",
     "ReplicatedStorage": {
@@ -32,7 +34,10 @@
     "StarterGui": {
       "$className": "StarterGui",
       "$ignoreUnknownInstances": true,
-      "$path": "src/gui"
+      "$path": "src/gui",
+      "$properties": {
+        "ScreenOrientation": "LandscapeSensor"
+      }
     },
     "Workspace": {
       "$className": "Workspace",

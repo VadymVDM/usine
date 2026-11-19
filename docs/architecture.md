@@ -41,5 +41,8 @@ return MoneyService
 ## Partage
 
 - `src/shared/Config/GameConfig.luau` : valeurs globales du jeu.
+- `src/shared/Assets/` : objets Roblox en `.rbxm` (sons de l'interface...).
+- `src/shared/Vendor/` : librairies externes en `.rbxm` (TopbarPlus, licence MIT).
+- `src/gui/*.rbxm` : interfaces (ScreenGui) en binaire, sans script ; la logique est dans `src/client/Controllers/`.
 - Les remotes seront regroupes dans un seul endroit (a decider au premier systeme qui en a besoin,
   puis documenter ici).
