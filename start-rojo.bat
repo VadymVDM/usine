@@ -1,5 +1,6 @@
 @echo off
 setlocal
+title Rojo Usine :34850 (auto-restart)
 cd /d "%~dp0"
 set "PORT=34850"
 
@@ -14,18 +15,22 @@ if not exist "%ROJO%" (
   set "ROJO=rojo"
 )
 
-netstat -ano | findstr ":%PORT% .*LISTENING" >nul
-if not errorlevel 1 (
-  echo Le port %PORT% est deja utilise. Lance stop-rojo.bat ou ferme l'autre serveur.
-  pause
-  exit /b 1
+rem Libere le port si un ancien Rojo (plante ou oublie) le garde encore
+for /f "tokens=5" %%p in ('netstat -ano ^| findstr ":%PORT% .*LISTENING"') do (
+  echo Port %PORT% deja utilise par le PID %%p, arret...
+  taskkill /PID %%p /F >nul 2>&1
 )
 
-echo Demarrage de Rojo "Mon usine de boissons" sur le port %PORT%...
-start "Rojo Usine :%PORT%" "%ROJO%" serve default.project.json --port %PORT%
+echo Studio : plugin Rojo ^> Connect ^> localhost:%PORT%
+echo Arreter : fermer cette fenetre ou lancer stop-rojo.bat
 
+rem Boucle : si Rojo plante ou se ferme, il est relance tout seul
+:loop
 echo.
-echo OK - fenetre Rojo ouverte.
-echo   Studio : plugin Rojo ^> Connect ^> localhost:%PORT%
-echo   Arreter : fermer la fenetre ou lancer stop-rojo.bat
-endlocal
+echo [%date% %time%] Demarrage de Rojo "Mon usine de boissons" sur le port %PORT%...
+"%ROJO%" serve default.project.json --port %PORT%
+echo.
+echo [%date% %time%] Rojo s'est arrete (code %errorlevel%). Relance dans 3 secondes...
+echo Ferme cette fenetre pour arreter definitivement.
+timeout /t 3 /nobreak >nul
+goto loop

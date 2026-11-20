@@ -1,12 +1,18 @@
 --!strict
 -- Seul module qui modifie l'argent du joueur (Data.Money). Argent toujours entier et >= 0.
--- Aucun remote : le client lit leaderstats.Cash. Doc : docs/systems/argent.md
+-- Le client lit leaderstats.Cash. Seul envoi : remote Feedback "Paid" { amount } apres chaque achat
+-- paye (TrySpend), pour le son de paiement (sauf Rebirth et debug). Doc : docs/systems/argent.md
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local DataService = require(script.Parent.DataService)
 local GameConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"):WaitForChild("GameConfig"))
+local Remotes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Network"):WaitForChild("Remotes")) :: any
+
+-- Depenses qui ne sont pas un achat : pas de son de paiement
+local SILENT_REASONS: { [string]: boolean } = { Rebirth = true, debug = true }
+local feedbackEvent: RemoteEvent? = nil
 
 local MoneyService = {}
 
@@ -53,6 +59,7 @@ end
 function MoneyService:Init() end
 
 function MoneyService:Start()
+	feedbackEvent = Remotes.GetServerEvent("Feedback")
 	Players.PlayerAdded:Connect(createLeaderstats)
 	for _, player in Players:GetPlayers() do
 		createLeaderstats(player)
@@ -61,6 +68,11 @@ function MoneyService:Start()
 		createLeaderstats(player)
 		syncLeaderstats(player)
 	end)
+end
+
+-- Remet leaderstats (Cash, Rebirths) a jour depuis la sauvegarde (ex. apres un rebirth, RebirthService).
+function MoneyService.SyncLeaderstats(player: Player)
+	syncLeaderstats(player)
 end
 
 -- Argent actuel (0 si la sauvegarde n'est pas chargee).
@@ -98,6 +110,9 @@ function MoneyService.TrySpend(player: Player, price: number, reason: string): b
 	end
 	data.Money -= price
 	syncLeaderstats(player)
+	if feedbackEvent and price > 0 and not SILENT_REASONS[reason] then
+		feedbackEvent:FireClient(player, "Paid", { amount = price })
+	end
 	return true
 end
 

@@ -47,17 +47,78 @@ Methode decidee : une phase a la fois, l'utilisateur teste dans Studio, puis pha
     remote `Notify` (verifie en playtest Studio a 1 joueur ; 2 joueurs et telephone non testes)
 - [ ] **Arbre** : chute des fruits (tirage selon Luck), Speed, plafond 30 fruits au sol, modeles des
       30 premiers fruits (style blocky)
+  - 2026-11-19 lot C : `TreeService` + `FruitModels` (verifie en playtest Studio a 1 joueur :
+    chute, Luck 2 -> Orange, plafond 30 + "Tree full!", 3 pommes a la premiere visite, decouverte
+    sauvegardee ; 2 joueurs et telephone non testes)
 - [ ] **Ramassage** (marcher dessus, pile au-dessus de la tete), **bacs**, **presse-fruits**, pile de jus
-- [ ] **Comptoir**, **clients** (minuteur serveur + PNJ visuels), **tas d'argent** a ramasser
-- [ ] **Pads d'amelioration** avec carte flottante (prix argent + prix Robux) et **employes**
-      (ramasseur, presseur, serveur) - pads et cartes poses au lot B, achat au lot E
-- [ ] Remotes verifies cote serveur (`roblox-security`, `roblox-networking`)
+  - 2026-11-19 lot C : `ProductionService` (verifie en playtest Studio : ramassage limite a 20, pile
+    2 x 2, depot, presse 1 jus / 1.5 s, "n/max" + "!" a 10/10, pile gardee apres la mort). Prendre
+    les jus et le comptoir : lot D
+- [x] **Usine refaite** (2026-11-19, demande de l'utilisateur) : carte agrandie (bases 132 x 118,
+      espacement 170), usine en interieur, verger, tapis roulant + mixeur anime, machines fantomes
+      bleues qui se construisent, pads verts des employes, panneaux d'ameliorations a tuiles, salles
+      fermees (portes rouges). `UpgradeService` (achats) + `MachineFxController` (effets) : l'achat du
+      lot E est fait. Verifie en playtest (voir journal).
+- [x] **Comptoir**, **clients R6** (minuteur serveur + PNJ visuels), **tas de billets** a encaisser
+      (E ou s'approcher), pad Robux "Auto Collect" (pass pas cree) — 2026-11-19, playtest 1 joueur
+- [x] **Touche E partout** (fruits, etagere, table a jus, comptoir, argent, machines, portes),
+      **barre d'inventaire** en bas, jus portes dans les mains, machines fantomes "vraie machine
+      teintee bleu + contour", usine agrandie avec zones delimitees — 2026-11-19
+- [x] **Employes R6** visibles qui travaillent : Fruit Picker, Blender Operator (Waiter remplace par le pad Auto Sell le 2026-11-20) — 2026-11-19
+- [x] **Plan de l'usine en U** (bar a jus a droite, plus de z-fighting), decor inutile retire,
+      pieds des panneaux, fleche jaune retiree, marche des employes (pathfinding, animation seulement
+      en marchant), inventaire = barre Roblox de base, HUD plus petit sur PC, "+" -> packs d'argent,
+      menu Settings branche (Music, Sounds, Low Quality, sauvegardes), ombres inutiles coupees — 2026-11-19 soir
+- [ ] Joueurs en R6 : reglage Game Settings > Avatar > R6 a faire par l'utilisateur
+- [x] Vrais modeles de fruits : 100 fruits voxel + effets de rarete + effets d'apparition, arbre
+      en 5 stades qui grandit (2026-11-19, playtest PC 1 joueur)
+- [ ] Meilleurs sons de jeu
+- [ ] Remotes verifies cote serveur (`roblox-security`, `roblox-networking`) : relecture securite
+      complete des nouveaux services (CustomerService, WorkerService) a faire
+- [ ] Tests : 2 joueurs, telephone, manette
+
+## Phase 1b : la tour d'etages (CODEE le 2026-11-20, en test chez l'utilisateur)
+
+Nouveau gameplay : 10 etages de 10 fruits (depuis le 2026-11-20 : chaque etage a les 10 raretes,
+de Common a Infinity), chaque etage autonome. Detail :
+`game-design.md` (section "La tour d'etages"). Remplace les zones 2 et 3 (phase 4).
+
+Plan technique complet : `systems/tour-etages.md`. Prompt pret pour un nouveau chat :
+[prompts/phase-1b-tour-etages.md](prompts/phase-1b-tour-etages.md). Ordre prevu :
+
+- [x] Plan : etage de 36, escalier du milieu vers le mur, 2 voies alternees, etage ferme, lag,
+      sauvegarde (2026-11-19)
+- [x] Tranche (2026-11-20) : un seul tas d'argent en bas, ascenseur vitre exterieur pour les
+      clients, etage = ~10-15 min de gains, rebirth a l'etage 10
+- [x] 1. (2026-11-20, valide par l'utilisateur) `FloorTemplate` dans Studio : la base actuelle sans facade/cour + zone STAIRS (rampes,
+      garde-corps, trou, palier, vitre rouge) ; zone SALES raccourcie a z 50 ; retirer les salles
+      Cocktail Bar / Terrace. Tester a 2 etages a la main (monter, camera, tete, chute)
+- [x] 2. (2026-11-20, SchemaVersion 4) **Sauvegarde** par etage (`FloorsOwned`, `Floors[n].Upgrades`, migration) - a montrer
+      avant de coder (`roblox-data`)
+- [x] 3. (2026-11-20, en test chez l'utilisateur) Services par etage : recoivent un etage au lieu d'une base (Tree, Production, Customer,
+      Worker, Upgrade) ; arbre = fruits de la rarete de l'etage
+- [x] 4. (2026-11-20, en test chez l'utilisateur) `FloorService` : construire les etages achetes + le suivant ferme, achat (E), effet de
+      construction, etage actif du joueur, apparition sur l'etage le plus haut, panneau Floors
+- [x] 4b. (2026-11-20, verifie dans Studio) **Fruits par etage (regle du 2026-11-20)** : etage n = ligne n du tableau (une rarete de
+      chaque), chances par rarete, Luck = chance des rares, valeur = etage x bonus de rarete, une caisse
+      par rarete, decouverte au ramassage + animation (fruit au centre, confettis, vole vers l'Index).
+      Detail : `systems/fruits.md` > "Fonctionnement"
+- [x] 5. (2026-11-20, verifie dans Studio) Production en nombres sur les etages ou le joueur n'est pas
+      (`Lib/FloorIncome`, formule prete pour les gains hors ligne), visuels seulement sur l'etage actif,
+      panneau ELEVATOR, cabine et clients de la terrasse
+- [x] 6. Clients des etages du haut (balcon + ascenseur vitre, lot 5) ; ventes de tous les etages vers le tas du bas (lot 3)
+- [x] Lot 6 (2026-11-20) : mesures a 10 etages et 6 bases x 10 etages simulees, relecture securite /
+      connexions (voir `systems/tour-etages.md` > "Performance")
+- [ ] Tests restants : 2 vrais joueurs, vrai telephone, trajet des clients par l'ascenseur a l'oeil
+- [ ] A decider : alleger un etage (~1 230 pieces, objectif ~800) et `StreamingTargetRadius` (1024 :
+      tout est envoye sur PC)
+- [ ] Premiere session (`first-session.md`) a reecrire avec les etages (voir la note en haut du fichier)
 
 ## Phase 2 : premiere session (A FAIRE)
 
 - [ ] Cinematique d'ouverture (8-10 s, passable, une fois) - voir `first-session.md`
-- [ ] Guidage : fleches 3D, chemin lumineux, objets qui brillent, etapes du tutoriel
-- [ ] Annonces "NEW FRUIT!", Index branche sur les vrais fruits (10 raretes du jeu au lieu du pack)
+- [ ] Guidage : file de chevrons lumineux joueur -> cible (Beam), objets qui brillent, etapes du tutoriel
+- [ ] Index branche sur les vrais fruits (10 pages, une par etage ; animation de decouverte : lot 4b)
 - [ ] Gains hors ligne cote serveur + ecran Welcome Back branche (CLAIM credite l'argent)
 - [ ] Entonnoir analytics du tutoriel (`roblox-analytics`)
 
@@ -72,12 +133,13 @@ Methode decidee : une phase a la fois, l'utilisateur teste dans Studio, puis pha
 - [ ] Offres contextuelles (au bon moment, garde-fous : pas avant 5 min, max 1 / 5 min)
 - [ ] Pass "Thief" : vol de boissons avec garde-fous (a cadrer)
 
-## Phase 4 : zones 2 et 3, rebirth (A FAIRE)
+## Phase 4 : rebirth (A FAIRE ; zones 2 et 3 abandonnees le 2026-11-19, remplacees par les etages)
 
-- [ ] Zone 2 : bar a cocktails (3 cases, x2 si 3 identiques, reservation des fruits)
-- [ ] Zone 3 : terrasse (tables, tapis roulant de vente)
-- [ ] Rebirth (multiplicateur, rarete suivante, "Rebirth & keep your cash", Rebirth Master)
-- [ ] 70 fruits restants (raretes ouvertes par les rebirths)
+- [x] Rebirth (multiplicateur, "Rebirth & keep your cash", Rebirth Master ; n'ouvre plus de rarete)
+      — code le 2026-11-20 (`systems/rebirth.md`) ; prix (10B, 20B...) et multiplicateur (x2, x3...)
+      valides ; paliers Robux a valider ; produits Robux et pass a creer
+- [ ] Rebirth : a decider : bouton dans le HUD, badge "x2" pres de l'argent, couleur de l'arbre,
+      Rebirth Master -50 %, guidage au premier rebirth
 
 ## Phase 5 : finition et lancement (A FAIRE)
 
@@ -91,6 +153,7 @@ Methode decidee : une phase a la fois, l'utilisateur teste dans Studio, puis pha
 ## Decisions encore ouvertes (a trancher par l'utilisateur)
 
 - Nom : **Sell a Juice** ou **Make a Juice**
+- Prix des etages (remplacent les salles Cocktail Bar 5K / Terrace 50K)
 - Prix des passes (VIP 149, 3x Cash 399, Drink Master 249, Greedy 199, Speed 99, Auto Collect 149,
   Thief 149, Rebirth Master 299) et des packs d'argent (25 / 79 / 199 / 499)
 - Rebirth Master : ajouter "rebirth 50 % moins cher" ou non

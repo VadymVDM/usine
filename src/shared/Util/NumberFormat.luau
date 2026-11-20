@@ -57,6 +57,16 @@ function NumberFormat.Abbreviate(n: number): string
 	return trim(value) .. SUFFIXES[tier]
 end
 
+-- Entier avec virgules : 50000 -> "50,000"
+function NumberFormat.Commas(n: number): string
+	local text = string.format("%d", math.floor(n))
+	local count = 0
+	repeat
+		text, count = string.gsub(text, "^(-?%d+)(%d%d%d)", "%1,%2")
+	until count == 0
+	return text
+end
+
 function NumberFormat.Money(n: number): string
 	return "$" .. NumberFormat.Abbreviate(n)
 end

@@ -1,7 +1,8 @@
 --!strict
 -- Bases des joueurs. Au demarrage : clone ServerStorage.BaseTemplate dans les emplacements
 -- Workspace.Map.BaseSlots.BaseSlot1..6 -> Workspace.Bases.Base1..6.
--- A l'arrivee : premiere base libre, panneau "<Nom>'s Juice Stand", le joueur apparait dedans.
+-- A l'arrivee : premiere base libre, panneau "<Nom>'s Juice Factory", le joueur apparait dedans
+-- (sur son etage le plus haut : point donne par FloorService). Les etages : FloorService.
 -- Sans base libre (7e joueur) : message propre, le joueur se promene et attend qu'une base se libere.
 -- Au depart : les autres services nettoient (OnBaseReleased), le dossier Dynamic est vide, la base
 -- redevient libre et passe au premier joueur en attente.
@@ -26,7 +27,7 @@ local baseOf: { [Player]: Model } = {}
 local waiting: { Player } = {} -- joueurs sans base, dans l'ordre d'arrivee
 local reserved: { [Model]: boolean } = {} -- tests Studio seulement (DebugService)
 local characterConnections: { [Player]: RBXScriptConnection } = {}
-local lastLockedClick: { [Player]: number } = {}
+local spawnResolver: ((Player, Model) -> CFrame?)? = nil
 local assignedCallbacks: { Callback } = {}
 local releasedCallbacks: { Callback } = {}
 
@@ -52,31 +53,14 @@ local function setSignText(base: Model, text: string)
 	end
 end
 
--- Textes des zones fermees depuis la Config (le modele peut etre plus ancien que la Config)
-local function setLockedTexts(base: Model)
-	local locks = base:FindFirstChild("ZoneLocks")
-	if locks == nil then
-		return
-	end
-	for _, zone in locks:GetChildren() do
-		local zoneName = MapConfig.LockedZoneNames[zone:GetAttribute("ZoneId") :: any]
-		for _, item in zone:GetDescendants() do
-			if item:IsA("TextLabel") then
-				if item.Name == "ZoneName" and zoneName then
-					item.Text = zoneName
-				elseif item.Name == "Status" then
-					item.Text = MapConfig.LockedZoneText
-				end
-			end
+-- Point d'apparition dans la base : donne par FloorService (etage le plus haut du joueur).
+local function getSpawnCFrame(player: Player, base: Model): CFrame?
+	if spawnResolver then
+		local ok, result = pcall(spawnResolver, player, base)
+		if ok then
+			return result
 		end
-	end
-end
-
-local function getSpawnCFrame(base: Model): CFrame?
-	local markers = base:FindFirstChild("Markers")
-	local spawnPoint = markers and markers:FindFirstChild("SpawnPoint")
-	if spawnPoint and spawnPoint:IsA("BasePart") then
-		return spawnPoint.CFrame + Vector3.new(0, 3, 0)
+		warn(`[BaseService] Erreur du point d'apparition : {result}`)
 	end
 	return nil
 end
@@ -95,8 +79,15 @@ local function sendToBase(player: Player, character: Model)
 	if baseOf[player] ~= base or character.Parent == nil then
 		return
 	end
-	local target = getSpawnCFrame(base)
+	local target = getSpawnCFrame(player, base)
 	if target then
+		-- StreamingEnabled : charger l'etage d'arrivee avant (sinon chute a travers les dalles)
+		pcall(function()
+			player:RequestStreamAroundAsync(target.Position, 3)
+		end)
+		if baseOf[player] ~= base or character.Parent == nil then
+			return
+		end
 		character:PivotTo(target)
 	end
 end
@@ -123,7 +114,7 @@ local function tryAssign(player: Player): boolean
 		if not table.find(waiting, player) then
 			table.insert(waiting, player)
 		end
-		NotifyService.Notify(player, MapConfig.ServerFullMessage)
+		NotifyService.Notify(player, MapConfig.ServerFullMessage, true)
 		return false
 	end
 	local index = table.find(waiting, player)
@@ -199,21 +190,7 @@ local function onPlayerRemoving(player: Player)
 	if index then
 		table.remove(waiting, index)
 	end
-	lastLockedClick[player] = nil
 	release(player)
-end
-
-local function onLockedZoneClicked(clicker: Player, zoneName: string)
-	if typeof(clicker) ~= "Instance" or not clicker:IsA("Player") or clicker.Parent ~= Players then
-		return
-	end
-	local now = os.clock()
-	local last = lastLockedClick[clicker]
-	if last and now - last < MapConfig.LockedClickCooldown then
-		return
-	end
-	lastLockedClick[clicker] = now
-	NotifyService.Notify(clicker, string.format(MapConfig.LockedZoneMessage, zoneName))
 end
 
 function BaseService:Init()
@@ -240,8 +217,8 @@ function BaseService:Init()
 		base:SetAttribute("BaseId", i)
 		base:SetAttribute("OwnerUserId", 0)
 		base:PivotTo(slot.CFrame * pivotOffset)
+		-- Les etages (base.Floors.FloorN) sont construits par FloorService au Start.
 		setSignText(base, MapConfig.FreeSignText)
-		setLockedTexts(base)
 		base.Parent = folder
 		table.insert(bases, base)
 	end
@@ -249,22 +226,6 @@ function BaseService:Init()
 end
 
 function BaseService:Start()
-	for _, base in bases do
-		local locks = base:FindFirstChild("ZoneLocks")
-		if locks == nil then
-			continue
-		end
-		for _, zone in locks:GetChildren() do
-			local zoneName = MapConfig.LockedZoneNames[zone:GetAttribute("ZoneId") :: any] or zone.Name
-			local barrier = zone:FindFirstChild("Barrier")
-			local click = barrier and barrier:FindFirstChildOfClass("ClickDetector")
-			if click then
-				click.MouseClick:Connect(function(clicker: Player)
-					onLockedZoneClicked(clicker, zoneName)
-				end)
-			end
-		end
-	end
 	Players.PlayerAdded:Connect(onPlayerAdded)
 	Players.PlayerRemoving:Connect(onPlayerRemoving)
 	for _, player in Players:GetPlayers() do
@@ -300,6 +261,11 @@ end
 -- utiliser le parametre base.
 function BaseService.OnBaseReleased(callback: Callback)
 	table.insert(releasedCallbacks, callback)
+end
+
+-- FloorService donne le point d'apparition (etage le plus haut du joueur). Sans lui : pas de deplacement.
+function BaseService.SetSpawnResolver(resolver: (Player, Model) -> CFrame?)
+	spawnResolver = resolver
 end
 
 -- Tests Studio (DebugService) : simule un serveur plein pour ce joueur, puis revient a la normale.

@@ -1,6 +1,6 @@
 # Game design : Mon usine de boissons
 
-> Version v7 (2026-11-19). Historique dans `docs/journal/`.
+> Version v8 (2026-11-19, tour d'etages). Historique dans `docs/journal/`.
 > **[A VALIDER]** = proposition pas encore confirmee par l'utilisateur. Le reste est decide.
 > Reference : skills `roblox-game-design`, `roblox-player-psychology`, `roblox-monetization`.
 > Les chiffres sont des exemples : les vrais vont dans `src/shared/Config/` et s'equilibrent en test.
@@ -12,10 +12,49 @@
 
 ## En une phrase
 
-**Ton arbre fait tomber des fruits au hasard, tu en fais des jus et des cocktails, des clients les
-achetent, tu ameliores ton arbre pour avoir des fruits plus rares.**
+**Tu construis une tour a jus : chaque etage a son arbre d'une rarete, tu en fais des jus purs,
+des clients les achetent, tu automatises l'etage et tu achetes l'etage du dessus, plus rare.**
+
+Jamais de melange de fruits (pas de smoothie, pas de cocktail) : **1 fruit = 1 jus pur**. C'est ce
+qui distingue le jeu des jeux de smoothies existants (decide le 2026-11-19).
 
 Regle d'or : tout ce qu'on achete sert a gagner plus d'argent. Rien ne se revend, rien ne devient inutile.
+
+## Regle d'or du ressenti (decide le 2026-11-19, a respecter partout)
+
+- Le jeu est **simple, satisfaisant, addictif, sans trop reflechir**.
+- **Privilegier les clics** : s'approcher, cliquer, ramener. Rien de complique, aucune regle a lire.
+- **Gagner de l'argent doit etre satisfaisant** (pluie de billets, son, chiffres qui montent).
+- **Fabriquer les jus doit etre satisfaisant et logique** : de vraies machines animees (le mixeur
+  tremble quand il mixe, les fruits passent sur un tapis), pas des pads abstraits.
+- **Acheter = construire** : une machine pas encore achetee est **la vraie machine teintee bleu
+  clair avec un contour** a sa place (pas un fantome tres transparent) ; on s'approche, on appuie
+  sur **E**, elle se construit piece par piece.
+- Les prochaines salles sont des **zones fermees** (vitre rouge transparente, cadenas, nom, prix ;
+  E pour ouvrir).
+
+### Decisions du 2026-11-19 (soir, demande de l'utilisateur)
+
+- **Touche E (ProximityPrompt de Roblox) pour tout** : ramasser un fruit ("Apple / Pick up"),
+  deposer a l'etagere, prendre les jus, les poser au comptoir, encaisser, acheter une machine,
+  ouvrir une salle. Les **pads** restent seulement pour embaucher les employes (vert) et le pad
+  Robux "Auto Collect" (violet). **Change le 2026-11-19 (plus tard)** : ramasser = marcher sur
+  les fruits (plateau sur la tete) ; deposer les fruits, prendre / poser les jus, encaisser = pads.
+  La touche E reste pour mixer, acheter / ameliorer et ouvrir une salle.
+- **Inventaire en bas de l'ecran** pour les fruits (case par fruit, "x5", 20 max) ; plus de pile
+  au-dessus de la tete. Les **jus** se portent dans les mains (pile devant le personnage, bras
+  tendus) jusqu'au comptoir.
+- Etagere : E = deposer tous les fruits ; chaque caisse affiche "x12". **Pas de vente de fruits crus.**
+- Comptoir : on peut poser beaucoup de jus (10 au depart, +5 par niveau) ; les ventes dependent de
+  la vitesse et du nombre de clients.
+- **Tous les personnages en R6** avec les animations de base de Roblox : employes (tenue Roblox +
+  tablier / casquette de couleur) et clients (vetements gratuits du catalogue Roblox). On doit voir
+  les employes travailler (marcher, prendre, porter, poser).
+- **Argent physique** : liasses de billets sur la table, qui s'envolent vers le joueur avec un
+  "pop" a l'encaissement. Pad Robux "Auto Collect" a cote (pass 149 R$ A VALIDER).
+- **Usine plus spacieuse** avec des zones delimitees (sol de couleur + panneau) : verger, etagere,
+  bar a jus, vente.
+
 
 ## Nom du jeu [A VALIDER]
 
@@ -27,26 +66,58 @@ novembre 2026), Steal a Brainrot, Grow a Garden, 99 Nights in the Forest.
 
 ## La boucle
 
-**Fruits -> boissons -> argent -> ameliorer -> agrandir (zones 1, 2, 3) -> rebirth -> recommencer plus vite.**
+**Fruits -> jus -> argent -> ameliorer l'etage -> employes -> acheter l'etage du dessus -> ... -> etage 10 -> rebirth -> recommencer plus vite.**
 
-| Zone | Le frein | Ce qui le fait sauter |
-|---|---|---|
-| 1. Le stand | Le joueur fait tout a la main | Employes |
-| 2. Le bar a cocktails | Les jus valent peu | Cocktails (plus chers) |
-| 3. La terrasse | Les clients sont lents | Tables + tapis roulant de vente |
+## La tour d'etages (decide le 2026-11-19, remplace les zones 1, 2, 3)
 
-## Zone 1 : le stand
+- **10 etages au lancement, 1 etage = 1 rarete** (etage 1 = Common ... etage 10 = la rarete la plus
+  haute). Les 100 fruits sont tous utilises : **10 fruits par etage**.
+- **Chaque etage fonctionne tout seul** : son arbre, son etagere, son ou ses mixeurs, sa table a
+  jus, son comptoir, son tas d'argent, ses clients, ses employes. Rien ne voyage entre les etages.
+- Le joueur joue a la main sur son **dernier etage** ; il embauche des employes et les **etages du
+  dessous tournent tout seuls** (argent qui tombe de partout).
+- **Acheter l'etage suivant** : escalier ferme par une vitre rouge (cadenas, nom, prix), E pour
+  ouvrir, comme les anciennes salles fermees. On ne voit que les etages achetes + le suivant ferme
+  (pas de tour vide de 10 etages : moins de pieces).
+- Le joueur monte par un **escalier** qui part du milieu de l'usine et monte vers le mur de droite
+  (decide le 2026-11-19) ; il apparait sur son etage le plus haut et un panneau "Floors" sur chaque
+  palier l'emmene a un etage achete. Les jus ne quittent jamais leur etage.
+- **Plan technique complet** (dimensions, 2 voies d'escalier, etage ferme, lag, sauvegarde) :
+  [systems/tour-etages.md](systems/tour-etages.md).
+- Idee ecartee : un grand trou ou tous les jus tombent au rez-de-chaussee (melangerait les raretes,
+  et le joueur ferait tout au meme endroit).
+- Plus tard, une mise a jour = **un nouvel etage** (11, 12...) avec 10 nouveaux fruits.
+- Hauteur d'un etage : 36 studs (le plafond haut est garde).
+- Annexe (decide le 2026-11-20) : la **terrasse** devient le hall de l'ascenseur des clients ; elle
+  s'ouvre toute seule avec l'etage 2 et porte un panneau **Elevator** (Speed, Bigger Cabin : plus de
+  ventes pour tous les etages 2+ ; depuis le 2026-11-20 : +4 % d'argent par vente et par niveau). Le **bar a cocktails** devient la **salle du Rebirth**, vitre
+  rouge "Reach Floor 10", visible des le debut.
+- Decide le 2026-11-20 : **un seul tas d'argent au rez-de-chaussee** (les ventes de tous les
+  etages s'y ajoutent, un seul pad Collect Cash) ; clients des etages du haut par un **ascenseur
+  vitre exterieur** + balcon ; un etage coute **~10-15 min de gains** ; **rebirth a l'etage 10**.
+  2026-11-20 (revue de l'economie) : prix des etages / 2 (etage 2 = 2.5K) : l'arbre plafonne un
+  etage vers 7-9 min, il restait ~8.5 min sans achat utile ; un etage = ~9 min pour un joueur qui
+  achete bien, plus pour un vrai joueur. Puis (meme jour) courbe **progressive** (1.5K, 11K, 62K ...
+  2.2B) + ascenseur = achat toujours utile des l'etage 2 : etage 2 ~10 min, ensuite ~11-16 min par
+  etage, rebirth ~1 h 55 (joueur qui achete bien).
+
+## Un etage (ex-"Zone 1 : le stand", meme fonctionnement a chaque etage)
 
 1. **L'arbre** fait tomber un fruit toutes les X secondes, tire au hasard selon son niveau.
-2. **Ramasser** : le joueur marche sur les fruits (pas d'outil, pas de clic). Ils s'empilent
-   au-dessus de sa tete. Il marche sur les **bacs** : tout est depose et trie.
-3. **Presser** : le presse-fruits prend 1 fruit = 1 jus. **Prix du jus = valeur du fruit.**
-   Les jus s'empilent a cote du presse-fruits (**limite** : X jus, ameliorable).
-4. **Poser** : le joueur prend les jus et les pose sur le **comptoir** (limite ameliorable).
+2. **Ramasser** : le joueur **marche sur les fruits** (pas de touche). Ils s'empilent en
+   vrac sur un **plateau au-dessus de sa tete**. Il se tient sur le **pad "Drop Fruits"** devant
+   l'etagere : tout est depose et trie (2026-11-19). Poser les jus au comptoir et encaisser
+   l'argent : pareil, en se tenant sur les pads "Drop Juices" et "Collect Cash".
+3. **Mixer** : le tapis remplit le bol du mixeur (5 fruits ; chaque mixeur a 5 niveaux : 8 / 12 / 16 / 20) ; le
+   joueur appuie sur **E** : 2.5 s de mixage, puis **tous les jus sortent d'un coup** (1 fruit =
+   1 jus, **prix du jus = valeur du fruit**). Jusqu'a 4 mixeurs (achetes) ; un operateur par
+   mixeur appuie a la place du joueur quand le bol est plein. Les jus s'empilent sur la table a
+   jus (**limite** : X jus, ameliorable).
+4. **Poser** : le joueur prend les jus et les pose sur le **comptoir** (sans limite depuis le 2026-11-19 : on ameliore la vitesse et le nombre de clients).
 5. **Vendre** : un client prend un jus et **laisse l'argent sur le comptoir**.
 6. **Encaisser** : le joueur marche sur le **tas d'argent** pour le ramasser (pluie de billets + son).
    Gratuit : toujours a la main. Payant : le **Collecteur automatique** (pose juste a cote du tas d'argent).
-7. **Employes** (achetes avec l'argent du jeu) : ramasseur, puis presseur, puis serveur (pose les jus).
+7. **Employes** (achetes avec l'argent du jeu) : ramasseur, operateurs des mixeurs, serveur (pose les jus).
 
 Garde-fou : maximum ~30 fruits au sol. Au-dela : "Tree full!" (pas de lag, pousse a embaucher).
 
@@ -54,17 +125,25 @@ Garde-fou : maximum ~30 fruits au sol. Au-dela : "Tree full!" (pas de lag, pouss
 
 Detail complet (100 fruits, raretes, valeurs, index) : [systems/fruits.md](systems/fruits.md).
 
-- **100 fruits = 10 raretes x 10 fruits** (decide). Au debut, seulement des pommes ; l'orange et la
-  banane arrivent tres vite.
-- Un seul arbre, 2 ameliorations : **Luck** (chaque niveau ajoute le fruit suivant, avec une petite
-  chance) et **Speed**. Tableau d'ameliorations a cote de l'arbre.
-- Un nouveau fruit tombe pour la premiere fois = "NEW FRUIT!" + il entre dans l'**Index**.
-- **Limite de l'arbre** : le Luck s'arrete au dernier fruit des raretes ouvertes. Pour aller plus
-  loin il faut **renaitre** : chaque rebirth ouvre la rarete suivante (0 rebirth = 3 raretes).
+- **100 fruits = 10 etages x 10 raretes** (decide le 2026-11-20, remplace "1 etage = 1 rarete").
+  **Chaque etage a les 10 raretes**, de Common a Infinity : un fruit qui tombe tout le temps, un un
+  peu plus rare, ... et un fruit tres tres rare. Chaque etage a donc son "jackpot".
+- On garde les 100 fruits tels quels (nom, rarete, modele, effets) : on lit le tableau **par ligne**.
+  Etage n = le n-ieme fruit de chaque rarete. Etage 1 : Apple, Strawberry, Dragon Fruit, Mangosteen,
+  Golden Apple, Fire Mango, Angel Apple, Moon Melon, Error Apple, Rainbow Apple.
+- **Valeur = surtout l'etage, un peu la rarete** : monter rapporte plus ; un fruit rare vaut plus
+  qu'un commun du meme etage, mais beaucoup moins que sa rarete (sinon un Infinity a l'etage 1
+  casserait l'economie).
+- Chaque arbre a 2 ameliorations : **Luck** (rend les fruits rares plus frequents) et **Speed**.
+  Tableau d'ameliorations a cote de l'arbre. Les boosts de chance (Robux) suivent la meme logique.
+- **Collection** : la premiere fois qu'on ramasse un fruit, grosse animation de decouverte (voir
+  [systems/fruits.md](systems/fruits.md)) et il entre dans l'**Index** (10 pages, une par etage).
+- Pour gagner plus, on **achete l'etage du dessus**. Ancienne regle "chaque rebirth ouvre une rarete"
+  remplacee le 2026-11-19, puis "1 etage = 1 rarete" remplacee le 2026-11-20.
 - Gros nombres affiches avec suffixes (K, M, B, T...).
 - Robux : on vend de la **chance** (boosts, pass), pas des raretes entieres (sinon "pay to win").
 
-## Zone 2 : le bar a cocktails
+## Zone 2 : le bar a cocktails (ABANDONNE le 2026-11-19 : melange de fruits, remplace par les etages)
 
 - Machine a cocktails avec **3 cases cliquables** (un fruit par case, seulement fruits debloques).
 - Prix du cocktail = somme des 3 fruits ; **x2 si les 3 fruits sont identiques** (decide).
@@ -72,7 +151,7 @@ Detail complet (100 fruits, raretes, valeurs, index) : [systems/fruits.md](syste
   le reste. Une case qui attend affiche le fruit en transparence. Le serveur attribue chaque fruit une fois.
 - On peut acheter plus de machines.
 
-## Zone 3 : la terrasse
+## Zone 3 : la terrasse (ABANDONNE le 2026-11-19, remplace par les etages)
 
 - Tables : des clients achetent 2-3 boissons d'un coup.
 - Tapis roulant de vente : les boissons partent le long de la route, les clients qui passent les achetent.
@@ -80,25 +159,47 @@ Detail complet (100 fruits, raretes, valeurs, index) : [systems/fruits.md](syste
 
 ## Les clients
 
-- Chaque base a ses propres clients (personne ne vole les clients d'un autre).
+- Chaque base a ses propres clients (personne ne vole les clients d'un autre), et **chaque etage
+  a les siens**.
 - Ameliorations : vitesse des clients, nombre de clients.
 - Le serveur decide des ventes ; les clients visibles sont surtout de l'affichage.
 
 ## Rebirth
 
-- Condition : avoir les 3 zones + un montant d'argent.
-- **On perd tout** : argent, zones, ameliorations, employes, niveau de l'arbre.
+- Condition : avoir l'**etage 10** + un montant d'argent (decide le 2026-11-20 ; avant : les 3 zones).
+- **On perd tout** : argent, etages, ameliorations, employes, niveau des arbres.
 - **On garde** : multiplicateur d'argent permanent (x2, x3...), les **passes et boosts achetes en
-  Robux**, l'**Index**, et on **debloque la rarete suivante**. Signe visible (couleur de l'arbre, titre).
+  Robux**, l'**Index**. Signe visible (couleur de l'arbre, titre).
 - Chaque rebirth coute plus cher.
 - A cote du bouton Rebirth : **"Rebirth & keep your cash"** en Robux (produit) : on renait sans
   perdre son argent. Risque : garder tout l'argent + le multiplicateur accelere beaucoup ;
   prix a monter avec le niveau du rebirth.
+- **Code le 2026-11-20** (detail : [systems/rebirth.md](systems/rebirth.md)) :
+  - Rebirth dans la salle du Rebirth (E sur la machine doree -> menu du pack "Now / After").
+  - Prix : 10B, puis 20B, 30B... ; multiplicateur des ventes x2, x3, x4... (1 + rebirths).
+    **Valides par l'utilisateur le 2026-11-20.**
+  - On garde aussi le **menu Upgrade** (vitesse, plateaux) ; l'argent du tas d'en bas est encaisse
+    avant le rebirth.
+  - "Keep cash" : rebirth tout de suite **sans payer le prix** et en gardant l'argent (sert aussi de
+    "Skip Rebirth") : 49 / 99 / 199 / 299 R$ selon le nombre de rebirths.
+  - Rebirth Master : chaque etage rachete reprend son meilleur niveau d'arbre.
+  - Signe visible : nametag (pseudo + "Rebirth N" en or, vu seulement par les autres, remplace le
+    nom de Roblox ; demande utilisateur) + colonne Rebirths du classement +
+    message "<Nom> reached Rebirth N!" aux autres joueurs. Couleur de l'arbre : pas faite.
 
 ## Guider le joueur (choix utilisateur)
 
 - **Pas de barre d'objectif en haut** (trop d'infos a l'ecran).
 - **Fleches 3D animees** qui montrent ou aller, + un **chemin lumineux au sol** (du joueur a la cible).
+- **Visuel retenu (captures utilisateur, 2026-11-19)** : une **file de chevrons** blancs/bleu clair
+  lumineux (style ">>>", un peu transparents, avec halo) qui part du joueur, a hauteur de taille, et
+  va en ligne droite jusqu'a la cible. Les chevrons sont serres (un tous les ~1 studs), toujours
+  tournes vers la camera, et defilent vers la cible. Piste technique : un `Beam` entre une
+  `Attachment` du personnage et une sur la cible, texture chevron, `FaceCamera`, `TextureMode`
+  Static/Wrap + `TextureSpeed` pour le defilement, `LightEmission` pour la lueur. Client seulement.
+- **Quand il faut cliquer** (bouton, machine, objet) : l'objet recoit un **contour lumineux**
+  (`Highlight`, contour epais qui pulse) et/ou une **fleche qui rebondit** au-dessus. Lequel des deux
+  (ou les deux) : a choisir en testant dans Studio [A DECIDER].
 - Le bouton ou l'objet a utiliser **brille et pulse** (Highlight + petite fleche qui rebondit dessus).
 - Le guidage accompagne tout le tutoriel, puis **revient a chaque nouveau deblocage** (nouvelle
   zone, nouvelle machine, rebirth), puis se retire pour laisser le joueur faire seul.
@@ -107,9 +208,12 @@ Detail complet (100 fruits, raretes, valeurs, index) : [systems/fruits.md](syste
 
 Plan complet : [first-session.md](first-session.md) [A VALIDER] : cinematique de 8-10 s passable,
 tutoriel par fleches (premier achat avant 35 s), puis une nouveaute toutes les 1 a 3 minutes
-(nouveaux fruits, employes, zone 2 vers 16 min, premier fruit Rare vers 20 min).
+(nouveaux fruits, employes, etage 2 vers 16 min (a revoir pour la tour), premier fruit Rare vers 20 min).
 
 ## Carte
+
+**A revoir pour la tour** : chaque base devient une tour (etage 1 au sol). Le plan ci-dessous est
+celui d'avant les etages.
 
 6 bases par serveur, 3 de chaque cote d'une route. Serveur de 6 joueurs. Base attribuee automatiquement.
 
@@ -135,8 +239,9 @@ Detail et etat : [systems/interface.md](systems/interface.md).
 
 - A gauche : **Shop** et **Index** (icones), argent en bas a gauche (+ jaune pour les packs).
 - En haut : engrenage Settings (barre Roblox).
-- A droite : **offres limitees** (10 min visibles / 2 min cachees, minuteur rouge, reduction sur
-  certaines) ; clic -> fenetre "Limited Offer!" -> confirmation de paiement Roblox.
+- A droite : **une offre limitee a la fois** (3 min visible, minuteur rouge, puis 30 s sans offre
+  avant la suivante ; rien les 90 premieres secondes ; pas de reduction affichee) ; clic -> fenetre
+  "Limited Offer!" -> confirmation de paiement Roblox.
 - A l'arrivee : ecran **"Welcome Back!"** (gains hors ligne, CLAIM / x2).
 - **Pastille** (petit rond rouge, contour noir) sur un bouton quand il y a du nouveau.
 - Ameliorations sur les murs de la base : **chaque bouton a 2 prix** (argent du jeu / Robux).
@@ -158,8 +263,9 @@ donne toujours l'avantage (jamais le client). Detail technique avec `roblox-mone
 | Greedy Customers | Chaque client achete 2 boissons au lieu d'1 | 199 |
 | Speed Master | Vitesse de marche x2 + clients x2 plus rapides | 99 |
 | Auto Collect | L'argent du comptoir arrive tout seul (machine a cote du tas d'argent) | 149 |
+| Auto Sell | Les jus de la table vont tout seuls au comptoir, vite (pad violet qui remplace le pad du Waiter une fois le Waiter embauche, 2026-11-20) | 199 |
 | Thief | Voler des boissons pretes chez les autres (avec garde-fous) | 149 |
-| Rebirth Master | Garde le niveau de l'arbre apres un rebirth (+ peut-etre rebirth 50 % moins cher [A VALIDER]) | 299 [A VALIDER] |
+| Rebirth Master | Garde le niveau de l'arbre apres un rebirth : chaque etage rachete reprend son meilleur niveau d'arbre (code le 2026-11-20) (+ peut-etre rebirth 50 % moins cher [A VALIDER]) | 299 [A VALIDER] |
 
 "Drink Master" fait la chance (pas l'argent) pour ne pas doubler "x3 Cash".
 
@@ -172,7 +278,7 @@ donne toujours l'avantage (jamais le client). Detail technique avec `roblox-mone
 | Boost x2 vitesse des clients : 15 min / 30 min | 9 / 16 |
 | Boost x2 chance de l'arbre : 15 min / 30 min | 9 / 16 |
 | Packs d'argent (4 tailles, "Best Value" sur le plus gros) | 25 / 79 / 199 / 499 [A VALIDER] |
-| Rebirth & keep your cash (a cote du bouton Rebirth) | prix selon le niveau [A VALIDER] |
+| Rebirth & keep your cash (a cote du bouton Rebirth) | 49 / 99 / 199 / 299 selon le nombre de rebirths (0-2 / 3-9 / 10-24 / 25+) [A VALIDER] |
 | Amelioration d'un niveau en Robux (a cote de chaque bouton du mur) | petit prix, monte avec le niveau |
 
 - **Packs d'argent = X minutes de gains actuels du joueur**, pas un montant fixe (sinon un pack
@@ -222,8 +328,8 @@ Ecran au retour : "While you were away, you earned X" + bouton "x2 for 9 R$".
 
 ## Sauvegarde
 
-Argent, niveau rarete et vitesse de l'arbre, fruits/raretes debloques, employes et niveaux, zones,
-machines a cocktails et recettes, rebirths, limites (jus, comptoir), boosts en cours (temps restant),
+Argent, **etages achetes**, et **par etage** : Luck et Speed de l'arbre, mixeurs, employes et
+niveaux, limites ; fruits decouverts (Index), rebirths, limites (jus), boosts en cours (temps restant),
 heure de deconnexion. Pas les fruits au sol, ni les boissons, ni l'argent pas encore ramasse.
 
 ## A faire et questions ouvertes
@@ -247,8 +353,11 @@ Voir [roadmap.md](roadmap.md) (phases, decisions encore ouvertes, dette techniqu
 | 2026-11-19 | Tout le jeu en anglais + traduction auto Roblox | Toucher le plus de joueurs |
 | 2026-11-19 | Gains hors ligne + bouton x2 a 9 R$ | Retour du joueur + premier achat |
 | 2026-11-19 | Guidage par fleches 3D et objets qui brillent, pas de barre d'objectif | Moins d'infos a l'ecran |
+| 2026-11-19 | Fleches de guidage = file de chevrons lumineux du joueur a la cible (Beam) | Visuel montre par l'utilisateur |
 | 2026-11-19 | Classement du serveur | Choix utilisateur |
 | 2026-11-19 | Argent laisse sur le comptoir, ramasse a la main ; Auto Collect payant | Choix utilisateur |
+| 2026-11-20 | Employe Waiter retire, remplace par le pass Auto Sell (199 R$, pad dans l'usine) | Choix utilisateur |
+| 2026-11-20 | Waiter de retour en argent du jeu ($400, lent, 9 jus) ; son pad devient le pad violet Auto Sell des qu'il est embauche | Sinon un etage ne s'automatisait pas sans Robux ; choix utilisateur |
 | 2026-11-19 | Boosts x2 argent / vitesse clients : 9 R$ (15 min), 16 R$ (30 min) | Choix utilisateur |
 | 2026-11-19 | 100 fruits = 10 raretes x 10 ; au debut seulement des pommes | Choix utilisateur |
 | 2026-11-19 | Luck de l'arbre plafonne ; chaque rebirth ouvre une rarete | Donne une raison de renaitre |
@@ -260,3 +369,16 @@ Voir [roadmap.md](roadmap.md) (phases, decisions encore ouvertes, dette techniqu
 | 2026-11-19 | Ecran "Welcome Back!" a l'arrivee (gains hors ligne, CLAIM / x2 en Robux) | Choix utilisateur |
 | 2026-11-19 | Pastille de notification (petit rond rouge, contour noir) sur un bouton quand il y a du nouveau | Choix utilisateur |
 | 2026-11-19 | Offres a droite = offres limitees : 10 min visibles / 2 min cachees, minuteur rouge, reduction sur certaines seulement, fenetre de confirmation | Choix utilisateur |
+| 2026-11-19 | Usine en interieur agrandie, machines fantomes bleues a acheter (clic), salles fermees, mixeur anime | Choix utilisateur : simple, satisfaisant, addictif |
+| 2026-11-19 | Mixeur au bouton (E) : bol qui se remplit, 2.5 s, tous les jus d'un coup ; 4 mixeurs ; Bigger Bowl 5/8/12/20 ; 1 operateur par mixeur (reagit en ~1 s) ; ancien Blender Operator -> operateur du mixeur 1 | Demande utilisateur : le joueur doit avoir un geste a faire |
+| 2026-11-19 (soir) | **Une amelioration = un endroit qu'on comprend, et chaque niveau se voit** : pad "Upgrade Tree" (nouveau fruit + chute plus rapide, remplace Sprinkler et Lucky Fertilizer) ; l'arbre change a chaque niveau (5 modeles, il grossit, les fruits debloques pendent dedans) ; panneaux muraux avec une phrase explicative (Conveyor Speed, Juice Table, Faster / More Customers ; remplacent Juice Cooler, Fast Register, Billboard) ; chaque mixeur a 5 niveaux (panneau au-dessus) ; tapis, mixeurs, table a jus, comptoir et panneau FRESH JUICE! gagnent des pieces a chaque palier ; table a jus surelevee ; panneau MONEY / HOUR ; billets qui volent jusqu'a l'argent du HUD | Demande utilisateur : "on comprend pas a quoi ca sert", "on doit voir notre restaurant s'ameliorer" |
+| 2026-11-19 | **Tour d'etages** : 10 etages, 1 etage = 1 rarete (10 fruits), chaque etage autonome ; plus de cocktails ni de terrasse ; jamais de melange (1 fruit = 1 jus pur) | Demande utilisateur : ne pas ressembler aux jeux de smoothies, progression visible |
+| 2026-11-20 | Tour : un seul tas d'argent en bas ; clients en haut par ascenseur vitre exterieur ; etage = ~10-15 min de gains ; rebirth a l'etage 10 | Choix utilisateur |
+| 2026-11-20 | Terrasse = hall de l'ascenseur (ouverte avec l'etage 2, panneau Elevator) ; bar a cocktails = salle du Rebirth "Reach Floor 10" | Choix utilisateur |
+| 2026-11-20 | **Chaque etage a les 10 raretes** (Common a Infinity) au lieu de 1 etage = 1 rarete ; tableau des 100 fruits lu par ligne ; Luck = chance des rares ; grosse animation de decouverte (fruit au centre, nom, rarete, confettis, vole vers l'Index) | Demande utilisateur : un "jackpot" a chaque etage, cote collection |
+| 2026-11-20 | Offres a droite : **une seule a la fois**, 3 min visible puis 30 s de pause, rien les 90 premieres s, 1re = Starter Pack, plus d'etiquette de reduction (juste le temps) ; nouvelles offres (Money Rush, Lucky Hour, Customer Rush, Mega Cash, Triple Boost, Rare Rain) ; contenu montre en icones (billets/trefle/chaussure + "x2" + duree, argent = vrai montant "+$3K"), pas en phrases | Choix utilisateur : comprehensible meme par les enfants |
+| 2026-11-20 | Menu Upgrade (vitesse, plateaux) en **Robux** : 9 R$ le niveau, 5 achats max ; vitesse de base du joueur x1.15 puis x1.1 (20.24) ; 3 premiers achats en argent du jeu, 2 derniers en Robux | Demande utilisateur |
+| 2026-11-20 | Rebirth code : prix 10B x (1 + rebirths), multiplicateur 1 + rebirths, menu Upgrade garde, keep cash = sans payer le prix (sert de Skip), Rebirth Master = arbres repris etage par etage | Propose par l'IA (demande "fait completement le Rebirth") ; prix et multiplicateur valides par l'utilisateur ("garde-les"), paliers Robux encore A VALIDER |
+| 2026-11-20 | Nametag au-dessus de la tete : pseudo + "Rebirth N", on ne voit que celui des autres ; menu Rebirth : cases Now / After en texte + icone (plus des boutons) | Demande utilisateur |
+| 2026-11-20 | Revue de l'economie : prix des etages / 2 ; clients 1.8 s au depart (au lieu de 2.5 s) et More Customers 150 $ ; fin des achats qui ne font pas monter l'argent (tapis, clients, mixeurs 2-4, operateurs 2-4) moins chere ; Lucky Cash min $750 | Analyse + simulation, validee par l'utilisateur ("let's go") |
+| 2026-11-20 | Economie (suite, "fun du debut a la fin, progressif") : prix des etages en courbe progressive (1.5K / 11K / 62K / 350K / 2M / 11.5M / 66M / 380M / 2.2B) ; ascenseur = +4 % d'argent par vente aux etages 2+ par niveau, 400 / 600 x1.75 (achat toujours utile) | Analyse + simulation, demande utilisateur ("fais tout le necessaire") |

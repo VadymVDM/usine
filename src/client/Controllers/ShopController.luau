@@ -10,17 +10,22 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 
 local ShopController = {}
 
-local FONT = Font.new("rbxasset://fonts/families/ComicNeueAngular.json", Enum.FontWeight.Bold)
+-- Police et couleurs communes a toute l'interface (UI/PackStyle).
+local PackStyle = require(script.Parent.Parent:WaitForChild("UI"):WaitForChild("PackStyle"))
+local Remotes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Network"):WaitForChild("Remotes"))
+local NumberFormat = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Util"):WaitForChild("NumberFormat"))
+local FONT = PackStyle.FONT
 local WHITE = Color3.new(1, 1, 1)
 local BLACK = Color3.new(0, 0, 0)
 local PATTERN = "rbxassetid://89847456327542"
-local BUY_COLORS = { Color3.fromRGB(64, 252, 9), Color3.fromRGB(237, 255, 76), Color3.fromRGB(23, 74, 0) }
-local GIFT_COLORS = { Color3.fromRGB(230, 20, 190), Color3.fromRGB(255, 150, 240), Color3.fromRGB(80, 0, 64) }
+local BUY_COLORS = PackStyle.GREEN
+local GIFT_COLORS = PackStyle.PINK
 -- Contour des textes : gris tres fonce un peu transparent, coins arrondis (moins dur que le noir pur).
-local TEXT_STROKE = Color3.fromRGB(30, 22, 40)
+local TEXT_STROKE = PackStyle.TEXT_STROKE
 local CASH_COLORS = { Color3.fromRGB(31, 168, 0), Color3.fromRGB(157, 255, 58) }
 local OPEN_ANIMATION_TIME = 0.4
 -- Groupes ou un texte trop long ne doit pas faire retrecir tous les autres.
@@ -225,13 +230,14 @@ local function giftButton(parent: Instance, position: UDim2, size: UDim2): TextB
 	return button
 end
 
-local function onBuy(kind: string, key: string, id: number, isGift: boolean)
-	if id == 0 then
-		warn(`[Shop] {kind} "{key}" pas encore cree sur Roblox (id = 0). Cadeau : {isGift}`)
-		return
+-- Achat : le serveur (RobuxShopService, remote ShopBuy) verifie, note le montant d'argent montre et
+-- ouvre la fenetre d'achat Roblox ; id 0 (produit pas cree) ou cadeau : message "coming soon".
+-- Cadeaux (choix du joueur + produit "Gift") : pas encore codes (docs/game-design.md).
+local function onBuy(kind: string, key: string, _id: number, isGift: boolean)
+	local shopBuy = Remotes.WaitClientEvent("ShopBuy")
+	if shopBuy then
+		shopBuy:FireServer(kind, key, isGift)
 	end
-	-- A brancher : MarketplaceService:PromptProductPurchase / PromptGamePassPurchase,
-	-- et pour un cadeau, choix du joueur puis produit "Gift" (voir docs/game-design.md).
 end
 
 local function grid(name: string, cellWidth: number, aspect: number): Frame
@@ -371,6 +377,13 @@ local function buildCashPacks()
 		label(frame, "instantly", "PackLine", UDim2.fromScale(0.36, 0.32), UDim2.fromScale(0.62, 0.1))
 		local amount = label(frame, "", "PackAmount", UDim2.fromScale(0.36, 0.44), UDim2.fromScale(0.62, 0.12))
 		amount.Name = "Amount"
+		-- Montant calcule par le serveur (RobuxShopService, attribut "Cash_<cle>")
+		local function showAmount()
+			local value = Players.LocalPlayer:GetAttribute("Cash_" .. pack.key)
+			amount.Text = if type(value) == "number" then "+" .. NumberFormat.Money(value) else ""
+		end
+		showAmount()
+		Players.LocalPlayer:GetAttributeChangedSignal("Cash_" .. pack.key):Connect(showAmount)
 		image(frame, "Cash", UDim2.fromScale(0.8, 0.2), UDim2.fromScale(0.34, 0.38))
 		local buy = priceButton(frame, pack.price, UDim2.fromScale(0.5, 0.64), UDim2.fromScale(0.6, 0.27), "PackPrice")
 		buy.Activated:Connect(function()
@@ -493,6 +506,65 @@ function ShopController:Start()
 			lastFitSize = nil
 			refitIfNeeded()
 		end)
+	end
+end
+
+-- Sections pour ScrollToSection : nom -> titre affiche (voir sectionTitle()).
+local SECTION_TITLES = { Potions = "POTIONS", Passes = "PASSES", CashPacks = "CASH PACKS" }
+local scrollToken = 0
+
+-- Fait defiler la boutique jusqu'a une section (ex. "CashPacks" pour le bouton "+" de l'argent).
+-- A appeler juste apres l'ouverture : on attend la fin de l'animation d'ouverture.
+function ShopController.ScrollToSection(section: string)
+	local title = SECTION_TITLES[section]
+	if title == nil or scroll == nil then
+		return
+	end
+	scrollToken += 1
+	local token = scrollToken
+	scroll.CanvasPosition = Vector2.zero
+	task.delay(OPEN_ANIMATION_TIME, function()
+		if token ~= scrollToken or not shopMenu.Visible then
+			return
+		end
+		local holder = scroll:FindFirstChild("Title_" .. title)
+		if holder == nil or not holder:IsA("GuiObject") then
+			return
+		end
+		-- Les positions a l'ecran incluent le zoom des UIScale ; CanvasPosition non : on divise.
+		local zoom = 1
+		local node: Instance? = scroll
+		while node and node:IsA("GuiObject") do
+			local uiScale = node:FindFirstChildOfClass("UIScale")
+			if uiScale and uiScale.Scale > 0 then
+				zoom *= uiScale.Scale
+			end
+			node = node.Parent
+		end
+		local delta = (holder.AbsolutePosition.Y - scroll.AbsolutePosition.Y) / zoom
+		local maxY = math.max(0, scroll.AbsoluteCanvasSize.Y / zoom - scroll.AbsoluteWindowSize.Y / zoom)
+		local target = math.clamp(scroll.CanvasPosition.Y + delta - 8, 0, maxY)
+		TweenService:Create(scroll, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			CanvasPosition = Vector2.new(0, target),
+		}):Play()
+	end)
+end
+
+-- Pendant le prechargement (interface cachee) : ouvre le Shop en invisible et calcule la taille des textes,
+-- pour qu'a la premiere vraie ouverture il soit deja propre (avant : ~1 s de textes trop gros).
+function ShopController:Prewarm()
+	local camera = workspace.CurrentCamera
+	if not shopMenu or not camera or shopMenu.Visible then
+		return
+	end
+	lastFitSize = camera.ViewportSize -- refitIfNeeded ne relancera pas le calcul a l'ouverture
+	shopMenu.Visible = true
+	fitTextGroups()
+	-- Ne pas cacher si le joueur a ouvert le Shop entre-temps (le MenuController l'aurait marque)
+	local hud = Players.LocalPlayer:FindFirstChild("PlayerGui")
+	hud = hud and hud:FindFirstChild("HUD")
+	if not (hud and hud:GetAttribute("ActiveMenu") == "Shop") then
+		shopMenu.Visible = false
 	end
 end
 

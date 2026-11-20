@@ -5,19 +5,19 @@
 -- Couleurs naturelles, studs sur toutes les faces visibles.
 -- Doc : docs/systems/carte-bases.md
 
-local ROAD_HALF_LENGTH = 250 -- route le long de l'axe X, de -250 a 250
+local ROAD_HALF_LENGTH = 300 -- route le long de l'axe X, de -300 a 300
 local ROAD_HALF_WIDTH = 12
 local SIDEWALK_WIDTH = 5
 local PLOT_FRONT_Z = 30 -- distance centre de la route -> bord avant d'une base
-local BASE_SPACING = 150 -- distance entre les centres de deux bases
-local PLOT_CENTER_X = 13 -- centre de la base dans son repere local (x de -44 a 70)
-local GROUND_SIZE = Vector3.new(680, 2, 460) -- zone jouable (limites invisibles)
+local BASE_SPACING = 200 -- distance entre les centres de deux bases (bases de 156 de large)
+local PLOT_CENTER_X = 32 -- centre de la base dans son repere local (x de -46 a 110)
+local GROUND_SIZE = Vector3.new(780, 2, 460) -- zone jouable (limites invisibles)
 local GROUND_TILE = 2048 -- taille max d'une Part ; 3 x 3 dalles d'herbe : pas de vide a l'horizon
-local PLAZA_X = -272
+local PLAZA_X = -322
 
-local GRASS = Color3.fromRGB(104, 164, 76)
-local ASPHALT = Color3.fromRGB(84, 88, 98)
-local DASH = Color3.fromRGB(232, 206, 118)
+local GRASS = Color3.fromRGB(72, 170, 62) -- vert franc mais moins citron (2026-11-19 nuit, avant 88,190,66)
+local ASPHALT = Color3.fromRGB(70, 78, 96) -- bleu-gris plus profond (2026-11-19 nuit)
+local DASH = Color3.fromRGB(250, 214, 60)
 local SIDEWALK = Color3.fromRGB(198, 194, 184)
 local CURB = Color3.fromRGB(168, 164, 154)
 local STONE = Color3.fromRGB(206, 194, 168)
@@ -94,7 +94,7 @@ local ground = Instance.new("Folder")
 ground.Name = "Ground"
 for gx = -1, 1 do
 	for gz = -1, 1 do
-		part(ground, if gx == 0 and gz == 0 then "Grass" else "GrassFar", Vector3.new(GROUND_TILE, 2, GROUND_TILE), CFrame.new(gx * GROUND_TILE, -1, gz * GROUND_TILE), GRASS)
+		part(ground, if gx == 0 and gz == 0 then "Grass" else "GrassFar", Vector3.new(GROUND_TILE, 2, GROUND_TILE), CFrame.new(gx * GROUND_TILE, -1, gz * GROUND_TILE), GRASS, { TopSurface = Enum.SurfaceType.Inlet }) -- sol ou l'on marche : Inlet (regle "2 studs")
 	end
 end
 ground.Parent = map
@@ -112,14 +112,14 @@ end
 for _, side in { 1, -1 } do
 	local inner = side * ROAD_HALF_WIDTH
 	local outer = side * (ROAD_HALF_WIDTH + SIDEWALK_WIDTH)
-	box(road, "Sidewalk", -ROAD_HALF_LENGTH, ROAD_HALF_LENGTH, -0.6, 0.4, math.min(inner, outer), math.max(inner, outer), SIDEWALK)
+	box(road, "Sidewalk", -ROAD_HALF_LENGTH, ROAD_HALF_LENGTH, -0.6, 0.4, math.min(inner, outer), math.max(inner, outer), SIDEWALK, { TopSurface = Enum.SurfaceType.Inlet })
 	-- bordure cote route : 0.05 plus haute et 0.01 plus pres de la route que le trottoir,
 	-- un peu plus courte en x (aucune face au meme endroit que celle du trottoir)
 	local c0, c1 = inner - side * 0.01, inner + side * 0.8
 	box(road, "Curb", -ROAD_HALF_LENGTH + 0.1, ROAD_HALF_LENGTH - 0.1, -0.55, 0.45, math.min(c0, c1), math.max(c0, c1), CURB)
 	-- Lampadaires (bras tourne vers la route)
-	local lx = -225
-	while lx <= 225 do
+	local lx = -275
+	while lx <= 275 do
 		local z = side * (ROAD_HALF_WIDTH + SIDEWALK_WIDTH - 1.2)
 		local lamp = Instance.new("Model")
 		lamp.Name = "StreetLamp"
@@ -171,8 +171,8 @@ for i = 1, 6 do
 	box(spawn, "JointX", jx - 0.2, jx + 0.2, -0.5, 0.5, 7.2, 20.5, STONE_DARK)
 end
 for _, jz in { -14, 14 } do
-	box(spawn, "JointZ", px0 + 1.5, fx - 7.2, -0.5, 0.48, jz - 0.2, jz + 0.2, STONE_DARK)
-	box(spawn, "JointZ", fx + 7.2, px1 - 0.05, -0.5, 0.48, jz - 0.2, jz + 0.2, STONE_DARK)
+	box(spawn, "JointZ", px0 + 1.5, fx - 7.2, -0.5, 0.55, jz - 0.2, jz + 0.2, STONE_DARK)
+	box(spawn, "JointZ", fx + 7.2, px1 - 0.05, -0.5, 0.55, jz - 0.2, jz + 0.2, STONE_DARK)
 end
 local FLOWER_COLORS = { Color3.fromRGB(226, 120, 150), Color3.fromRGB(246, 236, 220), Color3.fromRGB(240, 204, 84) }
 for _, c in { Vector2.new(px0 + 5, -17), Vector2.new(px0 + 5, 17), Vector2.new(px1 - 5, -17), Vector2.new(px1 - 5, 17) } do

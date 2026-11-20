@@ -19,10 +19,16 @@ local Icons = {
 	Clover = "rbxassetid://113489937585519",
 	Customers = "rbxassetid://91137538171035",
 	Shoe = "rbxassetid://78045578610848",
+	-- Eclair jaune (pack Main/Lighting, assets/icons/lightning.png, mis en ligne via MCP le 2026-11-20) :
+	-- Conveyor Speed (avant : la chaussure, deja prise par la vitesse du joueur).
+	Lightning = "rbxassetid://109864985883073",
 	Magnet = "rbxassetid://81472905855850",
 	Thief = "rbxassetid://89491792203746",
 	Rebirth = "rbxassetid://114551292076512",
 	Plus = "rbxassetid://125970071092599",
+	-- Triangle blanc + contour fonce, pointe a droite (assets/icons/floor_arrow.png, fait le 2026-11-20 :
+	-- la police du jeu n'a pas les caracteres triangle). Teinte par ImageColor3.
+	FloorArrow = "rbxassetid://98606864993216",
 }
 
 return Icons

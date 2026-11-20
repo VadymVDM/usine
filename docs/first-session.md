@@ -1,5 +1,11 @@
 # Premiere session : cinematique + 30 premieres minutes
 
+
+> **A reecrire (tour d'etages, 2026-11-20)** : ce deroule date d'avant la tour. Ce qui change : chaque
+> etage a les 10 raretes (l'Uncommon tombe des le debut : "1 in 3"), la decouverte se fait au
+> ramassage avec l'ecran "NEW FRUIT!", l'etage 2 coute 1.5K depuis le 2026-11-20 (ouvre la terrasse + l'ascenseur), les
+> employes rendent un etage "automatise" (il produit quand on n'y est pas). Les minutes du tableau
+> (premier Uncommon a 7:00, etc.) ne sont plus justes.
 > Proposition (2026-11-19), **[A VALIDER]** par l'utilisateur. But : donner envie de jouer des les
 > premieres secondes et avoir **quelque chose de nouveau toutes les 1 a 3 minutes** pendant 30 min,
 > pour la retention (temps de jeu, D1) et le referencement Roblox.
@@ -43,11 +49,11 @@ cinematique, drapeau `IntroSeen` dans la sauvegarde. Sans sauvegarde chargee, ne
 | 0:10 | Ramasser les 3 pommes (marcher dessus) | Fleche 3D + pommes qui brillent |
 | 0:15 | Deposer dans les bacs, le presse-fruits fait 3 jus | Fleche vers les bacs, puis vers les jus |
 | 0:25 | Poser les jus sur le comptoir, **premier client**, premier argent : pluie de billets + son | Fleche vers le comptoir, puis vers le tas d'argent |
-| 0:35 | **Premier achat garanti** : "Tree Speed" (prix ajuste pour etre payable tout de suite) | Le bouton du mur brille + fleche |
-| 1:00-1:30 | **Premier nouveau fruit : l'Orange** (Luck niv. 2), annonce "NEW FRUIT!", pastille sur Index | Pastille rouge sur Index |
+| 0:35 | **Premier achat garanti** : pad "Upgrade Tree" a 15 $ (2026-11-19 soir : un seul pad = nouveau fruit + chute plus rapide ; l'arbre change a chaque niveau) | Le pad brille + fleche |
+| 1:00-1:30 | **Premier nouveau fruit : l'Orange** (arbre niv. 2, elle pend deja dans l'arbre), annonce "NEW FRUIT!", pastille sur Index | Pastille rouge sur Index |
 | 2:30 | **Premier employe : le Ramasseur**, les fruits se ramassent tout seuls ("aha" de l'automatisation) | Bouton du mur qui brille |
 | 3:00 | Fin du tutoriel guide. Les offres limitees a droite apparaissent | Plus de fleches, sauf nouveaux deblocages |
-| 4:00 | Banane + amelioration "limite du comptoir" | - |
+| 4:00 | Banane + amelioration "Faster Customers" (panneau Customers a cote du comptoir) | - |
 | 5:00 | Presseur (2e employe). Les offres d'achat contextuelles peuvent commencer (max 1 / 5 min) | - |
 | 7:00 | **Premier fruit Uncommon (Fraise)** : contour vert, jus colore | Annonce |
 | 9:00 | Serveur (3e employe) : le stand tourne seul. Le joueur peut se concentrer sur les ameliorations | - |
@@ -66,7 +72,8 @@ bouton qui brille ou le prochain mur), **la surprise des fruits rares** (aleatoi
 ## A coder pour cette premiere session
 
 - Cinematique (camera + effets) avec "Skip", jouee une fois.
-- Systeme de guidage : fleche 3D + chemin lumineux (Beam) + objet qui brille (Highlight),
+- Systeme de guidage : file de chevrons lumineux du joueur a la cible (Beam, voir `game-design.md`)
+  + fleche 3D + objet qui brille (Highlight),
   pilote par une liste d'etapes declenchees par l'etat du joueur.
 - Tutoriel en etapes (machine a etats), qui reprend a la bonne etape apres une deconnexion.
 - Gains acceleres pendant les premieres minutes (les joueurs ne le remarquent pas ensuite).

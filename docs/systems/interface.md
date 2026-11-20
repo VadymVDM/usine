@@ -1,7 +1,7 @@
 # Systeme : Interface (HUD et menus)
 
 **Statut :** en cours
-**Derniere mise a jour :** 2026-11-19
+**Derniere mise a jour :** 2026-11-20 (infobulle au survol des fruits et jus)
 
 ## Role
 
@@ -17,12 +17,25 @@ sont encore ceux du pack (textes "[Name]", "Item Name", "$123,456,789"), pas bra
 | `src/gui/HUD.rbxm` | client (StarterGui.HUD) | HUD : Canvas (Buttons, Money, TopButtons, ProgressBar), Gamepasses, Multipliers |
 | `src/gui/ShopGUI.rbxm` | client (StarterGui.ShopGUI) | Tous les menus dans `MenuFrames` |
 | `src/client/Controllers/MenuController.luau` | client | Ouvre/ferme les menus, animations, flou, sons, bouton Settings en haut |
-| `src/client/Controllers/MusicController.luau` | client | Musique de fond |
+| `src/client/Controllers/MusicController.luau` | client | Musique de fond (coupee par le reglage Music) |
+| `src/client/Controllers/SettingsController.luau` | client | Menu Settings : Music, Sounds, Low Quality |
+| `src/server/Services/SettingsService.luau` | serveur | Sauvegarde des reglages (`Data.Settings`), remote `SetSetting` |
+| `src/client/Controllers/InventoryController.luau` | client | Effets de ramassage / depot ; cache la barre Roblox (l'inventaire = plateau sur la tete) |
+| `src/client/Controllers/TrayController.luau` | client | Plateau sur la tete et fruits empiles, compteur "12/20" / "FULL!" (voir `chaine-production.md`) |
 | `src/client/Controllers/ShopController.luau` | client | Construit le contenu du menu Shop |
-| `src/client/Controllers/OffersController.luau` | client | Offres animees a droite de l ecran |
-| `src/client/Controllers/WelcomeBackController.luau` | client | Ecran "Welcome Back!" (gains hors ligne) |
-| `src/client/Controllers/NotifyController.luau` | client | Message court du serveur en haut au centre (remote `Notify`), 3.5 s puis fondu |
-| `src/client/UI/PackStyle.luau` | client | Briques de style communes (texte, boutons, Robux, prix) |
+| `src/client/Controllers/UpgradeMenuController.luau` | client | Bouton vert UPGRADE du HUD + menu Upgrade en Robux (voir `ameliorations-joueur.md`) |
+| `src/client/Controllers/OffersController.luau` | client | Offre limitee a droite de l ecran (une a la fois, voir plus bas) |
+| `src/client/Controllers/WelcomeBackController.luau` | client | Ecran "Welcome Back!" (gains hors ligne reels, calcules par le serveur : voir `gains-hors-ligne.md` ; plus de demo en Studio depuis le 2026-11-20) |
+| `src/client/Controllers/NotifyController.luau` | client | Message court du serveur en haut au centre (remote `Notify`), 3.5 s puis fondu ; texte rouge pour les erreurs (`isError`) |
+| `src/client/Controllers/BillboardStrokeController.luau` | client | Contours des panneaux 3D de la carte proportionnels au panneau (voir plus bas) |
+| `src/client/Controllers/ScrollBarController.luau` | client | Barre de defilement a glisser a droite de chaque liste de ShopGUI (voir plus bas) |
+| `src/client/Controllers/HoverInfoController.luau` | client | Infobulle au survol de la souris : fruit (nom, rarete), jus (nom, rarete, prix de vente) (voir plus bas) |
+| `src/client/Fx/PurchaseFx.luau` | client | Contour arc-en-ciel + zoom camera pendant la fenetre d'achat Roblox (voir "Envie d'acheter") |
+| `src/client/Controllers/PurchaseFxController.luau` | client | Lance `PurchaseFx` sur le Feedback serveur `PurchasePrompt` |
+| `src/server/Lib/PurchasePrompt.luau` | serveur | Seul appel serveur a `Prompt...Purchase` ; previent le client (Feedback `PurchasePrompt`) |
+| `src/client/UI/ButtonFx.luau` | client | Animation commune de tous les boutons (survol, appui, rebond, sons) |
+| `src/client/Controllers/ButtonFxController.luau` | client | Branche ButtonFx sur tous les boutons de PlayerGui, meme crees plus tard |
+| `src/client/UI/PackStyle.luau` | client | **Source unique du style** : police, couleurs des boutons et de l'en-tete, texte, boutons, Robux, prix |
 | `src/shared/Config/Shop.luau` | partage | Boosts, passes, packs d'argent (prix, ids Roblox) |
 | `src/shared/Config/Icons.luau` | partage | Ids des images de l'interface |
 | `assets/icons/` | disque | Icones choisies dans ICONSPACK, a mettre en ligne |
@@ -34,6 +47,79 @@ Les `.rbxm` sont des fichiers binaires Roblox : on les modifie dans Studio puis 
 
 ## Fonctionnement
 
+### Envie d'acheter (2026-11-20)
+
+- **Pads Robux** : plus d'icone d'argent qui flotte et tourne au-dessus (retiree le 2026-11-21,
+  demande du joueur ; `RobuxPadFxController` supprime).
+- **Fenetre d'achat Roblox ouverte** : contour de l'ecran arc-en-ciel qui tourne et pulse (trait net
+  + halo transparent vers l'interieur), etincelles blanches qui scintillent le long du bord, et la
+  camera se rapproche du joueur (28 % de la distance, 9 studs max, petit rebond). Fin a la fermeture
+  de la fenetre (`Prompt*PurchaseFinished` cote client) ou au bout de 60 s. Le zoom avance la camera
+  apres le script de camera Roblox a chaque image (rien ne s'accumule, le FOV des menus n'est pas
+  touche) ; aucun zoom si la camera est `Scriptable`.
+- Declenchement : fenetres ouvertes par le serveur (pads Auto Collect / Auto Sell / Thief, Upgrade,
+  Keep Cash, Lucky Cash) via `Lib/PurchasePrompt` -> Feedback `PurchasePrompt` ; fenetres ouvertes
+  par le client (dons, offres) : `PurchaseFx.Show()` juste apres l'appel.
+- Tant que les `passId` / `productId` sont a 0, aucune fenetre ne s'ouvre ("coming soon") : l'effet
+  d'ecran ne se voit qu'avec de vrais produits (ou les dons s'ils ont leurs ids).
+
+### Offre limitee a droite (2026-11-20, choix utilisateur)
+
+- **Une seule offre a la fois.** Calendrier propre a chaque joueur, compte depuis son arrivee
+  (`Config/Shop.LimitedOffers`), compte depuis la fin de l'ecran de chargement (attribut joueur
+  `LoadingDone`, 30 s max d'attente) : `FirstDelaySeconds` = **15 s** (2026-11-21 ; avant : 0), le Starter Pack arrive 15 s apres l'arrivee.
+  L'offre reste **3 min** (minuteur rouge), disparait, et **30 s** plus tard la suivante.
+- **Entree d'une nouvelle offre** (2026-11-20) : elle "pop" en grand (x2.4) au milieu de l'ecran,
+  reste **0.7 s** (2026-11-21 ; avant 1.8 s, trop long), puis file a sa place a droite (pop 0.25 s,
+  trajet 0.35 s). Si un menu est ouvert a ce moment (ex. Welcome Back),
+  l'animation attend sa fermeture.
+- 1re offre = **Starter Pack** (19 R$, petit prix pour un premier achat facile), puis le `Pool`
+  **melange a chaque session** (2026-11-21) : Money Rush, Lucky Hour, Customer Rush, Mega Cash,
+  Triple Boost, Rare Rain. Toutes passent avant qu'une revienne, jamais deux fois la meme de suite.
+  On saute une offre trop tot pour elle (`minCycle` : Mega Cash 99 R$ pas avant la 4e offre,
+  ~10 min) ou inutile (tous ses boosts tournent deja avec un multiplicateur au moins aussi fort,
+  attributs `Boost<Stat>`). (Auto Sell 30 min retire : "c'est nul".)
+- **Offre achetee** (2026-11-21) : elle se retire tout de suite (attribut joueur `OfferBought` =
+  `"<cle>#<n>"`, pose par `RobuxShopService` a la remise) au lieu de rester jusqu'a la fin du minuteur.
+- **Starter Pack unique** (2026-11-21) : une fois achete (attribut `Bought_OfferStarter`, sauvegarde
+  `BoughtOffers`), il n'est plus jamais propose ; la 1re offre de la session vient alors du Pool.
+- **Pas d'etiquette de reduction ni de prix barre** : a droite seulement le nom, l'icone (+ gros
+  "x2"/"x3" jaune si `badge` ; Mega Cash : le vrai montant "+$2.5K" en vert, mis a jour chaque
+  seconde, jamais des "$$$") et le temps. Le prix est sur le bouton Buy de la fenetre.
+- **Contenu en images, pas en phrases** (lisible par un enfant) : la fenetre montre une tuile par
+  recompense (`rewards`) : icone (billets = argent, trefle = chance, chaussure = vitesse des
+  clients) + "x2" jaune + "15 MIN" dessous. Un paquet d'argent montre le vrai montant en vert
+  ("+$2.5K"), **adapte a l'etage du joueur** : minutes x gains theoriques (attribut joueur
+  `IncomePerSecond` pose toutes les 10 s par `CustomerService`), **plafonne** a `floorShare` x prix
+  de son prochain etage (`Floors.Prices` ; tour complete : dernier prix x5). Avant le 2026-11-20 :
+  le plus grand des deux (Mega Cash ~$44K a l'etage 1). Mega Cash = 0.5 (au plus $750 a l'etage 1
+  ... 5.5B a l'etage 10 ; courbe des etages du 2026-11-20), Starter Pack = 0.06 avec un minimum `minAmount` =
+  **$1K** (au debut il montrait +$300, trop peu).
+- L'offre se cache quand un menu est ouvert (le temps continue de tourner). Fin de l'offre pendant
+  que sa fenetre est ouverte : la fenetre se ferme.
+- 2026-11-20 : remise de ce que donne chaque offre codee cote serveur (voir `achats-robux.md`) ;
+  le bouton Buy passe par le remote `ShopBuy`, montants d'argent = attributs `Cash_<cle>` du serveur.
+- **Pas encore fait** : produits Robux pas crees (`productId` = 0 : "coming soon").
+
+### Retour des boutons (2026-11-20, retour de test : "des fois l'animation, des fois non")
+
+- UNE animation pour TOUS les boutons 2D (`src/client/UI/ButtonFx.luau`) : survol = x1.10 (Back) +
+  son Hover ; appui = x0.91 puis rebond + son Click. Ecran tactile sans souris : pas de survol.
+- Branchement automatique : `ButtonFxController` branche chaque `GuiButton` de `PlayerGui` (tous
+  les ScreenGui, meme crees plus tard) ; `MenuController` branche le HUD et les menus du ShopGUI en
+  reprenant l'UIScale du pack. Un bouton n'est jamais branche deux fois.
+- **Bouton X des menus** (2026-11-20, retour : "ca diminue sur un cote") : le X est range dans le
+  `UIListLayout` de l'en-tete, qui recollait le bouton reduit en haut a gauche. `MenuController`
+  (styleExitButton) pose l'attribut `FxTarget` = nom de la plaque rouge centree : `ButtonFx` fait
+  grossir / retrecir cet enfant au lieu du bouton (`ButtonFx.Unbind` si le X etait deja branche).
+  Le X du menu Rebirth est maintenant anime aussi. Fenetre des dons : X ancre au centre (0.5, 0.5).
+- Exclus : attribut `NoButtonFx = true` (sur le bouton ou un parent), `Selectable = false` (fond qui
+  ferme une fenetre, barres de defilement), bouton qui a deja un UIScale d'un autre effet (ex. CLAIM
+  de l'Index et sa pulsation `PulseScale`), cases Now / After du menu Rebirth (texte + icone depuis
+  le 2026-11-20, `RebirthController`, voir `rebirth.md` ; attribut `NoButtonFx`).
+- Panneaux 3D (tuiles a cliquer des bases, panneau ELEVATOR compris) : `BoardFxController` (survol
+  + appui + rebond du bouton dessine), inchange.
+
 - Un panneau de `ShopGUI.MenuFrames` est un menu s'il a un enfant `Header`.
 - Menus disponibles : Shop, Index, Rebirth, Upgrade, DailyRewards, Settings, StockShop,
   TradeRequest, SendTradeRequest, Trade, Teleport, OfflineEarnings, Codes, Playtime, SellItems.
@@ -44,104 +130,58 @@ Les `.rbxm` sont des fichiers binaires Roblox : on les modifie dans Studio puis 
 - Depuis le code client : `MenuController.Open("OfflineEarnings")`, `MenuController.Close()`.
 - HUD (2026-11-19) : Shop et Index l'un sous l'autre, icones seules + nom dessous ; argent en bas
   a gauche (+ jaune a gauche, montant vert) ; police ComicNeueAngular Bold, textes d'une seule couleur.
-  Caches dans le fichier (pour plus tard) : TopButtons, ProgressBar, UpgradeButton, Rebirth,
+  Bouton vert UPGRADE (2026-11-20) : `UpgradeButton` du pack, rendu visible par
+  `UpgradeMenuController` en bas au centre ; ouvre le menu Upgrade (`ameliorations-joueur.md`).
+  Caches dans le fichier (pour plus tard) : TopButtons, ProgressBar, Rebirth,
   DailyRewards, Multipliers, Friend Boost.
 - Bouton Settings en haut : engrenage officiel Roblox
   (`rbxasset://textures/ui/Settings/MenuBarIcons/GameSettingsTab.png`).
 
-## Remotes
+### Infobulle au survol (2026-11-20)
 
-Aucun pour l'instant.
+Demande : souris sur un fruit -> son nom et sa rarete ; souris sur une boisson -> son nom, sa rarete
+et son prix.
 
-## Donnees sauvegardees
+- `HoverInfoController` (client seulement, aucun remote). Bulle sombre a cote de la souris :
+  nom en blanc ("Golden Apple", ou "Dragon Fruit Juice" pour un gobelet), rarete dans sa couleur
+  (`Fruits.Rarities`), et pour un jus "Sells for $15" en vert argent. Contour de la bulle = couleur
+  de la rarete. Petit "pop" (0.8 -> 1) a chaque nouvel objet, et un contour lumineux (Highlight,
+  une seule a la fois, rangee dans la ScreenGui `HoverInfo`) sur l'objet survole.
+- Prix = celui du comptoir (`CustomerService.sellOne`) : `fruit.value` x multiplicateur du rebirth
+  (`leaderstats.Rebirths` -> `Rebirth.Multiplier`). A changer ici aussi si la formule de vente change.
+- Detection : les pieces des fruits et gobelets ont `CanQuery = false` (camera), un rayon de souris
+  ne les touche pas. Le controleur suit tous les modeles avec l'attribut `FruitId` dans workspace
+  (fruits et gobelets : au sol, plateau, caisses, tapis, table, comptoir, mains des clients), projette
+  leur centre a l'ecran (30 fois / s) et prend le plus proche de la camera sous la souris (rayon de
+  l'objet + 6 px), a 90 studs max, s'il n'est pas cache par une piece solide (rayon camera -> objet).
+  Gobelet = modele qui a une piece `Cup`.
+- Pas de bulle : souris sur un bouton / une liste / un panneau de menu, menu Roblox ouvert, ou
+  appareil sans souris (telephone : rien, pas de survol).
 
-Aucune.
+### Charte de l'interface (2026-11-19, "tout doit etre coherent")
 
-## Configuration
+Regle : une seule apparence. Toute interface nouvelle prend police, couleurs et boutons dans
+`UI/PackStyle.luau`, jamais des valeurs a elle.
 
-`SETTINGS_ICON_IMAGE` en haut de `MenuController.luau`.
-
-## Modifier l'interface (regle de synchro)
-
-Les fichiers du disque font reference : toute modification d'interface doit finir sur le disque,
-sinon Rojo l'ecrase.
-- **A la main :** modifier dans Studio, puis clic droit sur le ScreenGui > Save to File > remplacer
-  le fichier dans `src/gui/`.
-- **Par l'agent (MCP) :** petit serveur local `127.0.0.1:34851` qui sert et recoit les `.rbxm`.
-  Dans Studio : GET du fichier, `DeserializeInstancesAsync`, modification, `SerializeInstancesAsync`,
-  POST. Rojo pousse ensuite le resultat dans le Studio "usine". Il faut `127.0.0.1:34851` dans la
-  liste HTTP autorisee de l'Assistant du Studio utilise.
-- **Attention :** ShopGUI (2 600 elements) traite en un seul appel a fait planter Studio le
-  2026-11-19. Travailler un menu a la fois, avec `task.wait()` entre les morceaux.
-
-## Problemes connus / a faire
-
-- Sons du pack sans permission : remplaces (2026-11-19) par la serie officielle Roblox "RBLX UI" :
-  Hover 10066931761, Click 10128760939, MenuOpen 10128766965, ShopOpen 10066968815,
-  CloseMenu 10066914500, Purchase 10066947742 ; musique "Happy Daze (b)" (APM) 1839993539.
-  Pas encore ecoutes en jeu.
-- Icones : 19 icones de `D:\Downloads\ICONSPACK` copiees dans `assets/icons/`, **pas encore en ligne** :
-  il faut autoriser le dossier `D:\Usine\assets\icons` (Assistant Settings > MCP Permissions > upload).
-- Fait le 2026-11-19 : police ComicNeueAngular dans tous les menus, grille Index plus serree
-  (cases "???"), textes Offline Earnings ("While you were away...", bouton x2 a 9).
-- **Boutique** construite par `ShopController.luau` depuis `Config/Shop.luau` : Potions (3 boosts,
-  15 min = 9, 30 min = 16), Passes (8, bouton cadeau 🎁 + prix), Cash Packs (4, "BEST VALUE").
-  Achats **pas branches** : ids a 0, le clic affiche un avertissement dans la console.
-  Les packs affichent "($0)" : a relier aux gains par minute du joueur.
-- Style de la boutique (2026-11-19, demande utilisateur) : **comme le pack**, bords carres (aucun
-  UICorner), fond a motif (89847456327542) + degrade 2 couleurs vives (`color`/`color2` dans
-  Config/Shop), liseret blanc interieur, contour noir ; boutons verts en degrade (cadeau en rose).
-- Boutique v3 (2026-11-19) : 3 potions sur une ligne ("2x SPEED / MONEY / LUCK"), gros boutons
-  d'achat (prix + Robux dore centres, largeur selon le nombre de chiffres), logos plus petits,
-  etiquettes BEST/OP au-dessus des cartes voisines, **tailles de texte egalisees par groupe**
-  (titres, prix, lignes...) apres l'ouverture du menu et a chaque changement de taille d'ecran.
-- Ecrans : jeu en paysage uniquement (`StarterGui.ScreenOrientation = LandscapeSensor` dans
-  `default.project.json`) ; menus x1.25 si l'ecran fait moins de 450 px de haut ; menus sous la
-  barre Roblox (`CoreUISafeInsets`) ; sur ecran tactile l'argent est decale a droite du joystick.
-  Teste sur Samsung Galaxy A06 (simulateur). Limite : le clic simule ne marche pas en mode tactile.
-- Boutique v4 (2026-11-19) : couleurs des boutons de la v2, passes compacts (titre grand, grosse
-  icone en partie derriere les 2 lignes), titres de passes plafonnes a la mediane (un titre long ne
-  fait plus retrecir les autres), tailles de prix separees par section, contours de texte gris tres
-  fonce + coins arrondis (les coins pointus faisaient des pics). Etiquettes = rubans rouges/violets
-  ("BEST", "OP", "BEST VALUE"). Reductions : `oldPrice` dans Config/Shop -> prix barre sur le coin du
-  bouton + ruban "-30%" calcule ; **seulement pour une vraie promo** (aucune en place).
-- **Mise en page dans le code** (`HUD_LAYOUT`, `MENU_ASPECT`, `MENU_WIDTH` en haut de MenuController) :
-  colonne Shop/Index collee a gauche, livre bleu, argent plus grand et plus haut, menus Shop (1.65) et
-  Index (1.4) plus larges, en-tete qui remplit toute la largeur. Ces valeurs passent par-dessus les .rbxm.
-- **Offres limitees a droite** (`OffersController.luau`, `Config/Shop.LimitedOffers`) : rotation
-  commune a tous les joueurs (heure serveur) : **visibles 10 min, cachees 2 min**, puis 3 nouvelles
-  offres prises a tour de role dans `Pool`. Chaque offre : nom, icone sur rayons qui tournent,
-  **minuteur rouge** (pas de prix : il est dans la fenetre), petite etiquette "-X%" en haut a droite de l'icone, sous le nom seulement si `oldPrice` (reduction sur certaines offres, par
-  rapport au vrai prix de la boutique). Clic -> fenetre **"Limited Offer!"** (copie du menu
-  OfflineEarnings du pack via `MenuController.CloneMenuTemplate` + `RegisterMenu`) : grande icone,
-  nom, details, ancien prix barre + "-X%", "Ends in mm:ss", gros bouton vert avec contour dore qui
-  pulse. Le bouton ouvre la **confirmation de paiement Roblox** (`PromptProductPurchase`) quand
-  `productId` est rempli ; le serveur devra donner l'article (ProcessReceipt, a faire).
-- Engrenage Settings : ICONSPACK "Settings White" (105567916477578), echelle 0.62.
-- **Ecran "Welcome Back!"** (`WelcomeBackController`, menu `OfflineEarnings` du pack rempli par code) :
-  "You were offline for Xh Ym and earned:", encadre du montant (billets + montant vert), bouton CLAIM
-  vert (ferme l'ecran) et bouton x2 violet avec le prix Robux dessous (`Shop.OfflineDouble`, 9 R$).
-  API : `WelcomeBackController.Show(secondes, montant)`. Gains reels pas encore calcules (serveur a
-  faire) : en Studio, un exemple s'affiche au lancement (`SHOW_DEMO_IN_STUDIO`).
-- **Pastille de notification** (petit rond rouge, contour noir, sans texte, immobile) sur un bouton du HUD pour signaler une nouveaute :
-  `MenuController.SetBadge("Shop", true)` ; elle disparait quand le joueur ouvre ce menu.
-  A utiliser des qu'il y a du nouveau a voir (offre, fruit decouvert, recompense...). En Studio, la
-  demo l'affiche sur Shop.
-- Telephone (2026-11-19, ecran < 450 px de haut) : **memes proportions que sur PC** (demande
-  utilisateur ; les reglages `PHONE_MENU_*` restent dans le code mais sont desactives) ; titres de
-  section proportionnels a la largeur de la boutique ; 3 cartes par ligne ; contours proportionnels a
-  l'ecran ; colonne Shop/Index au ras du bord ; offres a droite remontees (bouton de saut libre).
-- Etiquettes (BEST, OP, BEST VALUE, -X%) : rectangle rouge incline, petit contour noir, texte
-  blanc ; construite en code, pas d'image.
-  Teste : Galaxy A06 (705x338), iPhone 16 (733x392), PC (1417x578).
-- Robux : **Robux blanc** (choix utilisateur) avec un **contour fonce** comme le texte (8 copies
-  foncees decalees de 1-1,5 px autour, puis le blanc par-dessus), dans la boutique et les offres.
-- Argent sur ecran tactile : aligne sous le bouton Index (meme bord gauche), un peu plus bas
-  (`MoneyTouchY` = 0.975). Il touche legerement le bord du joystick sur Galaxy A06.
+- **Police** : ComicNeueAngular Bold partout (menus, HUD, "+$X", "+3 Apple", "NEW!", bulles des
+  clients, panneaux 3D). Contour des textes : `PackStyle.TEXT_STROKE` (gris tres fonce), coins ronds.
+  Seule exception : le "!" de la pastille rouge (`WorldLabel`, FredokaOne, plus epais = c'est une icone).
+- **Boutons** : `PackStyle.button` = degrade bas -> haut + liseret blanc + contour fonce, bords carres.
+  Couleurs : `GREEN` action / achat / ON, `RED` annuler / NO / OFF, `PURPLE` Robux en plus (x2),
+  `PINK` cadeau. Argent : `MONEY_GREEN` (texte uni, sans degrade) + contour `MONEY_STROKE` (vert fonce, comme le montant du HUD).
+- **En-tete des menus** : meme bandeau cyan pour tous (`PackStyle.HEADER`), icone + titre colles a
+  gauche, meme hauteur de titre. Applique par `MenuController` (`styleHeader`) a chaque menu du pack
+  et aux menus crees par code (`RegisterMenu`), donc par-dessus les couleurs du `.rbxm` (le pack avait
+  Shop rose, Settings gris sans icone, Rebirth vert...). Settings recoit l'engrenage blanc ICONSPACK.
+  La fleche verte/orange du pack (en-tete d'OfflineEarnings : Welcome Back, pop-ups "Confirm" et
+  "Limited Offer!") est remplacee par le cadeau (`Icons.Gift`) dans `MenuController` (2026-11-20).
+- **Interrupteurs Settings** : le bouton du pack (relief avec ombre, qui restait verte sous OFF et
+  rouge sous ON) est cache ; a la place un `PackStyle.button` vert ON / rouge OFF, comme YES / NO.
+- **Index** (2026-11-20) : filtres de rarete du pack retires ; contenu refait par
+  `IndexController` (grille des 100 fruits, bouton CLAIM). Voir `systems/fruits.md` (section Index).
 - Icones ICONSPACK mises en ligne (17, type Image) : ids dans `Config/Icons.luau`. HUD : panier et
   livre ICONSPACK, icones plus coupees (ClipsDescendants retire, taille 100 %).
-- Index : renommer les raretes (Common... Divine du pack) en nos 10 raretes, construire les cases
-  depuis `systems/fruits.md`.
+- ~~Index : renommer les raretes, construire les cases~~ fait le 2026-11-20 (`IndexController`).
 - Bug corrige : le pack appelait `isSelected()` alors que c'est un champ dans TopbarPlus.
 - Icone du bouton Shop du HUD : l'image d'origine (104216746370508) ne s'affichait pas, remplacee
   par le panier du menu Shop (97176673928357).
@@ -156,3 +196,20 @@ sinon Rojo l'ecrase.
   packs d'argent (montant a calculer en phase 2-3). Restent : `WaitForChild` sans delai dans
   certains controleurs, attente de 1 s de MenuController dans OffersController, textes des offres
   petits sur telephone.
+- **Panneaux 3D de la carte** (2026-11-19, demande utilisateur) : les `BillboardGui` (cartes des zones
+  verrouillees, cartes des pads, compteurs "n/max", "Tree full!") avaient des contours en pixels fixes :
+  de loin tout devenait noir, de pres le contour disparaissait. `BillboardStrokeController` (client)
+  passe chaque contour d'un BillboardGui du Workspace en `StrokeSizingMode.ScaledSize`, avec
+  l'epaisseur qu'il avait vu a la distance de reference (`PIXELS_PER_STUD` = 25, ~18 studs). Regler
+  ce nombre pour epaissir (plus petit) ou affiner (plus grand) tous les contours d'un coup.
+  `WorldLabel` cree directement ses contours en `ScaledSize` (0.06). Les menus 2D (shop, HUD) ne
+  sont pas concernes : ceux du pack sont deja en `ScaledSize`.
+  Teste dans Studio : carte "Terrace" a ~12 studs et a ~75 studs.
+
+### Espacements et bouton X (2026-11-19 soir)
+
+- `PackStyle.spaceList(liste, ratio)` : meme ecart entre les lignes et en haut / en bas d'une liste
+  (part de sa hauteur visible, recalculee si elle change). Settings : 0.045 (l'Index a sa propre grille depuis le 2026-11-20).
+- Bouton X des en-tetes (`MenuController.styleExitButton`) : le fond rouge fonce du pack, visible
+  en bande sous l'image (effet "un truc derriere"), est retire ; une seule plaque en degrade
+  `PackStyle.RED`, contour noir, croix en police du jeu.

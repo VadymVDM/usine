@@ -1,6 +1,6 @@
 --!strict
 -- Affiche les messages du serveur (remote Notify) en haut de l'ecran, au style de l'interface
--- (PackStyle : texte blanc, contour fonce). Un nouveau message remplace le precedent.
+-- (PackStyle : texte blanc, contour fonce ; ROUGE pour les erreurs). Un nouveau message remplace le precedent.
 -- Doc : docs/systems/carte-bases.md, docs/systems/interface.md
 
 local Players = game:GetService("Players")
@@ -11,10 +11,13 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Remotes = require(Shared:WaitForChild("Network"):WaitForChild("Remotes"))
 local MapConfig = require(Shared:WaitForChild("Config"):WaitForChild("Map"))
 local TextUtil = require(Shared:WaitForChild("Util"):WaitForChild("TextUtil"))
+local SoundFx = require(Shared:WaitForChild("Util"):WaitForChild("SoundFx")) :: any
 local PackStyle = require(script.Parent.Parent:WaitForChild("UI"):WaitForChild("PackStyle"))
 
 local SHOW_SECONDS = 3.5
 local FADE_SECONDS = 0.4
+local NORMAL_COLOR = Color3.new(1, 1, 1)
+local ERROR_COLOR = Color3.fromRGB(255, 60, 60) -- rouge vif : refus ("Not enough money!", "Max level!"...)
 
 local NotifyController = {}
 
@@ -37,8 +40,8 @@ local function buildGui()
 	gui.ResetOnSpawn = false
 	gui.DisplayOrder = 50
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-	-- Tout en haut au centre : au-dessus des fenetres (Welcome Back) et loin des boutons du HUD
-	local text = PackStyle.label(gui, "", UDim2.fromScale(0.5, 0.03), UDim2.fromScale(0.7, 0.065), 40)
+	-- En haut au centre, sous le selecteur d'etage (FloorController) : au-dessus des fenetres (Welcome Back)
+	local text = PackStyle.label(gui, "", UDim2.fromScale(0.5, 0.125), UDim2.fromScale(0.7, 0.065), 40)
 	text.Name = "Message"
 	text.Visible = false
 	label = text
@@ -46,7 +49,7 @@ local function buildGui()
 	gui.Parent = playerGui
 end
 
-local function show(message: string)
+local function show(message: string, isError: boolean)
 	local text = label
 	if text == nil then
 		return
@@ -55,11 +58,13 @@ local function show(message: string)
 	local token = showToken
 	cancelFade() -- sinon le fondu du message precedent efface le nouveau
 	text.Text = message
+	text.TextColor3 = if isError then ERROR_COLOR else NORMAL_COLOR
 	text.TextTransparency = 0
 	if labelStroke then
 		labelStroke.Transparency = 0
 	end
 	text.Visible = true
+	SoundFx.Play("Notify")
 	task.delay(SHOW_SECONDS, function()
 		if token ~= showToken then
 			return
@@ -87,14 +92,14 @@ function NotifyController:Start()
 	if event == nil then
 		return
 	end
-	event.OnClientEvent:Connect(function(message: any)
+	event.OnClientEvent:Connect(function(message: any, isError: any)
 		-- Le serveur n'envoie que du texte de la Config ; on verifie quand meme type et longueur.
 		if typeof(message) ~= "string" then
 			return
 		end
 		local text = TextUtil.Truncate(message, MapConfig.MaxNotifyLength)
 		if text then
-			show(text)
+			show(text, isError == true)
 		end
 	end)
 end

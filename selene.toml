@@ -1,1 +1,3 @@
 std = "roblox"
+# Librairies externes (ProfileStore) : on ne les modifie pas
+exclude = ["src/server/Vendor/*"]

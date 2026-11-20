@@ -20,11 +20,14 @@ local SETTINGS_ICON_SCALE = 0.62
 -- Placement du HUD et taille des menus. Ces valeurs remplacent celles des fichiers .rbxm
 -- (decision 2026-11-19 : reglages de mise en page dans le code, plus simples a ajuster).
 local HUD_LAYOUT = {
-	ButtonsX = 0.055, -- colonne Shop/Index, collee a gauche
+	-- Colonne Shop/Index : largeur et marge au bord = celles des offres de droite (PackStyle.SIDE_*),
+	-- calculees dans applyLayout (2026-11-20 : "meme taille que les offres, pas trop a droite").
+	MoneyHeightPC = 0.13,
+	BuyMoneySize = 0.46, -- bouton "+" (part de la hauteur de la ligne d'argent ; .rbxm : 0.6)
+	BuyMoneySizePC = 0.6, -- bouton "+" sur PC, un peu plus gros
 	MoneyPosition = UDim2.fromScale(0.018, 0.955),
 	MoneyHeight = 0.14,
 	MoneyTouchY = 0.975, -- ecran tactile : un peu plus bas, aligne sous le bouton Index
-	ButtonsTouchX = 0.04, -- ecran tactile : colonne Shop/Index au ras du bord
 	IndexIcon = "rbxassetid://101346279017126", -- livre bleu, assorti au menu Index
 }
 -- Largeur des menus : rapport largeur/hauteur du cadre (le contenu suit).
@@ -39,15 +42,17 @@ local HEADER_HEIGHT = 0.18 -- hauteur de l'en-tete (part du menu)
 local HEADER_GAP = 0.0075 -- espace entre le bandeau titre et le X
 local SMALL_SCREEN_MENU_SCALE = 1
 local SOUND_NAMES = { "Hover", "Click", "MenuOpen", "ShopOpen", "CloseMenu" }
+-- En-tetes : meme bandeau pour tous les menus (couleur PackStyle.HEADER), titre colle a l'icone,
+-- meme hauteur de titre. Icone ajoutee aux menus du pack qui n'en ont pas.
+local HEADER_TITLE_SIZE = UDim2.fromScale(0.8, 0.68)
+local HEADER_ICONS = { Settings = SETTINGS_ICON_IMAGE }
+-- Fleche verte/orange du pack (en-tete de OfflineEarnings, donc aussi Welcome Back et les pop-ups
+-- copies de ce menu) : remplacee par l'icone cadeau (demande 2026-11-20).
+local PACK_ARROW_ICON = "rbxassetid://94770154818570"
 
-type ButtonState = {
-	scale: UIScale,
-	base: number,
-	token: number,
-	hovered: boolean,
-	pressed: boolean,
-	tween: Tween?,
-}
+local PackStyle = require(script.Parent.Parent:WaitForChild("UI"):WaitForChild("PackStyle"))
+local ButtonFx = require(script.Parent.Parent:WaitForChild("UI"):WaitForChild("ButtonFx"))
+
 
 type MenuState = {
 	frame: GuiObject,
@@ -78,7 +83,6 @@ local soundFolder: Folder
 local soundTemplates: Folder?
 
 local menus: { [string]: MenuState } = {}
-local buttons: { [GuiButton]: ButtonState } = {}
 local actionBound: { [GuiButton]: boolean } = {}
 local hudGroups: { HudGroup } = {}
 local soundPools: { [string]: SoundPool } = {}
@@ -89,7 +93,6 @@ local baselineFOV: number? = nil
 local fovCamera: Camera? = nil
 local fovTween: Tween? = nil
 local blurTween: Tween? = nil
-local alive = true
 
 local function connect(signal: RBXScriptSignal, callback: (...any) -> ()): RBXScriptConnection
 	local connection = signal:Connect(callback)
@@ -118,6 +121,10 @@ local function prepareSound(name: string): SoundPool?
 end
 
 local function playSound(name: string)
+	-- Sons coupes dans Settings (attribut pose par SettingsService)
+	if player:GetAttribute("SettingEffects") == false then
+		return
+	end
 	local pool = soundPools[name] or prepareSound(name)
 	if not pool then
 		return
@@ -142,125 +149,15 @@ local function getScale(object: Instance, name: string): UIScale
 	return scale
 end
 
-local function resetButton(state: ButtonState)
-	state.token += 1
-	state.hovered = false
-	state.pressed = false
-	if state.tween then
-		state.tween:Cancel()
-	end
-	state.scale.Scale = state.base
-end
-
 local function resetButtons(root: Instance)
-	for button, state in buttons do
-		if button:IsDescendantOf(root) then
-			resetButton(state)
-		end
-	end
+	ButtonFx.ResetUnder(root)
 end
 
-local function animateButton(state: ButtonState, factor: number, duration: number, style: Enum.EasingStyle?): Tween
-	if state.tween then
-		state.tween:Cancel()
-	end
-	local tween = TweenService:Create(
-		state.scale,
-		TweenInfo.new(duration, style or Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-		{ Scale = state.base * factor }
-	)
-	state.tween = tween
-	tween:Play()
-	return tween
-end
-
-local function reboundButton(state: ButtonState)
-	state.token += 1
-	local token = state.token
-	local resting = if state.hovered then 1.10 else 1
-	local tween = animateButton(state, if state.hovered then 1.14 else 1.04, 0.08, Enum.EasingStyle.Cubic)
-	tween.Completed:Once(function(status)
-		if not alive or token ~= state.token or state.pressed or status ~= Enum.PlaybackState.Completed then
-			return
-		end
-		animateButton(state, resting, 0.135, Enum.EasingStyle.Sine)
-	end)
-end
-
-local function isPressInput(input: InputObject): boolean
-	return input.UserInputType == Enum.UserInputType.MouseButton1
-		or input.UserInputType == Enum.UserInputType.Touch
-		or input.KeyCode == Enum.KeyCode.ButtonA
-end
-
+-- Animation commune de tous les boutons (UI/ButtonFx) ; force = garder l'UIScale du pack UI.
 local function bindFeedback(button: GuiButton)
-	if buttons[button] then
-		return
-	end
 	button.Active = true
 	button.Interactable = true
-	button.AutoButtonColor = false
-	local scale = getScale(button, "ButtonFeedbackScale")
-	local state: ButtonState = { scale = scale, base = scale.Scale, token = 0, hovered = false, pressed = false }
-	buttons[button] = state
-
-	local function setHovered(hovered: boolean)
-		if state.hovered == hovered then
-			return
-		end
-		state.hovered = hovered
-		state.token += 1
-		if hovered then
-			playSound("Hover")
-		end
-		if not state.pressed then
-			animateButton(
-				state,
-				if hovered then 1.10 else 1,
-				if hovered then 0.105 else 0.12,
-				if hovered then Enum.EasingStyle.Back else Enum.EasingStyle.Sine
-			)
-		end
-	end
-
-	connect(button.MouseEnter, function()
-		-- Ecran tactile sans souris : un appui declenche MouseEnter (son + bouton bloque agrandi)
-		if UserInputService.TouchEnabled and not UserInputService.MouseEnabled then
-			return
-		end
-		setHovered(true)
-	end)
-	connect(button.MouseLeave, function()
-		setHovered(false)
-	end)
-	connect(button.SelectionGained, function()
-		setHovered(true)
-	end)
-	connect(button.SelectionLost, function()
-		setHovered(false)
-	end)
-	connect(button.InputBegan, function(input: InputObject)
-		if not isPressInput(input) then
-			return
-		end
-		state.pressed = true
-		state.token += 1
-		animateButton(state, 0.91, 0.045, Enum.EasingStyle.Cubic)
-	end)
-	connect(button.InputEnded, function(input: InputObject)
-		if not isPressInput(input) or not state.pressed then
-			return
-		end
-		state.pressed = false
-		reboundButton(state)
-	end)
-	connect(button.Activated, function()
-		state.pressed = false
-		if button.Name ~= "ExitButton" then
-			playSound("Click")
-		end
-		reboundButton(state)
-	end)
+	ButtonFx.Bind(button, true)
 end
 
 -- HUD qui sort de l'ecran quand un menu est ouvert ----------------------------------------------
@@ -550,11 +447,32 @@ local function bindHUDButton(object: Instance)
 		return
 	end
 	actionBound[object] = true
+	-- "+" a cote de l'argent : ouvre le Shop directement sur les packs d'argent
+	if object.Name == "BuyMoney" and menus.Shop then
+		connect(object.Activated, function()
+			MenuController.OpenShopSection("CashPacks")
+		end)
+		return
+	end
 	local menuName = hudMenuName(object)
 	if menuName then
 		connect(object.Activated, function()
 			MenuController.Open(menuName)
 		end)
+	end
+end
+
+-- Ouvre le Shop (s'il n'est pas deja ouvert) et fait defiler jusqu'a une section ("CashPacks"...).
+function MenuController.OpenShopSection(section: string)
+	if activeMenu ~= "Shop" then
+		MenuController.Open("Shop")
+	end
+	local module = script.Parent:FindFirstChild("ShopController")
+	if module and module:IsA("ModuleScript") then
+		local ok, shop = pcall(require, module)
+		if ok and type(shop) == "table" and (shop :: any).ScrollToSection then
+			(shop :: any).ScrollToSection(section)
+		end
 	end
 end
 
@@ -570,12 +488,99 @@ local function bindMenuButton(object: Instance)
 		return
 	end
 	local isRebirth = frame.Name == "Rebirth"
-	if not isRebirth or object.Name == "RebirthButton" or object.Name == "SkipButton" then
+	-- Menu Rebirth : ses boutons decoratifs restent sans animation, mais pas la croix (2026-11-20)
+	if not isRebirth or object.Name == "RebirthButton" or object.Name == "SkipButton" or object.Name == "ExitButton" then
 		bindFeedback(object)
 	end
 	if object.Name == "ExitButton" and not actionBound[object] then
 		actionBound[object] = true
 		connect(object.Activated, MenuController.Close)
+	end
+end
+
+-- Bouton X des menus : le pack dessinait un fond rouge fonce sous l'image (bande en bas, comme un
+-- 2e bouton derriere). On garde une seule plaque rouge PackStyle, pleine taille, sans ce fond.
+local function styleExitButton(header: Instance)
+	local exit = header:FindFirstChild("ExitButton")
+	if exit == nil or not exit:IsA("TextButton") then
+		return
+	end
+	exit.BackgroundTransparency = 1
+	exit.TextTransparency = 1
+	local padding = exit:FindFirstChildOfClass("UIPadding")
+	if padding then
+		padding.PaddingBottom = UDim.new(0, 0)
+	end
+	local plate = exit:FindFirstChildOfClass("ImageLabel")
+	if plate == nil then
+		return
+	end
+	-- Appui / survol : c'est la plaque (centree) qui change de taille. Le bouton est range dans le
+	-- UIListLayout de l'en-tete : reduit, il etait recolle en haut a gauche (retour utilisateur 2026-11-20).
+	-- Deja branche (ButtonFxController passe parfois avant) : debranche, il sera rebranche sur la plaque.
+	ButtonFx.Unbind(exit)
+	local oldScale = exit:FindFirstChildOfClass("UIScale")
+	if oldScale then
+		oldScale:Destroy()
+	end
+	exit:SetAttribute("FxTarget", plate.Name)
+	local gradient = plate:FindFirstChildOfClass("UIGradient")
+	if gradient then
+		gradient.Rotation = -90
+		gradient.Color = ColorSequence.new(PackStyle.RED[1], PackStyle.RED[2])
+	end
+	local cross = plate:FindFirstChildOfClass("TextLabel")
+	if cross then
+		cross.FontFace = PackStyle.FONT
+	end
+end
+
+-- Meme en-tete pour tous les menus (le pack donnait une couleur par menu : rose, gris, vert...).
+local function styleHeader(menu: Instance)
+	local header = menu:FindFirstChild("Header")
+	if header then
+		styleExitButton(header)
+	end
+	local subHeader = header and header:FindFirstChild("SubHeader")
+	if subHeader == nil or not subHeader:IsA("GuiObject") then
+		return
+	end
+	subHeader.BackgroundColor3 = PackStyle.HEADER[3] -- bord du bas (relief)
+	local band = subHeader:FindFirstChildOfClass("ImageLabel")
+	if band == nil then
+		return
+	end
+	local icon: ImageLabel? = nil
+	local title: TextLabel? = nil
+	for _, child in band:GetChildren() do
+		if child:IsA("UIGradient") then
+			child.Color = ColorSequence.new(PackStyle.HEADER[1], PackStyle.HEADER[2])
+		elseif child:IsA("ImageLabel") and icon == nil then
+			icon = child
+		elseif child:IsA("TextLabel") and title == nil then
+			title = child
+		end
+	end
+	if title == nil then
+		return
+	end
+	title.Size = HEADER_TITLE_SIZE
+	title.TextXAlignment = Enum.TextXAlignment.Left
+	title.FontFace = PackStyle.FONT
+	-- Icone manquante (Settings) : copie de celle de l'Index avec la bonne image
+	local image = HEADER_ICONS[menu.Name]
+	if icon == nil and image then
+		local index = menuFrames:FindFirstChild("Index")
+		local model = index and index:FindFirstChild("Header")
+		model = model and model:FindFirstChild("SubHeader")
+		model = model and model:FindFirstChildOfClass("ImageLabel")
+		local modelIcon = model and model:FindFirstChildOfClass("ImageLabel")
+		if modelIcon then
+			local copy = modelIcon:Clone()
+			copy.Image = image
+			copy.LayoutOrder = title.LayoutOrder - 1
+			copy.Parent = band
+		end
 	end
 end
 
@@ -585,6 +590,7 @@ function MenuController.RegisterMenu(frame: GuiObject)
 	local scale = getScale(frame, "MenuPopScale")
 	menus[frame.Name] = { frame = frame, scale = scale, base = scale.Scale, home = frame.Position, token = 0 }
 	frame.Visible = false
+	styleHeader(frame)
 	frame.Parent = menuFrames
 	for _, object in frame:GetDescendants() do
 		bindMenuButton(object)
@@ -658,9 +664,27 @@ local function applyLayout()
 	end
 	local c = canvas :: any
 	local buttons = c:FindFirstChild("Buttons")
+	local touch = UserInputService.TouchEnabled
 	if buttons then
-		local x = if UserInputService.TouchEnabled then HUD_LAYOUT.ButtonsTouchX else HUD_LAYOUT.ButtonsX
-		buttons.Position = UDim2.new(x, 0, buttons.Position.Y.Scale, buttons.Position.Y.Offset)
+		-- Meme largeur que les offres de droite : la grille a 2 colonnes (cellule = 0.5 de la largeur),
+		-- donc la colonne fait 2 fois la largeur d'une offre. Hauteur 1 : c'est la largeur qui decide
+		-- (UIAspectRatioConstraint du .rbxm), comme pour les offres.
+		local camera = workspace.CurrentCamera
+		local phone = camera ~= nil and camera.ViewportSize.Y < 450
+		local width = 2 * (if phone then PackStyle.SIDE_BUTTON_WIDTH_PHONE else PackStyle.SIDE_BUTTON_WIDTH)
+		buttons.Size = UDim2.fromScale(width, 1)
+		-- Bord gauche de Shop/Index a la meme marge que le bord droit des offres.
+		local shop = buttons:FindFirstChild("Shop", true)
+		if shop and shop:IsA("GuiObject") then
+			buttons.Position = UDim2.fromScale(0.5, buttons.Position.Y.Scale)
+			task.wait() -- laisser la grille placer les boutons
+			local frameSize = buttons.AbsoluteSize.X
+			if frameSize > 0 then
+				local inside = (shop.AbsolutePosition.X - buttons.AbsolutePosition.X) / frameSize
+				local x = PackStyle.SIDE_MARGIN + width * (buttons.AnchorPoint.X - inside)
+				buttons.Position = UDim2.fromScale(x, buttons.Position.Y.Scale)
+			end
+		end
 		local indexIcon = buttons:FindFirstChild("Index", true)
 		local icon = indexIcon and indexIcon:FindFirstChild("Icon", true)
 		if icon and icon:IsA("ImageLabel") then
@@ -675,7 +699,12 @@ local function applyLayout()
 	local money = c:FindFirstChild("Money")
 	if money then
 		money.Position = HUD_LAYOUT.MoneyPosition
-		money.Size = UDim2.fromScale(money.Size.X.Scale, HUD_LAYOUT.MoneyHeight)
+		money.Size = UDim2.fromScale(money.Size.X.Scale, if touch then HUD_LAYOUT.MoneyHeight else HUD_LAYOUT.MoneyHeightPC)
+		local buyMoney = money:FindFirstChild("BuyMoney", true)
+		if buyMoney and buyMoney:IsA("GuiObject") then
+			local buySize = if touch then HUD_LAYOUT.BuyMoneySize else HUD_LAYOUT.BuyMoneySizePC
+			buyMoney.Size = UDim2.fromScale(buySize, buySize)
+		end
 		-- Ecran tactile : l'argent s'aligne sous le bouton Index (meme bord gauche), un peu plus bas.
 		if UserInputService.TouchEnabled and buttons then
 			task.wait() -- laisser la mise en page calculer la position du bouton
@@ -743,6 +772,14 @@ local function setup()
 	-- Les menus restent sous la barre Roblox du haut (sinon le bouton Settings chevauche l'en-tete).
 	shopGUI.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 
+	-- Avant toute copie de menu (CloneMenuTemplate) : les copies gardent l'icone cadeau.
+	local icons = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"):WaitForChild("Icons")) :: any
+	for _, object in menuFrames:GetDescendants() do
+		if object:IsA("ImageLabel") and object.Image == PACK_ARROW_ICON then
+			object.Image = icons.Gift
+		end
+	end
+
 	applyLayout()
 	shopGUI.Enabled = true
 	menuFrames.Visible = true
@@ -771,6 +808,7 @@ function MenuController.WaitUntilReady(timeoutSeconds: number): boolean
 end
 
 function MenuController:Start()
+	ButtonFx.SetSoundPlayer(playSound)
 	setup()
 	ready = true
 
@@ -800,8 +838,10 @@ function MenuController:Start()
 			end
 			menus[child.Name] = { frame = child, scale = scale, base = scale.Scale, home = child.Position, token = 0 }
 			child.Visible = false
+			styleHeader(child)
 		end
 	end
+	-- Index : contenu refait par IndexController (grille des 100 fruits, plus de filtres de rarete)
 	hud:SetAttribute("ActiveMenu", "")
 
 	local canvas = hud:WaitForChild("Canvas")
@@ -827,9 +867,7 @@ function MenuController:Start()
 		end
 	end)
 	connect(UserInputService.WindowFocusReleased, function()
-		for _, state in buttons do
-			resetButton(state)
-		end
+		ButtonFx.ResetUnder(player:WaitForChild("PlayerGui"))
 	end)
 	connect(player.CharacterRemoving, function()
 		if activeMenu then

@@ -17,7 +17,8 @@ function NotifyService:Init()
 	Remotes.GetServerEvent("Notify")
 end
 
-function NotifyService.Notify(player: Player, message: string)
+-- isError = true : message d'erreur (refus, pas assez d'argent...) affiche en rouge par le client.
+function NotifyService.Notify(player: Player, message: string, isError: boolean?)
 	if player.Parent == nil then
 		return
 	end
@@ -27,7 +28,7 @@ function NotifyService.Notify(player: Player, message: string)
 		return
 	end
 	-- Un RemoteEvent tire avant que le client ecoute est garde en file et livre a la connexion.
-	Remotes.GetServerEvent("Notify"):FireClient(player, text)
+	Remotes.GetServerEvent("Notify"):FireClient(player, text, isError == true)
 end
 
 return NotifyService
