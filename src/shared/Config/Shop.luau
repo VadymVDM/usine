@@ -246,7 +246,7 @@ Shop.Bundles = {
 		title = "ULTIMATE BUNDLE",
 		passes = { "Cash3x", "GreedyCustomers", "AutoCollect", "InstantSell" },
 		labels = { "3X CASH", "GREEDY", "AUTO COLLECT", "INSTANT SELL" }, -- nom court sous chaque logo
-		price = 799,
+		price = 499,
 		productId = 3734946982, -- "Ultimate Bundle", cree par Open Cloud le 2026-11-23
 	},
 }

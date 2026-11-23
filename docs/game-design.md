@@ -281,7 +281,7 @@ donne toujours l'avantage (jamais le client). Detail technique avec `roblox-mone
 **Techniques en place (2026-11-23), toujours honnetes :**
 - Offre au moment du besoin : etage trop cher -> "Almost there!" avec le pack qui couvre ce qui manque.
 - Essai gratuit de 3X CASH (3 min par session) puis le VRAI surplus gagne + "Keep it forever?".
-- Ultimate Bundle 799 R$ (4 passes, vraie reduction de 15 %) : ancre les prix, 3X CASH parait moins cher.
+- Ultimate Bundle 499 R$ (4 passes, vraie reduction de 47 %, baisse de 799 le 2026-11-23) : ancre les prix, 3X CASH parait moins cher.
 - Interdit : faux minuteurs, faux anciens prix, caisses payantes, fenetres qui bloquent le jeu, messages
   qui culpabilisent.
 

@@ -81,8 +81,8 @@ affiche et envoie seulement "je veux acheter X". Le jeu reste complet sans payer
   vente x (1 - 1/3) au surplus. A la fin, si surplus > 0 et pas de pass : Feedback `"TrialEnd"`
   `{ pass, earned }` -> fenetre "Free Trial Over! 3X CASH earned you +$X. Keep it forever?" + bouton 399.
   Pass achete pendant l'essai : essai arrete, pas de fenetre. Pas pour ceux qui ont deja le pass.
-- **Ultimate Bundle** (`Shop.Bundles`, Developer Product D50, 799 R$) : 3X CASH + Greedy Customers +
-  Auto Collect + Instant Sell (946 R$ separes, "SAVE 15%" vrai). Recu -> `Data.GiftedPasses` (comme un
+- **Ultimate Bundle** (`Shop.Bundles`, Developer Product D50, 499 R$ depuis le 2026-11-23, avant 799) : 3X CASH + Greedy Customers +
+  Auto Collect + Instant Sell (946 R$ separes, "SAVE 47%" vrai). Recu -> `Data.GiftedPasses` (comme un
   cadeau, une fois par PurchaseId) + `GamePass.FireGranted` pour chaque pass. Vendu seulement si le
   joueur n'a AUCUN de ces passes (`ShopBuy("Bundle", cle)` refuse : "You already own a pass from this
   bundle!") ; attribut `BundleBlocked_<cle>` -> la carte de la boutique affiche OWNED. Grande carte en
@@ -205,7 +205,7 @@ de la Config) : changer l'un = changer l'autre (Creator Hub > Monetization).
 | D32 | Tip 500 | 500 | Thank you for supporting the game! | `robux_gold.png` | `Donations` 500 || 3734031263 |
 | D33 | Tip 1000 | 1000 | Thank you for supporting the game! | `robux_gold.png` | `Donations` 1000 || 3734031268 |
 | D34 | Tip 10000 | 10000 | Thank you for supporting the game! | `robux_gold.png` | `Donations` 10000 || 3734031277 |
-| D50 | Ultimate Bundle | 799 | 3X Cash + Greedy Customers + Auto Collect + Instant Sell. Save 15%! | `gift.png` | `Shop.Bundles` Ultimate (cree le 2026-11-23) || 3734946982 |
+| D50 | Ultimate Bundle | 499 | 3X Cash + Greedy Customers + Auto Collect + Instant Sell. Save 47%! | `gift.png` | `Shop.Bundles` Ultimate (cree le 2026-11-23) || 3734946982 |
 
 Renommes le 2026-11-23 : P6, P7, P8 finissent par "(All Floors)" sur Roblox (Open Cloud PATCH, icone renvoyee identique) et dans les titres de `Shop.Passes`. Les etiquettes des pads violets restent sans "(All Floors)" (choix utilisateur).
 
