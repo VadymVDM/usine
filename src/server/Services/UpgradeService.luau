@@ -60,6 +60,7 @@ local MachineModels = require(Shared:WaitForChild("Util"):WaitForChild("MachineM
 local UpgradeTile = require(Shared:WaitForChild("Util"):WaitForChild("UpgradeTile"))
 
 local Floors = require(Config:WaitForChild("Floors"))
+local GameConfig = require(Config:WaitForChild("GameConfig"))
 local DataService = require(script.Parent.DataService)
 local FloorService = require(script.Parent.FloorService)
 local MoneyService = require(script.Parent.MoneyService)
@@ -617,7 +618,33 @@ local function robuxTarget(player: Player, productId: number): (FloorState?, str
 			end
 		end
 	end
+	-- 2026-11-23 : rien au meme prix -> n'importe quelle amelioration encore possible (etage le plus
+	-- haut d'abord). Le joueur a paye : il recoit toujours quelque chose (sinon : argent, voir le recu).
+	for n = FloorService.GetOwnedCount(player), 1, -1 do
+		local floor = FloorService.GetFloor(player, n)
+		local state = floor and states[floor]
+		if state == nil then
+			continue
+		end
+		for _, upgrade in Upgrades.List do
+			local machine = state.machines[upgrade.id]
+			if state.tiles[upgrade.id] == nil or (machine and machine.built == false) then
+				continue
+			end
+			if checkBuyable(player, state, upgrade.id) then
+				return state, upgrade.id
+			end
+		end
+	end
 	return nil, nil
+end
+
+-- Argent donne quand un recu n'a plus aucune amelioration a donner (tout est au max) :
+-- Upgrades.RobuxRefundFloorShare x prix du prochain etage (ou du dernier x5 apres l'etage 10).
+local function robuxRefundAmount(player: Player): number
+	local n = FloorService.GetOwnedCount(player) + 1
+	local price = Floors.Price(n) or (Floors.Prices[#Floors.Prices] * Floors.UpgradePriceFactor)
+	return math.max(math.floor(price * Upgrades.RobuxRefundFloorShare), 100)
 end
 
 type Applied = { state: FloorState, id: string, level: number, wasBuilt: boolean? }
@@ -632,10 +659,14 @@ local function onRobuxReceipt(receipt: ReceiptService.Receipt): boolean
 		task.wait(0.25)
 	end
 	local applied: Applied? = nil
+	local refunded = 0
 	local granted = DataService.GrantPurchaseOnce(player, receipt.PurchaseId, function(data): boolean
 		local state, id = robuxTarget(player, receipt.ProductId)
 		if state == nil or id == nil then
-			warn(`[UpgradeService] Recu {receipt.PurchaseId} ({receipt.ProductId}) : aucune amelioration a donner`)
+			-- Tout est au max : on donne de l'argent au lieu de rien (les Robux ne sont jamais perdus)
+			refunded = robuxRefundAmount(player)
+			data.Money = math.min(data.Money + refunded, GameConfig.MaxMoney)
+			warn(`[UpgradeService] Recu {receipt.PurchaseId} ({receipt.ProductId}) : aucune amelioration, +{refunded} $`)
 			return true
 		end
 		local levels = DataService.FloorUpgrades(data, state.index)
@@ -653,6 +684,9 @@ local function onRobuxReceipt(receipt: ReceiptService.Receipt): boolean
 	local done: Applied? = applied
 	if done then
 		afterBought(player, done.state, done.id, done.level, done.wasBuilt)
+	elseif refunded > 0 then
+		MoneyService.SyncLeaderstats(player)
+		notify(player, string.format(Upgrades.Messages.RobuxRefund, NumberFormat.Abbreviate(refunded)))
 	end
 	return granted
 end

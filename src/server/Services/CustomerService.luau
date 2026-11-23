@@ -331,9 +331,22 @@ local function updateIncome(state: CounterState)
 end
 
 -- Verse `price` sur le tas de CET etage (ou au joueur avec Auto Collect).
+-- Ecouteurs de chaque vente (RobuxShopService : surplus gagne pendant l'essai 3X CASH). Sans yield.
+local saleListeners: { (player: Player, amount: number) -> () } = {}
+
+function CustomerService.OnSale(callback: (player: Player, amount: number) -> ())
+	table.insert(saleListeners, callback)
+end
+
 local function pay(state: CounterState, price: number)
 	local player = state.player
 	table.insert(state.sales, { t = os.clock(), amount = price })
+	for _, listener in saleListeners do
+		local ok, err = pcall(listener, player, price)
+		if not ok then
+			warn(`[CustomerService] OnSale : {err}`)
+		end
+	end
 	-- Un tas d'argent par etage (2026-11-20). Etage sans table (vieille place) : directement au joueur.
 	local auto = ownsAutoCollect(player)
 	if auto or state.pile == nil then

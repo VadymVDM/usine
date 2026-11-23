@@ -40,10 +40,12 @@ Rebirth.MultiplierPerRebirth = 1
 -- Le serveur choisit le palier d'apres le nombre de rebirths du joueur. productId = 0 tant que le
 -- produit n'est pas cree sur Roblox (bouton -> "coming soon"). Prix A VALIDER.
 Rebirth.KeepCashProducts = table.freeze({
+	-- 2026-11-23 (revue de la monetisation) : 49 R$ pour le 1er rebirth seulement. Avant (0-2 a 49) :
+	-- 10B gardes -> racheter les 10 etages (~2.7B) -> rebirth de nouveau, x4 pour ~150 R$.
 	table.freeze({ minRebirths = 0, price = 49, productId = 3734031157 }),
-	table.freeze({ minRebirths = 3, price = 99, productId = 3734031163 }),
-	table.freeze({ minRebirths = 10, price = 199, productId = 3734031169 }),
-	table.freeze({ minRebirths = 25, price = 299, productId = 3734031171 }),
+	table.freeze({ minRebirths = 1, price = 99, productId = 3734031163 }),
+	table.freeze({ minRebirths = 5, price = 199, productId = 3734031169 }),
+	table.freeze({ minRebirths = 15, price = 299, productId = 3734031171 }),
 })
 
 Rebirth.RequestCooldown = 1 -- secondes entre deux demandes (remote RebirthRequest)

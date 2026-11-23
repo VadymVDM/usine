@@ -259,15 +259,31 @@ donne toujours l'avantage (jamais le client). Detail technique avec `roblox-mone
 |---|---|---|
 | VIP | Name tag VIP + tag dans le chat | 149 |
 | x3 Cash | Argent x3 pour toujours | 399 |
-| Drink Master | Chance x2 d'avoir des fruits rares | 249 |
+| Drink Master | Chance x2 d'avoir des fruits rares (en vrai ~+15 % d'argent + l'Index plus vite) | 199 (2026-11-23, 249 avant) |
 | Greedy Customers | Chaque client achete 2 boissons au lieu d'1 | 199 |
 | Speed Master | Vitesse de marche x2 + clients x2 plus rapides | 99 |
 | Auto Collect | L'argent du comptoir arrive tout seul (machine a cote du tas d'argent) | 149 |
 | Auto Sell | Les jus de la table vont tout seuls au comptoir, vite (pad violet qui remplace le pad du Waiter une fois le Waiter embauche, 2026-11-20) | 199 |
 | Thief | Voler des boissons pretes chez les autres (avec garde-fous) | 149 |
-| Rebirth Master | Garde le niveau de l'arbre apres un rebirth : chaque etage rachete reprend son meilleur niveau d'arbre (code le 2026-11-20) (+ peut-etre rebirth 50 % moins cher [A VALIDER]) | 299 [A VALIDER] |
+| Rebirth Master | Garde le niveau de l'arbre apres un rebirth : chaque etage rachete reprend son meilleur niveau d'arbre (code le 2026-11-20) (+ peut-etre rebirth 50 % moins cher [A VALIDER]) | 199 (2026-11-23, 299 avant) |
 
 "Drink Master" fait la chance (pas l'argent) pour ne pas doubler "x3 Cash".
+
+**Regles de prix (revue du 2026-11-23, "qu'ils achetent, que ce soit renta") :**
+- Chaque achat doit etre une bonne affaire : mesure = minutes de gains par Robux. Reference : boost
+  2x Money 15 min a 9 R$ = 1.67 min / R$.
+- Packs d'argent : plus le pack est gros, plus il est rentable (0.79 / 1.22 / 1.86 / 2.41 min / R$).
+- Une offre limitee (minuteur) vaut toujours MIEUX que la meme chose en boutique.
+- Un produit plus cher donne toujours plus qu'un moins cher (Mega Cash 49 > Lucky Cash 19).
+- Les montants d'argent ne comptent pas les boosts en cours (boost x3 + pack != pack x3).
+- Un achat Robux ne donne jamais "rien" (amelioration deja au max : autre amelioration ou argent).
+
+**Techniques en place (2026-11-23), toujours honnetes :**
+- Offre au moment du besoin : etage trop cher -> "Almost there!" avec le pack qui couvre ce qui manque.
+- Essai gratuit de 3X CASH (3 min par session) puis le VRAI surplus gagne + "Keep it forever?".
+- Ultimate Bundle 799 R$ (4 passes, vraie reduction de 15 %) : ancre les prix, 3X CASH parait moins cher.
+- Interdit : faux minuteurs, faux anciens prix, caisses payantes, fenetres qui bloquent le jeu, messages
+  qui culpabilisent.
 
 ### Produits (a acheter plusieurs fois)
 
@@ -277,8 +293,8 @@ donne toujours l'avantage (jamais le client). Detail technique avec `roblox-mone
 | Boost x2 argent : 15 min / 30 min (meilleure valeur) | 9 / 16 |
 | Boost x2 vitesse des clients : 15 min / 30 min | 9 / 16 |
 | Boost x2 chance de l'arbre : 15 min / 30 min | 9 / 16 |
-| Packs d'argent (6 min / 35 min / 4 h / 10 h, "Best Value" sur le 4 h, vraiment le meilleur rapport) | 22 / 75 / 189 / 479 (2026-11-22) |
-| Rebirth & keep your cash (a cote du bouton Rebirth) | 49 / 99 / 199 / 299 selon le nombre de rebirths (0-2 / 3-9 / 10-24 / 25+) [A VALIDER] |
+| Packs d'argent (15 min / 1 h / 4 h / 12 h, "Best Value" sur le 12 h, vraiment le meilleur rapport ; chaque pack plus rentable que le precedent) | 19 / 49 / 129 / 299 (2026-11-23) |
+| Rebirth & keep your cash (a cote du bouton Rebirth) | 49 / 99 / 199 / 299 selon le nombre de rebirths (0 / 1-4 / 5-14 / 15+) (2026-11-23) |
 | Amelioration d'un niveau en Robux (a cote de chaque bouton du mur) | petit prix, monte avec le niveau |
 
 - **Packs d'argent = X minutes de gains actuels du joueur**, pas un montant fixe (sinon un pack

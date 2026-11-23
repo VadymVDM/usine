@@ -225,6 +225,18 @@ local handlers: { [string]: { [string]: Handler } } = {
 		FreeBoost = function(player, seconds)
 			return RobuxShopService.DebugFreeBoost(player, if type(seconds) == "number" then seconds else 0)
 		end,
+		-- Essai 3X CASH dans X s, qui dure Y s : ("Shop", "Trial", "<Nom>", 0, 20)
+		Trial = function(player, seconds, trialSeconds)
+			return RobuxShopService.DebugTrial(
+				player,
+				if type(seconds) == "number" then seconds else 0,
+				if type(trialSeconds) == "number" then trialSeconds else nil
+			)
+		end,
+		-- Recu simule d'un lot (ecrit la sauvegarde !) : ("Shop", "Bundle", "<Nom>", "Ultimate", "id")
+		Bundle = function(player, key, purchaseId)
+			return RobuxShopService.DebugBundle(player, if type(key) == "string" then key else "", tostring(purchaseId))
+		end,
 	},
 	LuckyCash = {
 		-- Montant offert maintenant

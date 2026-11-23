@@ -42,7 +42,7 @@ contrairement aux ameliorations des machines (`ameliorations-employes.md`, une s
   `MoneyService.TrySpend(PlayerUpgrades.GetCashPrice)` ("Not enough money!" sinon). Ensuite il ouvre la
   fenetre d'achat du Developer Product (`productId` 0 : message "Robux upgrades: coming soon!").
   A la reception du recu (`ReceiptService`), `DataService.GrantPurchaseOnce` donne +1 niveau une
-  seule fois par achat (recu deja au max : accepte, rien donne, `warn`). Le client ne connait le
+  seule fois par achat. Recu deja au max (2026-11-23) : +1 niveau a une autre amelioration du joueur pas au max ; tout au max : argent = `Upgrades.RobuxRefundFloorShare` x prochain etage + message (jamais rien). Le client ne connait le
   resultat que par l'attribut joueur `PUp_<id>` : la ligne se met a jour. Si le niveau MONTE et
   que le menu est ouvert : effet "c'est paye" (son "Cute level up", rebond de la
   ligne, eclair clair, "-$40" rouge si paye en argent, "LEVEL UP!" / "MAXED!" jaune, etincelles

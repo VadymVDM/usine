@@ -329,7 +329,7 @@ tuile (etage, id) pour ce produit et ouvre la fenetre Roblox. Au recu (`ReceiptS
 effets qu'un achat en argent (`afterBought` : etage rafraichi, `Bought`, `OnBought`). Tuile notee perdue
 (autre serveur, plus de `Upgrades.RobuxPendingSeconds` = 10 min) ou deja au max : +1 niveau a la
 premiere amelioration construite avec une tuile au meme prix Robux, etage le plus haut d'abord (ordre
-`Upgrades.List`). Rien a donner : recu accepte + avertissement. Chaque recu donne est ecrit dans la
+`Upgrades.List`). Rien au meme prix (2026-11-23) : n'importe quelle amelioration encore possible, etage le plus haut d'abord. Plus rien du tout (tout au max) : argent = `Upgrades.RobuxRefundFloorShare` (0.1) x prix du prochain etage (min $100), message "Everything is maxed! +$X cash instead". Les Robux ne sont jamais perdus. Chaque recu donne est ecrit dans la
 sortie (`[UpgradeService] Recu ...`). Joueur parti / sauvegarde pas chargee : recu laisse en attente.
 Au demarrage, `Config/Upgrades` verifie que chaque prix Robux possible a son produit.
 Test : `Debug.Call:Invoke("Upgrade", "RobuxBuy", "<Nom>", "<id>" ou "", "<PurchaseId>")` (ecrit la sauvegarde).

@@ -449,3 +449,6 @@ d'argent). Il remet la tour a 1 etage et donne le multiplicateur permanent.
 - Salle du Rebirth : nom affiche "???" (`Config/Floors.RebirthRoomTitle`), plafond + 2 neons
   (2026-11-20). Visuel du lot 1 valide par l'utilisateur le 2026-11-20.
 - Reste a regler les chiffres en jeu (prix, gains par etage).
+
+- 2026-11-23 : achat d'etage refuse faute d'argent -> FloorService envoie aussi Feedback "NeedCash"
+  `{ floor, missing }` (au plus 1 fois / 3 min) : fenetre "Almost there!" (DealController, voir achats-robux.md).

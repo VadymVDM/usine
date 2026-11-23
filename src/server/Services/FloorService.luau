@@ -30,6 +30,7 @@ local Config = Shared:WaitForChild("Config")
 local FloorsConfig = require(Config:WaitForChild("Floors"))
 local Gameplay = require(Config:WaitForChild("Gameplay"))
 local Upgrades = require(Config:WaitForChild("Upgrades"))
+local Shop = require(Config:WaitForChild("Shop"))
 local Util = Shared:WaitForChild("Util")
 local NumberFormat = require(Util:WaitForChild("NumberFormat"))
 local Prompt = require(Util:WaitForChild("Prompt"))
@@ -483,6 +484,11 @@ function onBuyPrompt(player: Player, base: Model, n: number)
 	local price = FloorsConfig.Price(n)
 	if price == nil or not MoneyService.TrySpend(player, price, "Floor:" .. n) then
 		NotifyService.Notify(player, FloorsConfig.Messages.NotEnoughMoney, true)
+		-- Offre au bon moment (Shop.NeedCash) : DealController propose le plus petit pack qui couvre
+		local missing = if price then price - data.Money else 0
+		if missing > 0 and PlayerCheck.Cooldown(player, "NeedCash", Shop.NeedCash.cooldownSeconds) then
+			Remotes.GetServerEvent("Feedback"):FireClient(player, "NeedCash", { floor = n, missing = math.ceil(missing) })
+		end
 		return
 	end
 	table.insert(data.Floors, { Upgrades = newFloorLevels(player, n) })

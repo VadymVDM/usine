@@ -24,6 +24,7 @@ sont encore ceux du pack (textes "[Name]", "Item Name", "$123,456,789"), pas bra
 | `src/client/Controllers/InventoryController.luau` | client | Effets de ramassage / depot ; cache la barre Roblox (l'inventaire = plateau sur la tete) |
 | `src/client/Controllers/TrayController.luau` | client | Plateau sur la tete et fruits empiles, compteur "12/20" / "FULL!" (voir `chaine-production.md`) |
 | `src/client/Controllers/ShopController.luau` | client | Construit le contenu du menu Shop |
+| `src/client/Controllers/DealController.luau` | client | Fenetre "Deal" (copie de OfflineEarnings) : "Almost there!" (pack qui couvre l'etage) et fin de l'essai 3X CASH ; voir achats-robux.md |
 | `src/client/Controllers/UpgradeMenuController.luau` | client | Bouton vert UPGRADE du HUD + menu Upgrade en Robux (voir `ameliorations-joueur.md`) |
 | `src/client/Controllers/OffersController.luau` | client | Offre limitee a droite de l ecran (une a la fois, voir plus bas) |
 | `src/client/Controllers/WelcomeBackController.luau` | client | Ecran "Welcome Back!" (gains hors ligne reels, calcules par le serveur : voir `gains-hors-ligne.md` ; plus de demo en Studio depuis le 2026-11-20) |

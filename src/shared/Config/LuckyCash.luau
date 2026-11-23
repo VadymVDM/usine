@@ -17,7 +17,7 @@ local LuckyCash = {}
 -- `maxFloors` = ce produit sert jusqu'a X etages possedes ; le dernier (sans maxFloors) sert ensuite.
 LuckyCash.Products = table.freeze({
 	table.freeze({ maxFloors = 1, price = 9, productId = 3734874589 }), -- "Lucky Cash (Floor 1)"
-	table.freeze({ price = 24, productId = 3734031154 }), -- "Lucky Cash" (29 -> 24 le 2026-11-22)
+	table.freeze({ price = 19, productId = 3734031154 }), -- "Lucky Cash" (29 -> 24 le 2026-11-22, 24 -> 19 le 2026-11-23)
 })
 
 -- Produit Lucky Cash pour un joueur qui possede `floorsOwned` etages.
@@ -42,7 +42,7 @@ LuckyCash.PriceAttribute = "LuckyCashPrice" -- attribut joueur pose par le serve
 -- 2026-11-22 (demande utilisateur "un peu plus de cash", surtout a l'etage 1) : Minutes 45 -> 55,
 -- FloorShare 0.4 -> 0.5, MinAmount 600 -> 900 (etage 1 : $600 -> $900).
 LuckyCash.Minutes = 55
-LuckyCash.FloorShare = 0.5
+LuckyCash.FloorShare = 0.8 -- 0.5 -> 0.8 le 2026-11-23 (revue de la monetisation : 0.5 = ~7 min de gains, trop peu)
 LuckyCash.MinAmount = 900
 
 -- Place du tas dans le repere de l'etage (pivot de l'etage, sol a y = 0) : allee nord de la zone

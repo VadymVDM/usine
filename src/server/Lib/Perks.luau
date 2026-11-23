@@ -25,11 +25,21 @@ local function owns(player: Player, key: string): boolean
 	return player:GetAttribute(key) == true
 end
 
--- Argent des ventes : pass 3X CASH x boost Money.
+-- Essai gratuit de 3X CASH en cours (Shop.Cash3xTrial, attribut "Cash3xTrialEnd" pose par
+-- RobuxShopService). Compte comme un boost temporaire (pas hors ligne, retire de la base des packs).
+function Perks.InCash3xTrial(player: Player): boolean
+	local ends = player:GetAttribute("Cash3xTrialEnd")
+	return type(ends) == "number" and workspace:GetServerTimeNow() < ends and not owns(player, "Cash3x")
+end
+
+-- Argent des ventes : pass 3X CASH (ou son essai gratuit) x boost Money.
 function Perks.MoneyMultiplier(player: Player, withBoosts: boolean): number
 	local multiplier = if owns(player, "Cash3x") then EFFECTS.Cash3xMoney else 1
 	if withBoosts then
 		multiplier *= boost(player, "Money")
+		if Perks.InCash3xTrial(player) then
+			multiplier *= Shop.Cash3xTrial.mult
+		end
 	end
 	return multiplier
 end

@@ -1,7 +1,7 @@
 # Systeme : Achats Robux (boutique, offres limitees, passes)
 
 **Statut :** en cours (effets testes en Studio avec des recus simules le 2026-11-20 ; 45 produits et passes crees sur Roblox le 2026-11-21)
-**Derniere mise a jour :** 2026-11-23 (3 produits des tuiles d'amelioration, 11 produits cadeaux)
+**Derniere mise a jour :** 2026-11-23 (revue des prix : packs, offres, Mega Cash, Lucky Cash, Drink / Rebirth Master, Keep Cash ; montants sans boosts)
 
 ## Role
 
@@ -57,7 +57,8 @@ affiche et envoie seulement "je veux acheter X". Le jeu reste complet sans payer
   (pas sauvegarde : il repart a 3 min a chaque arrivee).
 - **Gains hors ligne** (`CustomerService.GetIncomePerSecond`) : passes compris, boosts temporaires NON.
 - **Montants d'argent** (packs et offres) : base = le plus grand de (gains reels des dernieres minutes,
-  panneaux MONEY / HOUR) et (gains theoriques des etages automatises). Pack = base x minutes,
+  panneaux MONEY / HOUR, **divises par les boosts Money et Speed en cours**, 2026-11-23 : sinon un boost x3
+  puis un pack donnait un pack x3) et (gains theoriques des etages automatises). Garde NaN / infini. Pack = base x minutes,
   minimum `minFloorShare` x prix du prochain etage (2026-11-22 : minimum OBLIGATOIRE sur chaque
   recompense Cash, `minAmount` ou `minFloorShare`, verifie au demarrage ; Mega Cash 0.25 ; jamais $0). Offre = base x minutes, plafonne a `floorShare`
   x prix du prochain etage, minimum `minAmount` (Starter Pack : $1K). Le serveur publie les montants
@@ -66,6 +67,33 @@ affiche et envoie seulement "je veux acheter X". Le jeu reste complet sans payer
 - **Autres passes** : AutoCollect (CustomerService), Instant Sell (PassPadService + CustomerService), Waiter Speed x10 et
   Billboard (PassPadService), Thief (ThiefService), Rebirth Master (RebirthService) : `ShopBuy` ouvre
   seulement leur fenetre ; leur service donne l'effet. x2 gains hors ligne : OfflineService.
+
+## Offres au bon moment, essai 3X CASH, lot de passes (2026-11-23)
+
+- **"Almost there!"** : achat d'etage refuse faute d'argent (FloorService) -> Feedback `"NeedCash"`
+  `{ floor, missing }`, au plus une fois par `Shop.NeedCash.cooldownSeconds` (180 s). `DealController`
+  (client) propose le plus petit pack (`Shop.CashPacks`, montants `Cash_<cle>`) qui couvre ce qui manque
+  (sinon le plus gros) ; bouton -> `ShopBuy("CashPack", cle)` (meme chemin que la boutique).
+- **Essai gratuit 3X CASH** (`Shop.Cash3xTrial`) : une fois par session, 9 min de jeu apres l'arrivee
+  (en pause pendant la cinematique), ventes x3 pendant 3 min, message "FREE 3X CASH for 3 min!".
+  Attribut joueur `Cash3xTrialEnd` (fin, `GetServerTimeNow`) ; `Perks.MoneyMultiplier` le compte comme un
+  boost (pas hors ligne, retire de la base des packs). Chaque vente (`CustomerService.OnSale`) ajoute
+  vente x (1 - 1/3) au surplus. A la fin, si surplus > 0 et pas de pass : Feedback `"TrialEnd"`
+  `{ pass, earned }` -> fenetre "Free Trial Over! 3X CASH earned you +$X. Keep it forever?" + bouton 399.
+  Pass achete pendant l'essai : essai arrete, pas de fenetre. Pas pour ceux qui ont deja le pass.
+- **Ultimate Bundle** (`Shop.Bundles`, Developer Product D50, 799 R$) : 3X CASH + Greedy Customers +
+  Auto Collect + Instant Sell (946 R$ separes, "SAVE 15%" vrai). Recu -> `Data.GiftedPasses` (comme un
+  cadeau, une fois par PurchaseId) + `GamePass.FireGranted` pour chaque pass. Vendu seulement si le
+  joueur n'a AUCUN de ces passes (`ShopBuy("Bundle", cle)` refuse : "You already own a pass from this
+  bundle!") ; attribut `BundleBlocked_<cle>` -> la carte de la boutique affiche OWNED. Grande carte en
+  haut de la section PASSES (`ShopController.buildBundles`), meme largeur que la rangee des passes :
+  un logo par pass (sans fond derriere) avec son nom dessous (`labels`), "+" entre les logos. Pas de bouton
+  cadeau. Instant Sell a son propre logo (eclair `Lightning`) depuis le 2026-11-23 (avant : celui de Greedy).
+- Fenetres : `DealController` (menu "Deal", copie de OfflineEarnings), attend la fermeture d'un autre
+  menu ouvert (au plus 5 min). Textes : `Shop.DealTexts`.
+- Tests : `Debug.Call("Shop", "Trial", nom, 0, 20)` (essai dans 0 s, qui dure 20 s) ;
+  `Debug.Call("Shop", "Bundle", nom, "Ultimate", "id")` (recu simule, ECRIT la sauvegarde ; nettoyer
+  avec `Gift Remove` pour chaque pass).
 
 ## Remotes
 
@@ -96,7 +124,7 @@ rapproches) est donne normalement : le joueur a paye.
 ## Configuration
 
 `src/shared/Config/Shop.luau` : prix, `productId` / `passId`, `rewards` des offres, `minFloorShare`
-des packs (0.3 / 0.6 / 1.2 / 3 x prix du prochain etage), `FreeBoost` (boost gratuit), `PassEffects`,
+des packs (0.5 / 1 / 2 / 4 x prix du prochain etage, 2026-11-23), `FreeBoost` (boost gratuit), `PassEffects`,
 `BoostMaxSeconds`, `PendingSeconds`, `ReceiptWaitSeconds`, `BuyCooldownSeconds`, `Messages`.
 
 ## Produits Roblox (ids)
@@ -114,7 +142,7 @@ de la Config) : changer l'un = changer l'autre (Creator Hub > Monetization).
 |---|---|---|---|---|---|---|
 | P1 | VIP | 149 | Golden [VIP] tag on your name and in chat. | `vip.png` | `Shop.Passes` VIP || 2092883003 |
 | P2 | 3X Cash | 399 | Earn 3x money from every sale, forever. | `cash.png` | `Shop.Passes` Cash3x || 2097328717 |
-| P3 | Drink Master | 249 | 2x chance to get rare fruits. | `clover.png` | `Shop.Passes` DrinkMaster || 2092763123 |
+| P3 | Drink Master | 199 | 2x chance to get rare fruits. | `clover.png` | `Shop.Passes` DrinkMaster || 2092763123 |
 | P4 | Greedy Customers | 199 | Every customer buys 2 drinks at a time. | `customers.png` | `Shop.Passes` GreedyCustomers || 2093182972 |
 | P5 | Speed Master | 99 | 2x walk speed and 2x faster customers. | `shoe.png` | `Shop.Passes` SpeedMaster || 2093482922 |
 | P6 | Auto Collect (All Floors) | 149 | Your cash goes straight to your wallet. | `magnet.png` | `Shop.Passes` AutoCollect || 2092570991 |
@@ -122,9 +150,9 @@ de la Config) : changer l'un = changer l'autre (Creator Hub > Monetization).
 | P8 | Waiter Speed x10 (All Floors) | 149 | Your waiter works 10x faster, forever. | `shoe.png` | `Shop.Passes` SpeedBoost || 2092415019 |
 | P9 | Billboard | 99 | Your billboard doubles your sell price, forever. | `cash.png` | `Shop.Passes` Billboard || 2093464945 |
 | P10 | Thief | 149 | Steal ready drinks from other stands! | `thief.png` | `Shop.Passes` Thief || 2097082802 |
-| P11 | Rebirth Master | 299 | Keep your tree level when you rebirth. | `rebirth.png` | `Shop.Passes` RebirthMaster || 2096880861 |
+| P11 | Rebirth Master | 199 | Keep your tree level when you rebirth. | `rebirth.png` | `Shop.Passes` RebirthMaster || 2096880861 |
 
-### Developer Products (34)
+### Developer Products (35 + 14 ajoutes ensuite)
 
 | # | Nom Roblox | Prix | Description | Icone | Config (cle) | Id |
 |---|---|---|---|---|---|---|
@@ -134,25 +162,25 @@ de la Config) : changer l'un = changer l'autre (Creator Hub > Monetization).
 | D4 | 2x Money (30 min) | 16 | Earn 2x money for 30 minutes. | `potion_green.png` | `Shop.Boosts` Money 30 || 3734031061 |
 | D5 | 2x Luck (15 min) | 9 | 2x chance of rare fruits for 15 minutes. | `potion_blue.png` | `Shop.Boosts` Luck 15 || 3734031066 |
 | D6 | 2x Luck (30 min) | 16 | 2x chance of rare fruits for 30 minutes. | `potion_blue.png` | `Shop.Boosts` Luck 30 || 3734031073 |
-| D7 | Cash - 6 minutes | 22 | Get 6 minutes of your earnings right now. | `cash.png` | `Shop.CashPacks` Cash5m || 3734031076 |
-| D8 | Cash - 35 minutes | 75 | Get 35 minutes of your earnings right now. | `cash.png` | `Shop.CashPacks` Cash30m || 3734031080 |
-| D9 | Cash - 4 hours | 189 | Get 4 hours of your earnings right now. Best value! | `cash.png` | `Shop.CashPacks` Cash3h || 3734031084 |
-| D10 | Cash - 10 hours | 479 | Get 10 hours of your earnings right now. | `cash.png` | `Shop.CashPacks` Cash10h || 3734031092 |
+| D7 | Cash - 15 minutes | 19 | Get 15 minutes of your earnings right now. | `cash.png` | `Shop.CashPacks` Cash5m || 3734031076 |
+| D8 | Cash - 1 hour | 49 | Get 1 hour of your earnings right now. | `cash.png` | `Shop.CashPacks` Cash30m || 3734031080 |
+| D9 | Cash - 4 hours | 129 | Get 4 hours of your earnings right now. | `cash.png` | `Shop.CashPacks` Cash3h || 3734031084 |
+| D10 | Cash - 12 hours | 299 | Get 12 hours of your earnings right now. Best value! | `cash.png` | `Shop.CashPacks` Cash10h || 3734031092 |
 | D11 | Double Offline Earnings | 9 | Double the cash you earned while away. | `clock.png` | `Shop.OfflineDouble` || 3734031096 |
 | D12 | Starter Pack | 19 | 2x money for 15 minutes plus a bag of cash. One time only. | `gift.png` | `Shop.LimitedOffers.FirstOffer` OfferStarter || 3734031104 |
-| D13 | Money Rush | 15 | Earn 3x money for 10 minutes. | `cash.png` | `Pool` OfferMoneyRush || 3734031113 |
-| D14 | Lucky Hour | 29 | 2x chance of rare fruits for 1 hour. | `clover.png` | `Pool` OfferLuckyHour || 3734031128 |
-| D15 | Customer Rush | 15 | Customers come 3x faster for 10 minutes. | `shoe.png` | `Pool` OfferRush || 3734031132 |
-| D16 | Mega Cash | 99 | A huge bag of cash for your next floor. | `cash.png` | `Pool` OfferMegaCash || 3734031138 |
-| D17 | Triple Boost | 35 | 2x money, 2x luck and 2x speed for 20 minutes. | `potion_purple.png` | `Pool` OfferTriple || 3734031141 |
-| D18 | Rare Rain | 19 | 5x chance of rare fruits for 5 minutes. | `clover.png` | `Pool` OfferRareRain || 3734031150 |
-| D19 | Lucky Cash | 24 | You found a secret cash stash! Take it all. | `cash.png` | `LuckyCash.Products[2]` (2+ etages) || 3734031154 |
+| D13 | Money Rush | 15 | Earn 3x money for 15 minutes. | `cash.png` | `Pool` OfferMoneyRush || 3734031113 |
+| D14 | Lucky Hour | 19 | 2x chance of rare fruits for 1 hour. | `clover.png` | `Pool` OfferLuckyHour || 3734031128 |
+| D15 | Customer Rush | 15 | Customers come 3x faster for 15 minutes. | `shoe.png` | `Pool` OfferRush || 3734031132 |
+| D16 | Mega Cash | 49 | A huge bag of cash: enough for your next floor! | `cash.png` | `Pool` OfferMegaCash || 3734031138 |
+| D17 | Triple Boost | 35 | 2x money, 2x luck and 2x speed for 30 minutes. | `potion_purple.png` | `Pool` OfferTriple || 3734031141 |
+| D18 | Rare Rain | 19 | 5x chance of rare fruits for 10 minutes. | `clover.png` | `Pool` OfferRareRain || 3734031150 |
+| D19 | Lucky Cash | 19 | You found a secret cash stash! Take it all. | `cash.png` | `LuckyCash.Products[2]` (2+ etages) || 3734031154 |
 | D36 | Machine Upgrade I | 5 | +1 level on the upgrade you picked. | `upgrade_arrow.png` | `Upgrades.RobuxProducts[5]` (tuiles, cree le 2026-11-23) || 3734912690 |
 | D37 | Machine Upgrade II | 8 | +1 level on the upgrade you picked. | `upgrade_arrow.png` | `Upgrades.RobuxProducts[8]` || 3734912738 |
 | D38 | Machine Upgrade III | 9 | +1 level on the upgrade you picked. | `upgrade_arrow.png` | `Upgrades.RobuxProducts[9]` || 3734912752 |
 | D39 | Gift - VIP | 149 | Gift the VIP pass to another player. | `vip.png` | `Shop.Passes` VIP `giftProductId` (cadeau, 2026-11-23) || 3734927628 |
 | D40 | Gift - 3X Cash | 399 | Gift the 3X Cash pass to another player. | `cash.png` | `Shop.Passes` Cash3x `giftProductId` (cadeau, 2026-11-23) || 3734927641 |
-| D41 | Gift - Drink Master | 249 | Gift the Drink Master pass to another player. | `clover.png` | `Shop.Passes` DrinkMaster `giftProductId` (cadeau, 2026-11-23) || 3734927655 |
+| D41 | Gift - Drink Master | 199 | Gift the Drink Master pass to another player. | `clover.png` | `Shop.Passes` DrinkMaster `giftProductId` (cadeau, 2026-11-23) || 3734927655 |
 | D42 | Gift - Greedy Customers | 199 | Gift the Greedy Customers pass to another player. | `customers.png` | `Shop.Passes` GreedyCustomers `giftProductId` (cadeau, 2026-11-23) || 3734927668 |
 | D43 | Gift - Speed Master | 99 | Gift the Speed Master pass to another player. | `shoe.png` | `Shop.Passes` SpeedMaster `giftProductId` (cadeau, 2026-11-23) || 3734927675 |
 | D44 | Gift - Auto Collect | 149 | Gift the Auto Collect pass to another player. | `magnet.png` | `Shop.Passes` AutoCollect `giftProductId` (cadeau, 2026-11-23) || 3734927684 |
@@ -160,12 +188,12 @@ de la Config) : changer l'un = changer l'autre (Creator Hub > Monetization).
 | D46 | Gift - Waiter Speed x10 | 149 | Gift the Waiter Speed x10 pass to another player. | `shoe.png` | `Shop.Passes` SpeedBoost `giftProductId` (cadeau, 2026-11-23) || 3734927704 |
 | D47 | Gift - Billboard | 99 | Gift the Billboard pass to another player. | `cash.png` | `Shop.Passes` Billboard `giftProductId` (cadeau, 2026-11-23) || 3734927718 |
 | D48 | Gift - Thief | 149 | Gift the Thief pass to another player. | `thief.png` | `Shop.Passes` Thief `giftProductId` (cadeau, 2026-11-23) || 3734927725 |
-| D49 | Gift - Rebirth Master | 299 | Gift the Rebirth Master pass to another player. | `rebirth.png` | `Shop.Passes` RebirthMaster `giftProductId` (cadeau, 2026-11-23) || 3734927736 |
+| D49 | Gift - Rebirth Master | 199 | Gift the Rebirth Master pass to another player. | `rebirth.png` | `Shop.Passes` RebirthMaster `giftProductId` (cadeau, 2026-11-23) || 3734927736 |
 | D35 | Lucky Cash (Floor 1) | 9 | You found a secret cash stash! Take it all. | `cash.png` | `LuckyCash.Products[1]` (etage 1 seul, cree le 2026-11-22) || 3734874589 |
-| D20 | Rebirth & Keep Cash I | 49 | Rebirth and keep all your cash. | `rebirth.png` | `Rebirth.KeepCashProducts[1]` (0+ rebirths) || 3734031157 |
-| D21 | Rebirth & Keep Cash II | 99 | Rebirth and keep all your cash. | `rebirth.png` | `Rebirth.KeepCashProducts[2]` (3+) || 3734031163 |
-| D22 | Rebirth & Keep Cash III | 199 | Rebirth and keep all your cash. | `rebirth.png` | `Rebirth.KeepCashProducts[3]` (10+) || 3734031169 |
-| D23 | Rebirth & Keep Cash IV | 299 | Rebirth and keep all your cash. | `rebirth.png` | `Rebirth.KeepCashProducts[4]` (25+) || 3734031171 |
+| D20 | Rebirth & Keep Cash I | 49 | Rebirth and keep all your cash. | `rebirth.png` | `Rebirth.KeepCashProducts[1]` (1er rebirth) || 3734031157 |
+| D21 | Rebirth & Keep Cash II | 99 | Rebirth and keep all your cash. | `rebirth.png` | `Rebirth.KeepCashProducts[2]` (1+) || 3734031163 |
+| D22 | Rebirth & Keep Cash III | 199 | Rebirth and keep all your cash. | `rebirth.png` | `Rebirth.KeepCashProducts[3]` (5+) || 3734031169 |
+| D23 | Rebirth & Keep Cash IV | 299 | Rebirth and keep all your cash. | `rebirth.png` | `Rebirth.KeepCashProducts[4]` (15+) || 3734031171 |
 | D24 | Speed Upgrade | 9 | +1 level of walk speed. | `shoe.png` | `PlayerUpgrades` WalkSpeed || 3734031179 |
 | D25 | Fruit Tray Upgrade | 9 | Carry more fruits (+1 level). | `upgrade_arrow.png` | `PlayerUpgrades` FruitCarry || 3734031231 |
 | D26 | Juice Tray Upgrade | 9 | Carry more juices (+1 level). | `potion_blue.png` | `PlayerUpgrades` JuiceCarry || 3734031188 |
@@ -177,6 +205,7 @@ de la Config) : changer l'un = changer l'autre (Creator Hub > Monetization).
 | D32 | Tip 500 | 500 | Thank you for supporting the game! | `robux_gold.png` | `Donations` 500 || 3734031263 |
 | D33 | Tip 1000 | 1000 | Thank you for supporting the game! | `robux_gold.png` | `Donations` 1000 || 3734031268 |
 | D34 | Tip 10000 | 10000 | Thank you for supporting the game! | `robux_gold.png` | `Donations` 10000 || 3734031277 |
+| D50 | Ultimate Bundle | 799 | 3X Cash + Greedy Customers + Auto Collect + Instant Sell. Save 15%! | `gift.png` | `Shop.Bundles` Ultimate (cree le 2026-11-23) || 3734946982 |
 
 Renommes le 2026-11-23 : P6, P7, P8 finissent par "(All Floors)" sur Roblox (Open Cloud PATCH, icone renvoyee identique) et dans les titres de `Shop.Passes`. Les etiquettes des pads violets restent sans "(All Floors)" (choix utilisateur).
 
@@ -197,6 +226,12 @@ game.ServerStorage.Debug.Call:Invoke("Shop", "FreeBoost", "<Nom>", 0) -- boost g
 
 ## Problemes connus / a faire
 
+- **Revue des prix du 2026-11-23 (fait) :** packs 15 min / 1 h / 4 h / 12 h a 19 / 49 / 129 / 299
+  (BEST VALUE sur le 12 h), minimum 0.5 / 1 / 2 / 4 x prochain etage ; Money / Customer Rush 15 min,
+  Lucky Hour 19, Triple Boost 30 min, Rare Rain 10 min ; Mega Cash 49 R$ (90 min, plafond 1.5, minimum
+  0.8 x prochain etage) ; Lucky Cash 19 R$ (plafond 0.8) ; Drink Master et Rebirth Master 199 (+ cadeaux) ;
+  Keep Cash 49 seulement au 1er rebirth. 15 produits / passes changes sur Roblox (Open Cloud PATCH),
+  verifies par GetProductInfo. Recus d'amelioration sans rien a donner : corrige (autre amelioration ou argent).
 - **Relecture securite du 2026-11-23 (corrige) :**
   - `Lib/GamePass.OnPurchased` est le seul branchement sur `PromptGamePassPurchaseFinished` : le
     "purchased" du client n'est plus cru, la possession est redemandee a Roblox (`Owns`) avant
@@ -206,13 +241,10 @@ game.ServerStorage.Debug.Call:Invoke("Shop", "FreeBoost", "<Nom>", 0) -- boost g
   - Keep Cash : un recu d'un palier moins cher que celui du joueur ne donne plus de rebirth
     (message `KeepCashWrongTier`, avertissement console).
 - **Relecture du 2026-11-23, pas encore corrige :**
-  - Recu d'amelioration (tuile deja achetee avec l'argent du jeu, ou niveau max) accepte sans rien
-    donner (`UpgradeService`, `PlayerUpgradeService`) : Robux perdus pour le joueur.
   - Keep Cash : le rebirth (code du monde) tourne dans `GrantPurchaseOnce` ; risque de rebirth
     donne 2 fois si le serveur plante au mauvais moment.
   - Cadeau : le destinataire choisi n'est garde qu'en memoire ; si le 1er essai du recu echoue et
     que l'acheteur part, le pass va a l'acheteur.
-  - Pas de garde NaN sur les montants des packs (`RobuxShopService`).
 
 - Produits et passes crees (2026-11-21). Verifie en Studio : les 45 ids existent, sont en vente et
   ont le prix de la Config (`GetProductInfo`) ; boost, pack, offre et Lucky Cash ouvrent la fenetre
@@ -224,7 +256,7 @@ game.ServerStorage.Debug.Call:Invoke("Shop", "FreeBoost", "<Nom>", 0) -- boost g
 - Cadeaux de passes : faits le 2026-11-23, voir `cadeaux.md` (11 produits "Gift - <pass>", meme prix que le pass).
 - Boutons violets des tuiles d'amelioration : vrais achats depuis le 2026-11-23 (voir `ameliorations-employes.md`).
 - La boutique ne montre pas encore "OWNED" sur un pass possede (le serveur refuse le 2e achat).
-- Packs revus le 2026-11-22 : 6 min / 35 min / 4 h / 10 h, minimum 0.3 / 0.6 / 1.2 / 3 x le prochain etage,
+- (Ancien, remplace le 2026-11-23) Packs revus le 2026-11-22 : 6 min / 35 min / 4 h / 10 h, minimum 0.3 / 0.6 / 1.2 / 3 x le prochain etage,
   22 / 75 / 189 / 479 R$, "BEST VALUE" sur le 4 h (vrai meilleur rapport minutes / Robux). Prix,
   noms et descriptions changes aussi sur Roblox (Open Cloud PATCH, verifie par GetProductInfo).
 - Si un pass est cree plus tard, verifier qu'aucun ancien attribut de test ne reste (attributs = par session).

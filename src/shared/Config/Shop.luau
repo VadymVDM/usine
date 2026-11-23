@@ -84,36 +84,42 @@ Shop.Boosts = {
 } :: { Boost }
 
 -- Prix des passes : propositions de docs/game-design.md, a valider.
+-- 2026-11-23 (revue) : Drink Master 249 -> 199 (son vrai effet = ~+15 % d'argent + l'Index plus vite),
+-- Rebirth Master 299 -> 199 (l'arbre n'est qu'une petite part des achats d'un etage).
 -- `oldPrice` (prix barre) : a mettre seulement si le prix a vraiment baisse (promo, evenement).
 -- Un faux "ancien prix" jamais pratique est trompeur (regles Roblox sur les offres honnetes).
 Shop.Passes = {
 	{ key = "VIP", title = "VIP", lines = { "VIP name tag", "VIP chat tag" }, icon = "Vip", color = Color3.fromRGB(255, 140, 0), color2 = Color3.fromRGB(255, 238, 58), price = 149, passId = 2092883003, giftProductId = 3734927628 },
 	{ key = "Cash3x", title = "3X CASH", lines = { "Permanent", "3x money" }, icon = "Cash3x", color = Color3.fromRGB(31, 168, 0), color2 = Color3.fromRGB(157, 255, 58), price = 399, passId = 2097328717, giftProductId = 3734927641, tag = "BEST" },
-	{ key = "DrinkMaster", title = "DRINK MASTER", lines = { "2x chance of", "rare fruits" }, icon = "Clover", color = Color3.fromRGB(212, 90, 0), color2 = Color3.fromRGB(255, 176, 58), price = 249, passId = 2092763123, giftProductId = 3734927655 },
+	{ key = "DrinkMaster", title = "DRINK MASTER", lines = { "2x chance of", "rare fruits" }, icon = "Clover", color = Color3.fromRGB(212, 90, 0), color2 = Color3.fromRGB(255, 176, 58), price = 199, passId = 2092763123, giftProductId = 3734927655 },
 	{ key = "GreedyCustomers", title = "GREEDY CUSTOMERS", lines = { "Customers buy", "2 drinks at a time" }, icon = "Customers", color = Color3.fromRGB(0, 128, 255), color2 = Color3.fromRGB(106, 224, 255), price = 199, passId = 2093182972, giftProductId = 3734927668 },
 	{ key = "SpeedMaster", title = "SPEED MASTER", lines = { "2x walk speed", "2x customer speed" }, icon = "Shoe", color = Color3.fromRGB(42, 60, 255), color2 = Color3.fromRGB(92, 184, 255), price = 99, passId = 2093482922, giftProductId = 3734927675 },
 	{ key = "AutoCollect", title = "AUTO COLLECT (All Floors)", lines = { "Cash goes straight", "to your wallet" }, icon = "Magnet", color = Color3.fromRGB(224, 0, 48), color2 = Color3.fromRGB(255, 122, 92), price = 149, passId = 2092570991, giftProductId = 3734927684 },
 	-- Instant Sell (2026-11-21, ancien "Auto Sell") : pad violet a droite du pad Drop Juices
 	-- (PassPadService) ; les jus poses sur le comptoir sont vendus tout de suite (CustomerService).
-	{ key = "InstantSell", title = "INSTANT SELL (All Floors)", lines = { "Juices sell as soon", "as you drop them" }, icon = "Customers", color = Color3.fromRGB(0, 168, 120), color2 = Color3.fromRGB(80, 240, 180), price = 199, passId = 2093680945, giftProductId = 3734927692 },
+	{ key = "InstantSell", title = "INSTANT SELL (All Floors)", lines = { "Juices sell as soon", "as you drop them" }, icon = "Lightning", color = Color3.fromRGB(0, 168, 120), color2 = Color3.fromRGB(80, 240, 180), price = 199, passId = 2093680945, giftProductId = 3734927692 },
 	-- Pads violets dans l'usine (PassPadService, 2026-11-20, prix A VALIDER) : Speed x10 a cote de
 	-- Take Juices (apres le Waiter), Billboard dans la cour (99 R$ comme la capture de reference).
 	{ key = "SpeedBoost", title = "WAITER SPEED x10 (All Floors)", lines = { "10x waiter speed", "Permanent" }, icon = "Shoe", color = Color3.fromRGB(0, 120, 255), color2 = Color3.fromRGB(0, 230, 255), price = 149, passId = 2092415019, giftProductId = 3734927704 },
 	{ key = "Billboard", title = "BILLBOARD", lines = { "2x sell price", "Permanent" }, icon = "Cash", color = Color3.fromRGB(255, 120, 0), color2 = Color3.fromRGB(255, 220, 40), price = 99, passId = 2093464945, giftProductId = 3734927718 },
 	{ key = "Thief", title = "THIEF", lines = { "Steal ready drinks", "from other stands" }, icon = "Thief", color = Color3.fromRGB(90, 0, 200), color2 = Color3.fromRGB(195, 77, 255), price = 149, passId = 2097082802, giftProductId = 3734927725, tag = "OP" },
-	{ key = "RebirthMaster", title = "REBIRTH MASTER", lines = { "Keep your tree", "level on rebirth" }, icon = "Rebirth", color = Color3.fromRGB(255, 0, 122), color2 = Color3.fromRGB(255, 138, 216), price = 299, passId = 2096880861, giftProductId = 3734927736 },
+	{ key = "RebirthMaster", title = "REBIRTH MASTER", lines = { "Keep your tree", "level on rebirth" }, icon = "Rebirth", color = Color3.fromRGB(255, 0, 122), color2 = Color3.fromRGB(255, 138, 216), price = 199, passId = 2096880861, giftProductId = 3734927736 },
 } :: { Pass }
 
 -- Prix des packs : propositions de docs/game-design.md, a valider.
 -- 2026-11-22 (demande utilisateur) : un peu plus d'argent, prix un peu plus bas, et "BEST VALUE" sur
 -- un pack du milieu (ancrage : le gros pack fait paraitre le 4 h pas cher). L'etiquette reste VRAIE :
 -- le 4 h donne le plus de minutes par Robux (240 / 189 = 1.27 contre 600 / 479 = 1.25).
+-- 2026-11-23 (revue de la monetisation, "qu'ils achetent, que ce soit renta") : chaque pack plus
+-- rentable que le precedent (minutes / R$ : 0.79, 1.22, 1.86, 2.41) et les gros packs au-dessus du
+-- boost 2x Money (1.67). BEST VALUE sur le 12 h (vrai meilleur rapport). Avant : 6 min / 22, 35 min / 75,
+-- 4 h / 189, 10 h / 479 (le 6 min etait 6x moins rentable que le boost a 9 R$).
 -- Les cles (Cash5m...) restent les anciennes (attributs Cash_<cle>, ids des produits).
 Shop.CashPacks = {
-	{ key = "Cash5m", title = "CASH - 6 minutes", minutes = 6, minFloorShare = 0.3, price = 22, productId = 3734031076 },
-	{ key = "Cash30m", title = "CASH - 35 minutes", minutes = 35, minFloorShare = 0.6, price = 75, productId = 3734031080 },
-	{ key = "Cash3h", title = "CASH - 4 hours", minutes = 240, minFloorShare = 1.2, price = 189, productId = 3734031084, bestValue = true },
-	{ key = "Cash10h", title = "CASH - 10 hours", minutes = 600, minFloorShare = 3, price = 479, productId = 3734031092 },
+	{ key = "Cash5m", title = "CASH - 15 minutes", minutes = 15, minFloorShare = 0.5, price = 19, productId = 3734031076 },
+	{ key = "Cash30m", title = "CASH - 1 hour", minutes = 60, minFloorShare = 1, price = 49, productId = 3734031080 },
+	{ key = "Cash3h", title = "CASH - 4 hours", minutes = 240, minFloorShare = 2, price = 129, productId = 3734031084 },
+	{ key = "Cash10h", title = "CASH - 12 hours", minutes = 720, minFloorShare = 4, price = 299, productId = 3734031092, bestValue = true },
 } :: { CashPack }
 
 -- Ecran "Welcome Back!" (gains hors ligne) : bouton x2 en Robux (docs/game-design.md : 9 R$).
@@ -156,11 +162,14 @@ Shop.LimitedOffers = {
 		rewards = { { kind = "Boost", stat = "Money", mult = 2, minutes = 15 }, { kind = "Cash", minutes = 5, floorShare = 0.06, minAmount = 1000 } },
 		productId = 3734031104,
 	},
+	-- 2026-11-23 (revue de la monetisation) : chaque offre limitee vaut mieux que la meme chose en
+	-- boutique (sinon le minuteur ment) : Money / Customer Rush 10 -> 15 min, Lucky Hour 29 -> 19 R$,
+	-- Triple Boost 20 -> 30 min, Rare Rain 5 -> 10 min, Mega Cash voir sa ligne.
 	Pool = {
-		{ key = "OfferMoneyRush", title = "Money Rush", icon = "Cash", badge = "x3", price = 15, rewards = { { kind = "Boost", stat = "Money", mult = 3, minutes = 10 } }, productId = 3734031113 },
-		{ key = "OfferLuckyHour", title = "Lucky Hour", icon = "Clover", badge = "x2", price = 29, rewards = { { kind = "Boost", stat = "Luck", mult = 2, minutes = 60 } }, productId = 3734031128 },
-		{ key = "OfferRush", title = "Customer Rush", icon = "Shoe", badge = "x3", price = 15, rewards = { { kind = "Boost", stat = "Speed", mult = 3, minutes = 10 } }, productId = 3734031132 },
-		{ key = "OfferMegaCash", title = "Mega Cash", icon = "Cash", price = 99, minCycle = 3, rewards = { { kind = "Cash", minutes = 60, floorShare = 0.5, minFloorShare = 0.25 } }, productId = 3734031138 }, -- minCycle 3 : pas avant ~10 min de jeu (99 R$) ; 2026-11-22 : minimum 0.25 x prochain etage (avant : $0 sans gains recents)
+		{ key = "OfferMoneyRush", title = "Money Rush", icon = "Cash", badge = "x3", price = 15, rewards = { { kind = "Boost", stat = "Money", mult = 3, minutes = 15 } }, productId = 3734031113 },
+		{ key = "OfferLuckyHour", title = "Lucky Hour", icon = "Clover", badge = "x2", price = 19, rewards = { { kind = "Boost", stat = "Luck", mult = 2, minutes = 60 } }, productId = 3734031128 },
+		{ key = "OfferRush", title = "Customer Rush", icon = "Shoe", badge = "x3", price = 15, rewards = { { kind = "Boost", stat = "Speed", mult = 3, minutes = 15 } }, productId = 3734031132 },
+		{ key = "OfferMegaCash", title = "Mega Cash", icon = "Cash", price = 49, minCycle = 3, rewards = { { kind = "Cash", minutes = 90, floorShare = 1.5, minFloorShare = 0.8 } }, productId = 3734031138 }, -- 2026-11-23 : 99 -> 49 R$, plafond 0.5 -> 1.5 x prochain etage, minimum 0.25 -> 0.8 (avant : meme plafond que Lucky Cash a 24 R$) ; minCycle 3 : pas avant ~10 min de jeu (99 R$) ; 2026-11-22 : minimum 0.25 x prochain etage (avant : $0 sans gains recents)
 		{
 			key = "OfferTriple",
 			title = "Triple Boost",
@@ -168,13 +177,13 @@ Shop.LimitedOffers = {
 			badge = "x2",
 			price = 35,
 			rewards = {
-				{ kind = "Boost", stat = "Money", mult = 2, minutes = 20 },
-				{ kind = "Boost", stat = "Luck", mult = 2, minutes = 20 },
-				{ kind = "Boost", stat = "Speed", mult = 2, minutes = 20 },
+				{ kind = "Boost", stat = "Money", mult = 2, minutes = 30 },
+				{ kind = "Boost", stat = "Luck", mult = 2, minutes = 30 },
+				{ kind = "Boost", stat = "Speed", mult = 2, minutes = 30 },
 			},
 			productId = 3734031141,
 		},
-		{ key = "OfferRareRain", title = "Rare Rain", icon = "Clover", badge = "x5", price = 19, rewards = { { kind = "Boost", stat = "Luck", mult = 5, minutes = 5 } }, productId = 3734031150 },
+		{ key = "OfferRareRain", title = "Rare Rain", icon = "Clover", badge = "x5", price = 19, rewards = { { kind = "Boost", stat = "Luck", mult = 5, minutes = 10 } }, productId = 3734031150 },
 	},
 }
 
@@ -209,6 +218,51 @@ Shop.FreeBoost = table.freeze({
 	firstDelaySeconds = 3 * 60,
 	gapSeconds = 10 * 60, -- pause entre la fin d'un boost gratuit et le suivant
 })
+-- Offre au bon moment (2026-11-23, "techniques qui rapportent") : achat d'etage refuse faute
+-- d'argent -> fenetre "Almost there!" avec le plus petit pack d'argent qui couvre ce qui manque
+-- (DealController ; FloorService envoie Feedback "NeedCash"). Au plus une fois par CooldownSeconds.
+Shop.NeedCash = table.freeze({
+	cooldownSeconds = 180,
+})
+
+-- Essai GRATUIT de 3X CASH (2026-11-23) : une fois par session, apres FirstDelaySeconds de jeu (en
+-- pause pendant la cinematique, comme le boost gratuit), ventes x3 pendant Seconds. A la fin, si le
+-- joueur a vendu : fenetre "3X CASH earned you +$X!" avec le VRAI surplus gagne et le bouton du pass.
+-- Pas pour ceux qui ont deja le pass. Effet : Lib/Perks (attribut "Cash3xTrialEnd"), RobuxShopService.
+Shop.Cash3xTrial = table.freeze({
+	passKey = "Cash3x",
+	mult = 3,
+	seconds = 3 * 60,
+	firstDelaySeconds = 9 * 60, -- apres le 1er boost gratuit 2x Speed (3 min + 5 min)
+})
+
+-- Lots de passes (2026-11-23) : un Developer Product qui donne plusieurs passes (Data.GiftedPasses,
+-- comme un cadeau). Vraie reduction (prix des passes separes : 399 + 199 + 149 + 199 = 946).
+-- Vendu seulement a un joueur qui n'a AUCUN de ces passes (sinon il paierait deux fois) :
+-- attribut joueur "BundleBlocked_<cle>" = true (serveur), la boutique affiche "OWNED".
+Shop.Bundles = {
+	{
+		key = "Ultimate",
+		title = "ULTIMATE BUNDLE",
+		passes = { "Cash3x", "GreedyCustomers", "AutoCollect", "InstantSell" },
+		labels = { "3X CASH", "GREEDY", "AUTO COLLECT", "INSTANT SELL" }, -- nom court sous chaque logo
+		price = 799,
+		productId = 3734946982, -- "Ultimate Bundle", cree par Open Cloud le 2026-11-23
+	},
+}
+
+-- Textes des fenetres de DealController (anglais : vus par le joueur).
+Shop.DealTexts = table.freeze({
+	NeedTitle = "Almost there!",
+	NeedLine = "Floor %d: you need +%s", -- (etage, argent manquant)
+	NeedGet = "Get %s now!", -- montant du pack propose
+	TrialTitle = "Free Trial Over!",
+	TrialLine = "3X CASH earned you", -- au-dessus du montant "+$2.1K"
+	TrialAsk = "Keep it forever?",
+	Owned = "OWNED",
+	Save = "SAVE %d%%", -- etiquette du lot (vraie reduction)
+})
+
 Shop.BoostMaxSeconds = 7 * 24 * 3600 -- plafond du temps stocke par stat et multiplicateur (filet de securite)
 Shop.PendingSeconds = 120 -- montant d'argent montre au clic garde X s (le recu donne ce montant)
 Shop.ReceiptWaitSeconds = 20 -- attente max du chargement de la sauvegarde a la reception d'un recu
@@ -241,6 +295,8 @@ Shop.Messages = table.freeze({
 	FreeBoostOn = "FREE %s x%d for %d min!", -- boost gratuit (Shop.FreeBoost)
 	CashGot = "+%s cash!",
 	PassOn = "%s unlocked!",
+	TrialOn = "FREE 3X CASH for %d min!",
+	BundleOwned = "You already own a pass from this bundle!",
 })
 Shop.StatNames = table.freeze({ Money = "MONEY", Luck = "LUCK", Speed = "SPEED" })
 

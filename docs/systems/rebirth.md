@@ -121,7 +121,7 @@ paliers Robux encore A VALIDER) :
   ~12-15 min. Le multiplicateur monte comme le prix : la derniere marche dure a peu pres pareil, les
   etages vont de plus en plus vite.
 - `MultiplierPerRebirth` 1 -> x2, x3, x4...
-- `KeepCashProducts` : 49 R$ (0-2 rebirths), 99 (3-9), 199 (10-24), 299 (25+), `productId` 0.
+- `KeepCashProducts` : 49 R$ (1er rebirth seulement), 99 (1-4 rebirths deja faits), 199 (5-14), 299 (15+) (2026-11-23 ; avant 0-2 / 3-9 / 10-24 / 25+ : 10B gardes -> racheter les 10 etages -> rebirth a 49 R$ de nouveau, x4 pour ~150 R$).
 - `RequestCooldown` 1 s, `ReachDistance` 30, `ConfirmSeconds` 3, `ReceiptWaitSeconds` 10.
 - Nametag : `TitleColor` (or), `NameTagWidth` 7 / `NameTagHeight` 1.8 / `NameTagLift` 2.4 studs,
   `NameTagMaxDistance` 100.

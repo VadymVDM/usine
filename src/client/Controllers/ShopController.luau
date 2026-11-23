@@ -29,7 +29,7 @@ local TEXT_STROKE = PackStyle.TEXT_STROKE
 local CASH_COLORS = { Color3.fromRGB(31, 168, 0), Color3.fromRGB(157, 255, 58) }
 local OPEN_ANIMATION_TIME = 0.4
 -- Groupes ou un texte trop long ne doit pas faire retrecir tous les autres.
-local CAP_GROUPS = { PassTitle = true, Tag = true }
+local CAP_GROUPS = { PassTitle = true, Tag = true, BundlePass = true }
 local SMALL_SCREEN_HEIGHT = 450 -- en dessous : telephone -> contours plus fins -- attendre la fin de l'animation d'ouverture avant de mesurer
 
 type Config = typeof(require(ReplicatedStorage.Shared.Config.Shop))
@@ -336,8 +336,75 @@ local function buildBoosts()
 	end
 end
 
+-- Lots de passes (Shop.Bundles, 2026-11-23) : une large carte en haut des passes. Prix des passes
+-- separes = somme des vrais prix (etiquette "SAVE X%" vraie). Deja un des passes : "OWNED" (attribut
+-- serveur "BundleBlocked_<cle>", le serveur refuse aussi l'achat).
+local function buildBundles()
+	-- 0.985 = largeur de la rangee des passes (3 x 0.315 + 2 x 0.02) : la carte s'aligne dessus
+	local row = grid("Bundles", 0.985, 2.9)
+	local priceOf: { [string]: number } = {}
+	local iconOf: { [string]: string } = {}
+	for _, pass in Shop.Passes do
+		priceOf[pass.key] = pass.price
+		iconOf[pass.key] = pass.icon
+	end
+	for _, bundle in Shop.Bundles do
+		local worth = 0
+		for _, key in bundle.passes do
+			worth += priceOf[key] or 0
+		end
+		local frame = card(row, bundle.key, Color3.fromRGB(255, 120, 0), Color3.fromRGB(255, 230, 60))
+		label(frame, bundle.title, "BundleTitle", UDim2.fromScale(0.36, 0.04), UDim2.fromScale(0.66, 0.2))
+		-- Un logo par pass avec son nom dessous (sans fond derriere : choix utilisateur), "+" entre les logos
+		local count = #bundle.passes
+		local slot = 0.66 / count
+		for index, key in bundle.passes do
+			local x = 0.03 + (index - 0.5) * slot
+			local tile = Instance.new("Frame")
+			tile.Name = "Pass_" .. key
+			tile.AnchorPoint = Vector2.new(0.5, 0)
+			tile.Position = UDim2.fromScale(x, 0.25)
+			tile.Size = UDim2.fromScale(slot * 0.8, 0.62)
+			tile.BackgroundTransparency = 1
+			tile.ZIndex = 2
+			tile.Parent = frame
+			image(tile, iconOf[key] or "", UDim2.fromScale(0.5, 0), UDim2.fromScale(1, 0.72))
+			local name = bundle.labels and bundle.labels[index] or key
+			label(tile, name, "BundlePass", UDim2.fromScale(0.5, 0.72), UDim2.fromScale(0.94, 0.24))
+			if index < count then
+				label(frame, "+", "BundlePlus", UDim2.fromScale(0.03 + index * slot, 0.44), UDim2.fromScale(slot * 0.2, 0.22))
+			end
+		end
+		label(frame, `{count} passes forever`, "BundleLine", UDim2.fromScale(0.36, 0.875), UDim2.fromScale(0.5, 0.11))
+		label(frame, `Worth {worth}`, "BundleWorth", UDim2.fromScale(0.83, 0.12), UDim2.fromScale(0.28, 0.14))
+		local buy = priceButton(frame, bundle.price, UDim2.fromScale(0.83, 0.34), UDim2.fromScale(0.28, 0.42), "BundlePrice")
+		buy.Activated:Connect(function()
+			onBuy("Bundle", bundle.key, bundle.productId, false)
+		end)
+		local owned = label(frame, Shop.DealTexts.Owned, "BundleOwned", UDim2.fromScale(0.83, 0.4), UDim2.fromScale(0.28, 0.3))
+		if worth > bundle.price then
+			cornerTag(frame, string.format(Shop.DealTexts.Save, math.floor((worth - bundle.price) / worth * 100)), "Red")
+			-- Carte large : l'etiquette (faite pour une carte etroite) est remise a l'echelle
+			local band = frame:FindFirstChild("Tag")
+			if band and band:IsA("Frame") then
+				band.Size = UDim2.fromScale(0.17, 0.26)
+				band.Position = UDim2.fromScale(0.93, 0.03)
+			end
+		end
+		local attribute = "BundleBlocked_" .. bundle.key
+		local function refresh()
+			local blocked = Players.LocalPlayer:GetAttribute(attribute) == true
+			buy.Visible = not blocked
+			owned.Visible = blocked
+		end
+		refresh()
+		Players.LocalPlayer:GetAttributeChangedSignal(attribute):Connect(refresh)
+	end
+end
+
 local function buildPasses()
 	sectionTitle("PASSES")
+	buildBundles()
 	local row = grid("Passes", 0.315, 0.98)
 	for _, pass in Shop.Passes do
 		local frame = card(row, pass.key, pass.color, pass.color2)

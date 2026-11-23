@@ -89,6 +89,8 @@ Upgrades.RobuxProducts = table.freeze({
 	[9] = 3734912752,
 } :: { [number]: number })
 Upgrades.RobuxPendingSeconds = 600 -- tuile cliquee gardee en memoire ce temps (puis recu = meilleure tuile au meme prix)
+-- Recu Robux alors que plus rien ne peut monter (2026-11-23) : argent = cette part du prochain etage.
+Upgrades.RobuxRefundFloorShare = 0.1
 Upgrades.ReceiptWaitSeconds = 20 -- recu : attente max de la sauvegarde du joueur (il vient d'arriver)
 
 -- Arbre : chaque niveau fait surtout tomber les fruits PLUS VITE (effet visible), et un peu de Luck.
@@ -358,6 +360,7 @@ Upgrades.Messages = table.freeze({
 	ComingSoon = "Coming soon!",
 	RobuxSoon = "Robux purchases: coming soon!",
 	NeedsFirst = "Buy %s first!", -- %s = machine demandee (ex. "Blender 2")
+	RobuxRefund = "Everything is maxed! +$%s cash instead", -- recu Robux sans amelioration a donner
 })
 
 Upgrades.List = table.freeze(list)

@@ -24,6 +24,10 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = Shared:WaitForChild("Config")
 local PlayerUpgrades = require(Config:WaitForChild("PlayerUpgrades"))
 local Gameplay = require(Config:WaitForChild("Gameplay"))
+local Floors = require(Config:WaitForChild("Floors"))
+local GameConfig = require(Config:WaitForChild("GameConfig"))
+local Upgrades = require(Config:WaitForChild("Upgrades"))
+local NumberFormat = require(Shared:WaitForChild("Util"):WaitForChild("NumberFormat"))
 local Remotes = require(Shared:WaitForChild("Network"):WaitForChild("Remotes"))
 
 local PlayerCheck = require(script.Parent.Parent.Lib.PlayerCheck)
@@ -199,17 +203,37 @@ local function makeReceiptHandler(id: string): ReceiptService.Handler
 		while DataService.GetData(player) == nil and player.Parent == Players and os.clock() < deadline do
 			task.wait(0.25)
 		end
+		local refunded = 0
 		local granted = DataService.GrantPurchaseOnce(player, receipt.PurchaseId, function(data): boolean
+			local target = id
 			local upgrade = PlayerUpgrades.ById[id]
-			local level = data.PlayerUpgrades[id] or 1
-			if level >= upgrade.maxLevel then
-				warn(`[PlayerUpgradeService] Achat {receipt.PurchaseId} recu alors que {id} est deja au max`)
+			if (data.PlayerUpgrades[id] or 1) >= upgrade.maxLevel then
+				-- 2026-11-23 : deja au max -> une autre amelioration du joueur qui peut encore monter
+				target = ""
+				for _, other in PlayerUpgrades.List do
+					if (data.PlayerUpgrades[other.id] or 1) < other.maxLevel then
+						target = other.id
+						break
+					end
+				end
+			end
+			if target == "" then
+				-- Tout est au max : argent (Upgrades.RobuxRefundFloorShare x prochain etage), jamais rien
+				local n = DataService.FloorsOwned(data) + 1
+				local price = Floors.Price(n) or (Floors.Prices[#Floors.Prices] * Floors.UpgradePriceFactor)
+				refunded = math.max(math.floor(price * Upgrades.RobuxRefundFloorShare), 100)
+				data.Money = math.min(data.Money + refunded, GameConfig.MaxMoney)
+				warn(`[PlayerUpgradeService] Achat {receipt.PurchaseId} : tout au max, +{refunded} $`)
 				return true
 			end
-			data.PlayerUpgrades[id] = level + 1
+			data.PlayerUpgrades[target] = (data.PlayerUpgrades[target] or 1) + 1
 			return true
 		end)
 		sync(player)
+		if refunded > 0 then
+			MoneyService.SyncLeaderstats(player)
+			NotifyService.Notify(player, string.format(Upgrades.Messages.RobuxRefund, NumberFormat.Abbreviate(refunded)))
+		end
 		return granted
 	end
 end
