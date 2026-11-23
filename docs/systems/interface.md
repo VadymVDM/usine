@@ -209,7 +209,13 @@ Regle : une seule apparence. Toute interface nouvelle prend police, couleurs et 
 - Bug corrige : le pack appelait `isSelected()` alors que c'est un champ dans TopbarPlus.
 - Icone du bouton Shop du HUD : l'image d'origine (104216746370508) ne s'affichait pas, remplacee
   par le panier du menu Shop (97176673928357).
-- Un id d'image (203785492) n'est pas du bon type ("Asset type does not match").
+- Un id (203785492, "Pop Close Sound") n'est pas du bon type ("Asset type does not match") : introuvable
+  dans la place et les scripts (verifie le 2026-11-23), vient probablement de TopbarPlus. Sans effet visible.
+- 2026-11-23 : 3 images d'un autre createur ("hypnoticdeals", refusees hors de son compte) retirees des
+  `.rbxm` : 104216746370508 (plaque des 15 croix ExitButton de ShopGUI : ImageTransparency 1, donc
+  aucun changement visible), 103832952076051 (HUD ProgressBar Fill.Icon) et 94808176966042 (HUD
+  Multipliers) : ces 2 cadres sont caches (Visible = false) et jamais montres. Fait sur disque par
+  `tools/scripts/clear-asset-ids.py` (vide une propriete d'image d'un .rbxm binaire, sans Studio).
 - Textes du pack a remplacer par les vrais (argent, Friend Boost, offres, contenus des menus).
 - Argent reel branche le 2026-11-19 (`MoneyHudController`, voir `argent.md`). Reste : offres Robux,
   l'Index (fruits), Offline Earnings.
