@@ -8,14 +8,14 @@ et vrai pass Robux non testes)
 
 > **Un tas d'argent PAR ETAGE (2026-11-20 soir, demande de l'utilisateur)** : chaque etage a sa table
 > a argent (`MoneyTray`, `MoneyPile`, `MoneyLabelAnchor`) et son pad `CashPad` ; les ventes d'un
-> etage vont sur SON tas ; il faut aller sur l'etage pour encaisser. Seul `AutoCollectPad` reste a
-> l'etage 1 (`Counter.OnlyGround`), le pass vaut pour toute la tour (a l'achat : tous les tas
-> encaisses). `CollectPile(player)` encaisse les tas de tous les etages (rebirth). Prix de vente x2
+> etage vont sur SON tas ; il faut aller sur l'etage pour encaisser. `AutoCollectPad` est aussi sur
+> chaque etage depuis le 2026-11-21 (avant : etage 1 seulement, `Counter.OnlyGround`) ; le pass vaut
+> pour toute la tour (a l'achat : tous les tas encaisses). `CollectPile(player)` encaisse les tas de tous les etages (rebirth). Prix de vente x2
 > avec le pass Billboard (`sellMultiplier`, voir `pads-robux.md`).
 >
 > **Tour d'etages (2026-11-20, phase 1b lot 3)** : chaque etage a son comptoir et ses ventes
 > (`CustomerSpeed` / `CustomerCount` de l'etage). ~~Un seul tas d'argent a l'etage 1~~ (remplace le
-> soir meme, voir au-dessus). Attributs `CounterJuices`, `CustomerSlots`, `IncomePerHour` sur l'etage. Clients
+> soir meme, voir au-dessus). Attributs `CounterJuices`, `CustomerSlots`, `IncomePerHour`, `PileCash` (argent sur le tas, lu par le tuto) sur l'etage. Clients
 > des etages 2+ : voir plus bas (lot 5).
 >
 > **Lot 5 (2026-11-20, pas encore teste en jeu)** :
@@ -122,6 +122,9 @@ un jus et laissent son prix sur la table a argent ; le joueur encaisse en se ten
   CustomerService : la boutique ne la voyait pas, et le bouton admin ne marchait que si le joueur
   etait dans son usine (bug "l'auto collect ne marche pas"). Quand l'attribut passe a vrai, les tas
   de tous les etages sont encaisses tout de suite (billets qui volent pour l'etage ou est le joueur).
+  **Depuis le 2026-11-21** : un pad par etage (meme place). Le drapeau "sur le pad" est rangé par
+  etage (`state.onAutoPad`) pour que la fenetre d'achat ne s'ouvre qu'a l'arrivee ; l'etiquette
+  "ACTIVE" / prix est remise a jour sur le pad de chaque etage du joueur.
 - **Pass Robux "Instant Sell"** (2026-11-21, ancien "Auto Sell" ; pad violet a droite du pad Drop
   Juices, voir `pads-robux.md`) : avec l'attribut joueur `InstantSell`, les jus que le JOUEUR pose
   sur le comptoir sont vendus des que l'animation de depot est finie (`Gameplay.InstantSell*` :

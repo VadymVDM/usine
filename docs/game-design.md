@@ -277,7 +277,7 @@ donne toujours l'avantage (jamais le client). Detail technique avec `roblox-mone
 | Boost x2 argent : 15 min / 30 min (meilleure valeur) | 9 / 16 |
 | Boost x2 vitesse des clients : 15 min / 30 min | 9 / 16 |
 | Boost x2 chance de l'arbre : 15 min / 30 min | 9 / 16 |
-| Packs d'argent (4 tailles, "Best Value" sur le plus gros) | 25 / 79 / 199 / 499 [A VALIDER] |
+| Packs d'argent (6 min / 35 min / 4 h / 10 h, "Best Value" sur le 4 h, vraiment le meilleur rapport) | 22 / 75 / 189 / 479 (2026-11-22) |
 | Rebirth & keep your cash (a cote du bouton Rebirth) | 49 / 99 / 199 / 299 selon le nombre de rebirths (0-2 / 3-9 / 10-24 / 25+) [A VALIDER] |
 | Amelioration d'un niveau en Robux (a cote de chaque bouton du mur) | petit prix, monte avec le niveau |
 
@@ -382,3 +382,6 @@ Voir [roadmap.md](roadmap.md) (phases, decisions encore ouvertes, dette techniqu
 | 2026-11-20 | Nametag au-dessus de la tete : pseudo + "Rebirth N", on ne voit que celui des autres ; menu Rebirth : cases Now / After en texte + icone (plus des boutons) | Demande utilisateur |
 | 2026-11-20 | Revue de l'economie : prix des etages / 2 ; clients 1.8 s au depart (au lieu de 2.5 s) et More Customers 150 $ ; fin des achats qui ne font pas monter l'argent (tapis, clients, mixeurs 2-4, operateurs 2-4) moins chere ; Lucky Cash min $750 | Analyse + simulation, validee par l'utilisateur ("let's go") |
 | 2026-11-20 | Economie (suite, "fun du debut a la fin, progressif") : prix des etages en courbe progressive (1.5K / 11K / 62K / 350K / 2M / 11.5M / 66M / 380M / 2.2B) ; ascenseur = +4 % d'argent par vente aux etages 2+ par niveau, 400 / 600 x1.75 (achat toujours utile) | Analyse + simulation, demande utilisateur ("fais tout le necessaire") |
+| 2026-11-21 | Profil neuf = usine vide : 4 pads verts FREE (Plant tree, Build shelf, Build blender, Open shop) construisent l'usine ; tout le reste apparait quand il devient utile (pop) ; pas de fantome bleu avant un pad FREE (on decouvre en marchant dessus), le bleu reste pour les machines a acheter (seule la prochaine) ; profils existants inchanges | Demande utilisateur (prompt 2b avant le tutoriel, puis "le transparent c'est que pour les prochaines machines") ; voir `systems/usine-a-construire.md` |
+| 2026-11-22 | Cinematique d'ouverture (~14 s, une fois, Skip) : foret, arbre niveau 10 de l'etage 1, Wow / reflexion, pelle, l'arbre devient l'arbre niveau 1 dans les mains ; pad Plant tree a la touche E, 5 pommes ; ligne de chevrons lumineux + fleche vers le prochain pad FREE | Demande utilisateur (deroule valide, puis capture de reference pour la ligne) ; voir `systems/cinematique.md` |
+| 2026-11-22 | Cinematique refaite (~20 s) et **Skip retire** : il voit l'arbre de loin puis court, arrache une pelle plantee, vrai creusage (pied sur la lame, terre jetee sur le tas), brandit l'arbre niveau 1 au-dessus de sa tete | Demande utilisateur ("retire la possibilite de skip", "il le voit de loin et apres il court") |

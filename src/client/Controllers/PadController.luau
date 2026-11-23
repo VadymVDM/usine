@@ -11,7 +11,7 @@
 -- serveur gere l'achat (UpgradeService) ; ici seulement l'effet : le bloc (PadTop seul, le neon ne
 -- bouge pas) descend doucement (sans rebond) tant qu'on est dessus, remonte doucement apres, son Sounds.GreenPadStep.
 -- Tour d'etages : on ne regarde que l'etage ouvert de SA base ou se trouve le joueur (hauteur),
--- chaque etage a son pad Cash (un tas d'argent par etage depuis le 2026-11-20) ; AutoCollect : etage 1.
+-- chaque etage a son pad Cash (un tas d'argent par etage depuis le 2026-11-20) ; AutoCollect : serveur seul.
 -- Doc : docs/systems/chaine-production.md, docs/systems/clients.md
 
 local Players = game:GetService("Players")

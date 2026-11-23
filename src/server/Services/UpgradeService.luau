@@ -12,7 +12,7 @@
 --   * pad "repeatPad" (Machines.Tree.Pad, "Upgrade Tree") : il reste la ; se tenir dessus achete
 --     1 niveau, puis 1 de plus toutes les Gameplay.PadRepeatSeconds tant qu'on reste dessus ;
 --   * Boards.<Board>.<id> : tuile d'un panneau (CLIQUER la tuile = acheter un niveau, bouton
---     violet = Robux, phase 3). Textes mis a jour : Value ("8 → 12"), Price, Robux.
+--     violet = Robux, voir plus bas). Textes mis a jour : Value ("8 → 12"), Price, Robux.
 -- Attribut d'etage "Lv_<id>" = niveau du proprietaire (niveau de depart si libre) : le client
 -- (LevelLookController) montre les pieces de decor de chaque niveau.
 -- Achat = APPUI LONG, sauf les tuiles des panneaux (simple clic, demande du 2026-11-20) :
@@ -21,6 +21,13 @@
 --     (BuyController) ; le serveur ignore ce Triggered et attend le remote BuyUpgrade ;
 --   * dessus des pads : appui long souris / doigt (BuyController) -> BuyUpgrade ;
 --   * tuiles des panneaux : simple clic / tap (BuyController) -> BuyUpgrade.
+-- Bouton violet d'une tuile (Robux, 2026-11-23) : clic (ClickDetector serveur, joueur proprietaire et
+-- pres de la tuile) -> memes verifications qu'un achat (sauf l'argent) -> le serveur note la tuile
+-- (etage, id) et ouvre le Developer Product du prix affiche (Upgrades.RobuxProducts : 5 / 8 / 9 R$).
+-- Le niveau n'est donne qu'au recu (ReceiptService -> DataService.GrantPurchaseOnce : une fois par
+-- PurchaseId). Tuile notee perdue (autre serveur, plus de 10 min) ou deja au max : +1 niveau a la
+-- premiere amelioration construite au meme prix Robux (etage le plus haut d'abord). Rien a donner :
+-- recu accepte, avertissement dans la sortie.
 -- Remote BuyUpgrade (client -> serveur, id) : id connu, etage ou se trouve le joueur
 -- (hauteur de son personnage, FloorService.GetPlayerFloor), proprietaire, joueur pres d'un point
 -- d'achat de cet id (machine, tuile, pad), delai, niveau max, argent via MoneyService.TrySpend.
@@ -33,6 +40,10 @@
 -- Attributs lus par le client (MachineFxController) :
 --   machine : Built, Level, BuildStamp (+1 quand elle se construit), Locked ;
 --   machine et tuile : Price (-1 = max), ComingSoon, Bought (+1 a chaque achat), Denied (+1 si refuse).
+-- Usine a construire (2026-11-21, SetupService / Config/Setup.UpgradeStep) : sur l'etage 1 d'un profil
+-- neuf, un id n'existe qu'a partir de son etape FREE : avant, pad cache, panneau cache (tuile
+-- Unbuilt), machine cachee (attribut Hidden ; le mixeur 1, Setup.UpgradeBuild, se construit au pad
+-- "Build blender") et achat refuse.
 -- Doc : docs/systems/ameliorations-employes.md
 
 local Players = game:GetService("Players")
@@ -53,6 +64,10 @@ local DataService = require(script.Parent.DataService)
 local FloorService = require(script.Parent.FloorService)
 local MoneyService = require(script.Parent.MoneyService)
 local NotifyService = require(script.Parent.NotifyService)
+local SetupService = require(script.Parent.SetupService)
+local SetupConfig = require(Config:WaitForChild("Setup"))
+local PurchasePrompt = require(script.Parent.Parent.Lib.PurchasePrompt)
+local ReceiptService = require(script.Parent.ReceiptService)
 
 local UpgradeService = {}
 
@@ -81,6 +96,7 @@ type Machine = {
 	prompt: ProximityPrompt?,
 	machineTag: BillboardGui?,
 	built: boolean?,
+	hidden: boolean?, -- usine a construire : machine pas encore la (invisible pour tous)
 	padLooks: { [BasePart]: PartLook },
 	repeatPad: boolean, -- pad "Upgrade Tree" : reste visible apres l'achat
 	padZone: BasePart?,
@@ -118,6 +134,10 @@ local lastNotify: { [Player]: number } = {}
 local padInside: { [Player]: string } = {} -- "Floor2/Tree" : pad ou se tient le joueur
 local padNext: { [Player]: number } = {} -- pad repeatPad : heure du prochain achat si on reste dessus
 local boughtCallbacks: { BoughtCallback } = {}
+-- Bouton violet clique : [joueur][productId] = tuile notee (etage n, id, heure)
+type RobuxIntent = { index: number, id: string, at: number }
+local robuxIntents: { [Player]: { [number]: RobuxIntent } } = {}
+local lastRobuxClick: { [Player]: number } = {}
 
 local function lookOf(part: BasePart): PartLook
 	return {
@@ -246,14 +266,17 @@ local function pushPlayersOut(machine: Machine)
 	end
 end
 
-local function setBuilt(machine: Machine, built: boolean)
-	if machine.built == built then
+local function setBuilt(machine: Machine, built: boolean, hidden: boolean?)
+	local isHidden = hidden == true
+	if machine.built == built and (machine.hidden == true) == isHidden then
 		return
 	end
 	local wasGhost = machine.built == false
 	machine.built = built
+	machine.hidden = isHidden
 	for part, look in machine.looks do
-		if built and machine.ghostOnly[part] then
+		-- Cachee (usine a construire, mixeur verrouille) ou silhouette d'employe embauche : invisible
+		if isHidden or (built and machine.ghostOnly[part]) then
 			part.Transparency = 1
 			part.CanCollide = false
 			part.CastShadow = false
@@ -270,7 +293,7 @@ local function setBuilt(machine: Machine, built: boolean)
 		end
 	end
 	for effect, enabled in machine.effects do
-		(effect :: any).Enabled = built and enabled
+		(effect :: any).Enabled = built and enabled and not isHidden
 	end
 	if built and wasGhost then
 		pushPlayersOut(machine)
@@ -318,6 +341,11 @@ local function isLocked(id: string, player: Player?, index: number): boolean
 	return Upgrades.IsLocked(id, levelsOf(player, index))
 end
 
+-- Usine a construire : l'id existe-t-il deja sur cet etage (etape FREE faite) ?
+local function isRevealed(state: FloorState, id: string): boolean
+	return SetupService.Allows(state.floor, SetupConfig.UpgradeStep[id] or 0)
+end
+
 local function refreshUpgrade(state: FloorState, id: string, player: Player?)
 	local upgrade = Upgrades.ById[id]
 	local level, maxLevel, price = getLevelInfo(id, player, state.index)
@@ -331,10 +359,18 @@ local function refreshUpgrade(state: FloorState, id: string, player: Player?)
 	local builtAt = Upgrades.BuiltAt(id)
 	-- Niveau visible par tous les clients (decor de chaque niveau, LevelLookController)
 	state.floor:SetAttribute("Lv_" .. id, level)
+	-- Usine a construire : pas encore la (cache) ou machine a construire par un pad FREE (fantome)
+	local revealed = isRevealed(state, id)
+	-- Pas encore la : cachee (le mixeur 1 aussi, pas de fantome avant "Build blender", 2026-11-21) ;
+	-- une machine verrouillee (mixeur 3 avant le 2...) est cachee : seule la prochaine est en bleu.
+	local setupGhost = false
+	local hidden = not revealed or locked
 
 	local machine = state.machines[id]
 	if machine then
-		setBuilt(machine, level >= builtAt)
+		setBuilt(machine, level >= builtAt and revealed, hidden)
+		machine.model:SetAttribute("Hidden", hidden)
+		machine.model:SetAttribute("SetupGhost", setupGhost)
 		machine.model:SetAttribute("Level", level)
 		machine.model:SetAttribute("Price", price)
 		machine.model:SetAttribute("ComingSoon", comingSoon)
@@ -346,12 +382,12 @@ local function refreshUpgrade(state: FloorState, id: string, player: Player?)
 			local verb = if upgrade.kind == "Employee" then Gameplay.PromptTexts.Hire else Gameplay.PromptTexts.Buy
 			Prompt.SetAction(machine.prompt, if price < 0 then Gameplay.PromptTexts.Max else `{verb} {priceText}`)
 			Prompt.SetObject(machine.prompt, upgrade.machine)
-			Prompt.SetActive(machine.prompt, not machine.built and price >= 0 and not comingSoon and not locked)
+			Prompt.SetActive(machine.prompt, not machine.built and price >= 0 and not comingSoon and not locked and revealed)
 			-- Premier achat (machine fantome) : le client demande une confirmation
 			machine.prompt:SetAttribute("Confirm", not machine.built)
 		end
 		if machine.machineTag then
-			machine.machineTag.Enabled = not machine.built and not locked
+			machine.machineTag.Enabled = not machine.built and not locked and revealed
 			local priceLabel = machine.machineTag:FindFirstChild("Price", true)
 			if priceLabel and priceLabel:IsA("TextLabel") then
 				priceLabel.Text = priceText
@@ -359,7 +395,7 @@ local function refreshUpgrade(state: FloorState, id: string, player: Player?)
 		end
 		if machine.padTop then
 			local padWanted = if machine.repeatPad then price >= 0 else not machine.built
-			setPadVisible(machine, padWanted and not locked)
+			setPadVisible(machine, padWanted and not locked and revealed)
 			local priceLabel = machine.tag and machine.tag:FindFirstChild("Price")
 			if priceLabel and priceLabel:IsA("TextLabel") then
 				priceLabel.Text = priceText
@@ -374,7 +410,7 @@ local function refreshUpgrade(state: FloorState, id: string, player: Player?)
 	-- Machine pas encore construite (mixeur fantome) : son panneau est cache et ne vend rien,
 	-- le premier achat se fait seulement au prompt E de la machine (demande du 2026-11-20 :
 	-- "enleve les panneaux pour les trucs d'achat").
-	local unbuilt = machine ~= nil and level < builtAt
+	local unbuilt = (machine ~= nil and machine.built == false) or not revealed
 	for _, tile in state.tiles[id] or {} do
 		tile.model:SetAttribute("Price", price)
 		tile.model:SetAttribute("ComingSoon", comingSoon)
@@ -421,10 +457,67 @@ end
 ---------------------------------------------------------------------------------------------
 -- Achat
 
+local function denyFx(state: FloorState, id: string)
+	local machine = state.machines[id]
+	if machine then
+		bump(machine.model, "Denied")
+	end
+	for _, tile in state.tiles[id] or {} do
+		bump(tile.model, "Denied")
+	end
+end
+
+-- Verifications communes (argent et Robux) : renvoie (niveaux de l'etage, niveau actuel) si cet id
+-- peut monter d'un niveau sur cet etage, sinon nil + message de refus (pas de message = refus muet).
+local function checkBuyable(player: Player, state: FloorState, id: string): ({ [string]: number }?, number, string?)
+	local upgrade = Upgrades.ById[id]
+	if upgrade == nil or FloorService.GetOwner(state.floor) ~= player or not isRevealed(state, id) then
+		return nil, 0, nil -- pas encore construit (pad FREE pas fait) : rien a acheter, pas de message
+	end
+	if upgrade.comingSoon then
+		return nil, 0, Upgrades.Messages.ComingSoon
+	end
+	local data = DataService.GetData(player)
+	local levels = if data then DataService.FloorUpgrades(data, state.index) else nil
+	if data == nil or levels == nil then
+		return nil, 0, nil
+	end
+	local level = levels[id] or upgrade.startLevel
+	if level >= Upgrades.GetMaxLevel(id, data.Rebirths) then
+		return nil, level, Upgrades.Messages.MaxLevel
+	end
+	if Upgrades.IsLocked(id, levels) then
+		local required = Upgrades.ById[upgrade.requires :: string]
+		return nil, level, string.format(Upgrades.Messages.NeedsFirst, required.machine)
+	end
+	return levels, level, nil
+end
+
+-- Apres un niveau donne (argent ou recu Robux) : machine construite, etage rafraichi, effets, rappels.
+local function afterBought(player: Player, state: FloorState, id: string, newLevel: number, wasBuilt: boolean?)
+	local machine = state.machines[id]
+	if machine and wasBuilt == false then
+		bump(machine.model, "BuildStamp")
+	end
+	-- Tout l'etage : un achat peut deverrouiller d'autres ids (mixeur suivant, son operateur)
+	refreshFloor(state.floor, player)
+	if machine then
+		bump(machine.model, "Bought")
+	end
+	for _, tile in state.tiles[id] or {} do
+		bump(tile.model, "Bought")
+	end
+	for _, callback in boughtCallbacks do
+		local ok, err = pcall(callback, player, id, newLevel, state.floor)
+		if not ok then
+			warn(`[UpgradeService] Erreur dans OnBought : {err}`)
+		end
+	end
+end
+
 local function tryBuy(player: Player, floor: Model, id: string): boolean
 	local state = states[floor]
-	local upgrade = Upgrades.ById[id]
-	if state == nil or upgrade == nil or FloorService.GetOwner(floor) ~= player then
+	if state == nil or Upgrades.ById[id] == nil or FloorService.GetOwner(floor) ~= player then
 		return false
 	end
 	local now = os.clock()
@@ -434,65 +527,134 @@ local function tryBuy(player: Player, floor: Model, id: string): boolean
 	end
 	lastBuy[player] = now
 
-	local machine = state.machines[id]
-	local tiles = state.tiles[id] or {}
-	local function deny(message: string)
-		notify(player, message, true)
-		if machine then
-			bump(machine.model, "Denied")
-		end
-		for _, tile in tiles do
-			bump(tile.model, "Denied")
-		end
-	end
-
-	if upgrade.comingSoon then
-		deny(Upgrades.Messages.ComingSoon)
-		return false
-	end
-	local data = DataService.GetData(player)
-	if data == nil then
-		return false
-	end
-	local levels = DataService.FloorUpgrades(data, state.index)
+	local levels, level, refusal = checkBuyable(player, state, id)
 	if levels == nil then
-		return false
-	end
-	local level = levels[id] or upgrade.startLevel
-	if level >= Upgrades.GetMaxLevel(id, data.Rebirths) then
-		deny(Upgrades.Messages.MaxLevel)
-		return false
-	end
-	if Upgrades.IsLocked(id, levels) then
-		local required = Upgrades.ById[upgrade.requires :: string]
-		deny(string.format(Upgrades.Messages.NeedsFirst, required.machine))
+		if refusal then
+			notify(player, refusal, true)
+			denyFx(state, id)
+		end
 		return false
 	end
 	local price = priceAt(id, level, state.index)
 	if not MoneyService.TrySpend(player, price, "Upgrade:" .. id) then
-		deny(Upgrades.Messages.NotEnoughMoney)
+		notify(player, Upgrades.Messages.NotEnoughMoney, true)
+		denyFx(state, id)
 		return false
 	end
+	local machine = state.machines[id]
+	local wasBuilt = if machine then machine.built else nil
 	levels[id] = level + 1
+	afterBought(player, state, id, level + 1, wasBuilt)
+	return true
+end
 
-	if machine and not machine.built then
-		bump(machine.model, "BuildStamp")
+---------------------------------------------------------------------------------------------
+-- Achat en Robux (bouton violet des tuiles)
+
+local function onRobuxClick(player: Player, state: FloorState, tile: Tile)
+	local now = os.clock()
+	local last = lastRobuxClick[player]
+	if last and now - last < Gameplay.BuyCooldownSeconds then
+		return
 	end
-	-- Tout l'etage : un achat peut deverrouiller d'autres ids (mixeur suivant, son operateur)
-	refreshFloor(floor, player)
-	if machine then
-		bump(machine.model, "Bought")
+	lastRobuxClick[player] = now
+	-- Tuile cachee (machine pas construite) : le bouton ne vend rien
+	if tile.model:GetAttribute("Unbuilt") == true then
+		return
 	end
-	for _, tile in tiles do
-		bump(tile.model, "Bought")
+	local id = tile.id
+	local levels, level, refusal = checkBuyable(player, state, id)
+	if levels == nil then
+		if refusal then
+			notify(player, refusal, true)
+			denyFx(state, id)
+		end
+		return
 	end
-	for _, callback in boughtCallbacks do
-		local ok, err = pcall(callback, player, id, level + 1, floor)
-		if not ok then
-			warn(`[UpgradeService] Erreur dans OnBought : {err}`)
+	local productId = Upgrades.RobuxProductFor(id, level)
+	if productId == nil then
+		notify(player, Upgrades.Messages.RobuxSoon)
+		return
+	end
+	local intents = robuxIntents[player]
+	if intents == nil then
+		intents = {}
+		robuxIntents[player] = intents
+	end
+	intents[productId] = { index = state.index, id = id, at = now }
+	PurchasePrompt.Product(player, productId)
+end
+
+-- Ou donner le niveau paye : la tuile notee si elle peut encore monter, sinon la premiere
+-- amelioration construite (avec une tuile) au meme prix Robux, etage le plus haut d'abord.
+local function robuxTarget(player: Player, productId: number): (FloorState?, string?)
+	local intents = robuxIntents[player]
+	local intent = intents and intents[productId]
+	if intents then
+		intents[productId] = nil
+	end
+	if intent and os.clock() - intent.at <= Upgrades.RobuxPendingSeconds then
+		local floor = FloorService.GetFloor(player, intent.index)
+		local state = floor and states[floor]
+		if state and checkBuyable(player, state, intent.id) then
+			return state, intent.id
 		end
 	end
-	return true
+	for n = FloorService.GetOwnedCount(player), 1, -1 do
+		local floor = FloorService.GetFloor(player, n)
+		local state = floor and states[floor]
+		if state == nil then
+			continue
+		end
+		for _, upgrade in Upgrades.List do
+			local machine = state.machines[upgrade.id]
+			if state.tiles[upgrade.id] == nil or (machine and machine.built == false) then
+				continue
+			end
+			local levels, level = checkBuyable(player, state, upgrade.id)
+			if levels and Upgrades.RobuxProductFor(upgrade.id, level) == productId then
+				return state, upgrade.id
+			end
+		end
+	end
+	return nil, nil
+end
+
+type Applied = { state: FloorState, id: string, level: number, wasBuilt: boolean? }
+
+local function onRobuxReceipt(receipt: ReceiptService.Receipt): boolean
+	local player = Players:GetPlayerByUserId(receipt.PlayerId)
+	if player == nil then
+		return false -- parti : Roblox redonnera le recu a sa prochaine arrivee
+	end
+	local deadline = os.clock() + Upgrades.ReceiptWaitSeconds
+	while DataService.GetData(player) == nil and player.Parent == Players and os.clock() < deadline do
+		task.wait(0.25)
+	end
+	local applied: Applied? = nil
+	local granted = DataService.GrantPurchaseOnce(player, receipt.PurchaseId, function(data): boolean
+		local state, id = robuxTarget(player, receipt.ProductId)
+		if state == nil or id == nil then
+			warn(`[UpgradeService] Recu {receipt.PurchaseId} ({receipt.ProductId}) : aucune amelioration a donner`)
+			return true
+		end
+		local levels = DataService.FloorUpgrades(data, state.index)
+		if levels == nil then
+			return false
+		end
+		local level = levels[id] or Upgrades.ById[id].startLevel
+		local machine = state.machines[id]
+		levels[id] = level + 1
+		applied = { state = state, id = id, level = level + 1, wasBuilt = if machine then machine.built else nil }
+		print(`[UpgradeService] Recu {receipt.PurchaseId} : {id} niveau {level + 1}, etage {state.index} ({player.UserId})`)
+		return true
+	end)
+	-- Le niveau est deja dans la sauvegarde en memoire (meme si l'ecriture attend encore) : on l'affiche
+	local done: Applied? = applied
+	if done then
+		afterBought(player, done.state, done.id, done.level, done.wasBuilt)
+	end
+	return granted
 end
 
 -- Clic sur un bouton ou un pad : joueur valide, proprietaire de l'etage, assez pres.
@@ -712,7 +874,7 @@ local function prepareFloor(floor: Model, index: number)
 		-- tile.buy : achat par simple clic (BuyController -> remote BuyUpgrade, 2026-11-20)
 		if tile.robux then
 			connectClick(floor, tile.robux, function(player: Player)
-				notify(player, Upgrades.Messages.RobuxSoon)
+				onRobuxClick(player, state, tile)
 			end)
 		end
 	end
@@ -779,7 +941,7 @@ local function checkPads(player: Player)
 	local inside: string? = nil
 	local current = padInside[player]
 	for id, machine in state.machines do
-		local locked = machine.model:GetAttribute("Locked") == true
+		local locked = machine.model:GetAttribute("Locked") == true or not isRevealed(state, id)
 		local active = not machine.built or (machine.repeatPad and machine.model:GetAttribute("Price") ~= -1)
 		local zone = machine.padZone
 		local already = current == floor.Name .. "/" .. id
@@ -809,6 +971,10 @@ end
 
 function UpgradeService:Init()
 	Remotes.GetServerEvent("BuyUpgrade").OnServerEvent:Connect(onBuyRequest)
+	-- Un handler par produit "Machine Upgrade" (prix differents, meme effet : +1 niveau a la tuile notee)
+	for _, productId in Upgrades.RobuxProducts do
+		ReceiptService.Register(productId, onRobuxReceipt)
+	end
 end
 
 function UpgradeService:Start()
@@ -822,6 +988,21 @@ function UpgradeService:Start()
 		prepareFloor(floor, index)
 		refreshFloor(floor, player)
 	end)
+	-- Etape FREE faite : ce qui apparait (pads, panneaux, mixeurs) ; le mixeur 1 se construit
+	-- (BuildStamp avant le changement, comme un achat)
+	SetupService.OnStepDone(function(player: Player, step: number, floor: Model)
+		local state = states[floor]
+		if state == nil then
+			return
+		end
+		for id, at in SetupConfig.UpgradeBuild do
+			local machine = state.machines[id]
+			if at == step and machine and machine.built == false then
+				bump(machine.model, "BuildStamp")
+			end
+		end
+		refreshFloor(floor, player)
+	end)
 	FloorService.OnFloorStopped(function(player: Player, floor: Model)
 		padInside[player] = nil
 		padNext[player] = nil
@@ -832,6 +1013,8 @@ function UpgradeService:Start()
 	Players.PlayerRemoving:Connect(function(player: Player)
 		lastBuy[player] = nil
 		lastNotify[player] = nil
+		robuxIntents[player] = nil
+		lastRobuxClick[player] = nil
 		padInside[player] = nil
 		padNext[player] = nil
 	end)
@@ -861,6 +1044,33 @@ function UpgradeService.DebugBuy(player: Player, id: string): boolean
 	end
 	lastBuy[player] = nil
 	return tryBuy(player, floor, id)
+end
+
+-- Tests Studio : bouton violet de l'id (sans distance ni fenetre) puis recu simule. id "" : recu sans
+-- tuile notee (produit 9 R$). Renvoie { granted, productId, level }.
+function UpgradeService.DebugRobuxBuy(player: Player, id: string, purchaseId: string): { [string]: any }
+	local floor = FloorService.GetPlayerFloor(player)
+	local state = floor and states[floor]
+	local productId = Upgrades.RobuxProducts[Upgrades.RobuxMax]
+	if state and id ~= "" then
+		local levels, level = checkBuyable(player, state, id)
+		local found = if levels then Upgrades.RobuxProductFor(id, level) else nil
+		if found == nil then
+			return { granted = false }
+		end
+		productId = found
+		robuxIntents[player] = robuxIntents[player] or {}
+		robuxIntents[player][productId] = { index = state.index, id = id, at = os.clock() }
+	end
+	local granted = onRobuxReceipt({
+		PlayerId = player.UserId,
+		ProductId = productId,
+		PurchaseId = purchaseId,
+		CurrencySpent = 0,
+		PlaceIdWherePurchased = game.PlaceId,
+	})
+	local levels = if state then levelsOf(player, state.index) else nil
+	return { granted = granted, productId = productId, level = if levels and id ~= "" then levels[id] else nil }
 end
 
 -- Prix d'un niveau d'une amelioration sur l'etage n (WorkerService, tests).

@@ -62,6 +62,9 @@ local buyEvent: RemoteEvent? = nil
 local popupAmount: TextLabel? = nil
 local popupDeal: TextLabel? = nil
 local popupFloor: TextLabel? = nil
+local popupBuy: GuiObject? = nil
+local popupPriceRow: Instance? = nil
+local popupPrice = 0 -- prix affiche sur le bouton (refait a l'ouverture s'il a change)
 
 local function menuController(): any
 	return require(script.Parent:WaitForChild("MenuController")) :: any
@@ -77,7 +80,16 @@ end
 
 local function amountText(): string
 	local amount = currentAmount()
-	return if amount then "+" .. NumberFormat.Money(amount) else "+$???"
+	return if amount then "+" .. NumberFormat.Money(amount) else "" -- jamais "+$0" ni "+$???"
+end
+
+-- Prix actuel en R$ (attribut LuckyCashPrice du serveur : 9 a l'etage 1, puis 24).
+local function currentPrice(): number
+	local value = player:GetAttribute(LuckyCash.PriceAttribute)
+	if type(value) == "number" and value > 0 then
+		return value
+	end
+	return LuckyCash.Products[#LuckyCash.Products].price
 end
 
 -- "= 2 HOURS of profit!" : vrai calcul avec les gains theoriques (attribut IncomePerSecond).
@@ -295,7 +307,7 @@ local function buildPopup()
 	cash.ZIndex = 3
 	cash.Parent = box
 	TweenService:Create(cash, TweenInfo.new(0.7, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { Rotation = 8, Size = UDim2.fromScale(1, 1) }):Play()
-	local amount = PackStyle.label(box, "+$0", UDim2.fromScale(0.62, 0.1), UDim2.fromScale(0.68, 0.8), 80)
+	local amount = PackStyle.label(box, "",UDim2.fromScale(0.62, 0.1), UDim2.fromScale(0.68, 0.8), 80)
 	amount.TextColor3 = PackStyle.MONEY_GREEN
 	box.Parent = body
 	popupAmount = amount
@@ -310,7 +322,8 @@ local function buildPopup()
 	-- Contour dore qui pulse sur le bouton d'achat (comme les offres)
 	local glowStroke = PackStyle.stroke(buy, 4, Color3.fromRGB(255, 220, 60), Enum.ApplyStrokeMode.Border)
 	TweenService:Create(glowStroke, TweenInfo.new(0.7, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { Transparency = 0.8 }):Play()
-	PackStyle.priceRow(buy, Icons.Robux, LuckyCash.Price, UDim2.fromScale(0.5, 0.12), UDim2.fromScale(1, 0.76))
+	popupBuy = buy
+	popupPriceRow = PackStyle.priceRow(buy, Icons.Robux, currentPrice(), UDim2.fromScale(0.5, 0.12), UDim2.fromScale(1, 0.76))
 	buy.Activated:Connect(function()
 		if buyEvent then
 			buyEvent:FireServer()
@@ -329,6 +342,14 @@ function LuckyCashController.OpenPopup(floor: Model?)
 		return
 	end
 	popupAmount.Text = amountText()
+	local price = currentPrice()
+	if popupBuy and price ~= popupPrice then
+		popupPrice = price
+		if popupPriceRow then
+			popupPriceRow:Destroy()
+		end
+		popupPriceRow = PackStyle.priceRow(popupBuy, Icons.Robux, price, UDim2.fromScale(0.5, 0.12), UDim2.fromScale(1, 0.76))
+	end
 	if popupDeal then
 		popupDeal.Text = dealText()
 	end

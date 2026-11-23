@@ -18,15 +18,26 @@
 --   game.ServerStorage.Debug.Call:Invoke("Rebirth", "Get" | "Do" [keepCash] | "Set" n | "Master" bool, "<NomJoueur>")
 --   game.ServerStorage.Debug.Call:Invoke("LuckyCash", "Get" | "Grant", "<NomJoueur>") (Grant = simule un achat Robux paye)
 --   game.ServerStorage.Debug.Call:Invoke("Shop", "Get" | "ClearBoosts" | "ClearOffers", "<NomJoueur>")
+--   game.ServerStorage.Debug.Call:Invoke("Shop", "FreeBoost", "<NomJoueur>", 0) -- boost gratuit tout de suite
 --   game.ServerStorage.Debug.Call:Invoke("Shop", "Grant", "<NomJoueur>", "Boost" | "CashPack" | "Offer", "Money_15" | "Cash5m" | "OfferStarter", purchaseId?) (recu simule)
 --   game.ServerStorage.Debug.Call:Invoke("Shop", "Pass", "<NomJoueur>", "Cash3x", true)
+--   game.ServerStorage.Debug.Call:Invoke("Gift", "Send", "<NomJoueur>", "VIP", <UserId ou 0>, "id") | "Get" | "Remove", "VIP"
 --   game.ServerStorage.Debug.Call:Invoke("Offline", "Get" | "Simulate" secondes | "Double", "<NomJoueur>") (gains hors ligne ; Simulate / Double ecrivent la sauvegarde)
 --   game.ServerStorage.Debug.Call:Invoke("Data", "SetTower", "<NomJoueur>", "ElevatorSpeed", 0)
 --   game.ServerStorage.Debug.Call:Invoke("Data", "SetDiscovered", "<NomJoueur>", { "Apple", ... })
 --   game.ServerStorage.Debug.Call:Invoke("Data", "Snapshot" | "Restore", "<NomJoueur>") (avant / apres un test de rebirth)
+--   game.ServerStorage.Debug.Call:Invoke("Data", "Backup", "<NomJoueur>") (copie du profil dans le DataStore
+--     "DebugBackups", garde entre les playtests ; renvoie aussi le JSON)
+--   game.ServerStorage.Debug.Call:Invoke("Data", "ResetOnLeave" | "RestoreBackup", "<NomJoueur>") (profil
+--     neuf / copie "Backup" remis au DEPART du joueur : arreter le playtest juste apres)
+--   game.ServerStorage.Debug.Call:Invoke("Tutorial", "Get" | "Set", "<NomJoueur>", n) (etape du tutoriel, ECRIT la sauvegarde)
+--   game.ServerStorage.Debug.Call:Invoke("Setup", "Get" | "Set" n, "<NomJoueur>") (usine a construire,
+--     etape 0..4 ; Set ecrit la sauvegarde)
 -- Les actions par etage (Tree, Production, Customer, Upgrade) visent l'etage ou se trouve le joueur.
 -- Doc : docs/systems/argent.md (section Tests)
 
+local DataStoreService = game:GetService("DataStoreService")
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -43,10 +54,15 @@ local CustomerService = require(script.Parent.CustomerService)
 local ProductionService = require(script.Parent.ProductionService)
 local LuckyCashService = require(script.Parent.LuckyCashService)
 local RobuxShopService = require(script.Parent.RobuxShopService)
+local GiftService = require(script.Parent.GiftService)
 local OfflineService = require(script.Parent.OfflineService)
 local RebirthService = require(script.Parent.RebirthService)
 local TreeService = require(script.Parent.TreeService)
 local UpgradeService = require(script.Parent.UpgradeService)
+local SetupService = require(script.Parent.SetupService)
+local TutorialService = require(script.Parent.TutorialService)
+
+local BACKUP_STORE = "DebugBackups" -- Studio seulement (DebugService n'existe pas en jeu publie)
 
 local DebugService = {}
 
@@ -129,6 +145,11 @@ local handlers: { [string]: { [string]: Handler } } = {
 		Buy = function(player, id)
 			return if type(id) == "string" then UpgradeService.DebugBuy(player, id) else false
 		end,
+		-- Bouton violet + recu simule (ecrit la sauvegarde !) : (id ou "" = sans tuile notee, PurchaseId)
+		-- -> { granted, productId, level } ; meme PurchaseId 2 fois = un seul niveau.
+		RobuxBuy = function(player, id, purchaseId)
+			return UpgradeService.DebugRobuxBuy(player, if type(id) == "string" then id else "", tostring(purchaseId))
+		end,
 		-- Met un id a un niveau precis (ecrit la sauvegarde !). Ex. ("Blender2", 0) pour annuler un test.
 		-- Le modele (fantome / construit) se met a jour a la prochaine arrivee dans la base.
 		SetLevel = function(player, id, level)
@@ -168,6 +189,22 @@ local handlers: { [string]: { [string]: Handler } } = {
 			return if type(n) == "number" then FloorService.DebugGoTo(player, n) else false
 		end,
 	},
+	Gift = {
+		-- Recu simule d'un cadeau : ("<Pass>", destinataire UserId ou 0 = sans destinataire note, PurchaseId)
+		Send = function(player, key, recipientId, purchaseId)
+			if type(key) ~= "string" then
+				return false
+			end
+			return GiftService.DebugGift(player, key, if type(recipientId) == "number" then recipientId else 0, tostring(purchaseId))
+		end,
+		Get = function(player)
+			return GiftService.DebugGet(player)
+		end,
+		-- Retire un pass offert de la sauvegarde (ecrit la sauvegarde !)
+		Remove = function(player, key)
+			return if type(key) == "string" then GiftService.DebugRemove(player, key) else false
+		end,
+	},
 	Shop = {
 		Get = function(player)
 			return RobuxShopService.DebugGet(player)
@@ -183,6 +220,10 @@ local handlers: { [string]: { [string]: Handler } } = {
 		end,
 		ClearOffers = function(player)
 			return RobuxShopService.DebugClearOffers(player)
+		end,
+		-- Boost gratuit dans X s (Shop.FreeBoost) ; renvoie l'ancien delai
+		FreeBoost = function(player, seconds)
+			return RobuxShopService.DebugFreeBoost(player, if type(seconds) == "number" then seconds else 0)
 		end,
 	},
 	LuckyCash = {
@@ -302,6 +343,26 @@ local handlers: { [string]: { [string]: Handler } } = {
 			-- Reconstruit la tour avec les etages remis (meme nombre : rien n'est ajoute ni retire)
 			return FloorService.SetFloorCount(player, #snap.Floors)
 		end,
+		-- Copie du profil gardee entre deux playtests (avant un test "profil neuf")
+		Backup = function(player)
+			local data = DataService.GetData(player)
+			if data == nil then
+				return false
+			end
+			local json = HttpService:JSONEncode(data)
+			DataStoreService:GetDataStore(BACKUP_STORE):SetAsync(`player_{player.UserId}`, json)
+			return json
+		end,
+		RestoreBackup = function(player)
+			local json = DataStoreService:GetDataStore(BACKUP_STORE):GetAsync(`player_{player.UserId}`)
+			if type(json) ~= "string" then
+				return "no backup"
+			end
+			return DataService.ReplaceOnLeave(player, HttpService:JSONDecode(json))
+		end,
+		ResetOnLeave = function(player)
+			return DataService.ResetOnLeave(player)
+		end,
 		Get = function(player)
 			local data = DataService.GetData(player)
 			if data == nil then
@@ -316,7 +377,25 @@ local handlers: { [string]: { [string]: Handler } } = {
 				DiscoveredFruits = table.clone(data.DiscoveredFruits),
 				FirstVisit = DataService.IsFirstVisit(player),
 				SavingEnabled = DataService.IsSavingEnabled(),
+				Setup = (data :: any).Setup,
 			}
+		end,
+	},
+	Setup = {
+		Get = function(player)
+			return SetupService.PlayerStep(player)
+		end,
+		Set = function(player, n)
+			return type(n) == "number" and SetupService.DebugSet(player, n)
+		end,
+	},
+	-- Tutoriel (TutorialService) : etape sauvegardee
+	Tutorial = {
+		Get = function(player)
+			return player:GetAttribute("TutorialStep")
+		end,
+		Set = function(player, n)
+			return type(n) == "number" and TutorialService.DebugSet(player, n)
 		end,
 	},
 }

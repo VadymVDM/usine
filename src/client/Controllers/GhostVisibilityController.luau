@@ -7,6 +7,9 @@
 --   * etage ferme (Closed = true, l'etage a acheter) : depuis le 2026-11-20 il n'a plus que ses
 --     dalles "Floor" (plafond de l'etage du dessous, jamais cachees) et la vitre rouge d'achat en
 --     haut de l'escalier (Stairs.BuyGate) : la vitre et ses textes sont caches chez les autres.
+--   * usine a construire (2026-11-21, SetupService) : fantomes SetupGhost (etagere, comptoir, arbre
+--     pas plante...) et pads FREE (dossier Setup) caches chez les autres (les machines Hidden sont
+--     deja invisibles cote serveur, UpgradeService).
 -- Moyens : LocalTransparencyModifier = 1 (pieces), Enabled = false (SurfaceGui, Highlight).
 -- Collisions : une piece cachee ne bloque plus personne (CanCollide = false en local, pour le
 -- personnage de ce joueur ; remis a la valeur d'origine quand elle reapparait). Demande du
@@ -178,6 +181,22 @@ local function refreshOpenFloor(floor: Model, mine: boolean)
 		-- (l'operateur d'un mixeur est liste a part par MachineModels, avec son propre Pad)
 		setContainer(machine:FindFirstChild("Pad"), floor, not mine, false)
 	end
+	-- Usine a construire (SetupService) : fantomes bleus (etagere, tapis, table, comptoir, arbre pas
+	-- plante : racines SetupGhost) et pads FREE (dossier Setup) caches chez les autres
+	for _, folderName in { "Production", "Counter" } do
+		local folder = floor:FindFirstChild(folderName)
+		for _, item in (if folder then folder:GetChildren() else {}) do
+			if item:GetAttribute("SetupBuild") ~= nil then
+				setContainer(item, floor, not mine and item:GetAttribute("SetupGhost") == true, false)
+			end
+		end
+	end
+	local tree = floor:FindFirstChild("Tree")
+	local body = tree and tree:FindFirstChild("Body")
+	if body then
+		setContainer(body, floor, not mine and body:GetAttribute("SetupGhost") == true, false)
+	end
+	setContainer(floor:FindFirstChild("Setup"), floor, not mine, false)
 end
 
 local function sweep()

@@ -2,7 +2,7 @@
 
 **Statut :** en cours (achats, pad de l'arbre, panneaux, mixeurs a 5 niveaux, decor par niveau,
 3 employes R6 : playtest Studio du 2026-11-19 soir a 1 joueur ; 2 joueurs et telephone non testes)
-**Derniere mise a jour :** 2026-11-20 (Fruit Picker : plateau sur la tete comme le joueur)
+**Derniere mise a jour :** 2026-11-23 (bouton violet des tuiles : vrai achat Robux, 5 / 8 / 9 R$)
 
 ## Role
 
@@ -65,6 +65,16 @@ Register, on comprend pas a quoi ca sert" ; "quand on ameliore, on ne voit pas d
 > ne gere plus de pad). Renomme "Waiter Speed x10" le meme soir : il accelere le **Waiter** x10
 > (`WorkerService.applyStats`, `Gameplay.WaiterSpeedPassMultiplier`, et `FloorIncome`), plus le joueur.
 
+> **Usine a construire (2026-11-21, `usine-a-construire.md`)** : sur l'etage 1 d'un profil neuf, chaque
+> id n'existe qu'a partir de son etape FREE (`Config/Setup.UpgradeStep`) : pad cache, panneau cache
+> (tuile `Unbuilt`, panneaux Conveyor / Juice Table / Customers / Fruit Picker maintenant
+> `HideWhenLocked`), machine `Hidden` (invisible cote serveur), achat refuse sans message. Le mixeur 1
+> est invisible (pas de fantome) jusqu'au pad "Build blender", puis se construit (BuildStamp).
+> **Pour tous les profils** : une machine verrouillee (mixeur 3 avant le 2, 4 avant le 3) est cachee
+> (seule la prochaine est en bleu, demande "le transparent c'est que pour les prochaines machines") ;
+> le panneau Fruit Picker n'apparait qu'a l'embauche du Fruit Picker ; panneaux et pads qui
+> apparaissent font un "pop" (`Fx/Reveal`, LevelLookController / SetupController).
+
 ## Fichiers
 
 | Fichier | Cote | Role |
@@ -79,7 +89,7 @@ Register, on comprend pas a quoi ca sert" ; "quand on ameliore, on ne voit pas d
 | `src/client/Controllers/MachineFxController.luau` | client | Construction animee (pieces qui tombent puis "boing" gelee via `Fx/Jelly`), boing + etincelles a chaque amelioration d'une machine deja construite, contour bleu des fantomes (Highlight), pieces qui tournent (en pause pendant un boing), etiquettes des autres bases cachees, etiquette du pad "Upgrade Tree" tant qu'il n'est pas au max |
 | `src/client/Controllers/GhostVisibilityController.luau` | client | Cache en local (et sans collision) les "choses a construire" des autres bases : machines fantomes, pads d'achat, vitre rouge de l'etage ferme (ses dalles `Floor` restent : plafond de l'etage du dessous) |
 | `src/client/Controllers/LevelLookController.luau` | client | Decor par niveau : montre / cache les pieces `LookId` / `LookLevel` / `LookMaxLevel` selon l'attribut d'etage `Lv_<id>` (fondu + etincelles quand une piece apparait), cache le panneau d'un mixeur verrouille (`HideWhenLocked`), fait defiler les lattes du tapis (plus vite quand il est ameliore) |
-| `src/shared/Config/Upgrades.luau` | partage | Effets, prix (`prices` pour les mixeurs), phrase `desc`, format de l'effet (`format`), `builtAt`, `repeatPad`, prix Robux (A VALIDER), messages ; `TreeDropSeconds`, `FormatValue`, `BuiltAt` |
+| `src/shared/Config/Upgrades.luau` | partage | Effets, prix (`prices` pour les mixeurs), phrase `desc`, format de l'effet (`format`), `builtAt`, `repeatPad`, prix Robux + `RobuxProducts` (produits des tuiles), messages ; `TreeDropSeconds`, `FormatValue`, `BuiltAt` |
 | `src/shared/Config/Npcs.luau` | partage | Tenues R6 (vetements gratuits du catalogue Roblox), couleurs et noms des postes |
 | `tools/build-map/02e-base-machines.luau` | Studio | Pads verts : "Upgrade Tree" (reste apres l'achat), Fruit Picker, pad Robux Auto Sell (ex-Waiter, sans UpgradeId) ; dossier `Looks` (panneau FRESH JUICE! qui grandit avec More Customers) |
 | `tools/build-map/02c-base-production.luau` | Studio | Les 4 mixeurs (UpgradeId Blender1..4, decor des niveaux 2 a 5), le pad de l'operateur de chaque mixeur, le decor du tapis par niveau, la table a jus en 3 tailles |
@@ -122,7 +132,7 @@ Register, on comprend pas a quoi ca sert" ; "quand on ameliore, on ne voit pas d
     portes, 2026-11-20) sur le mur du fond, partie pleine x 62 -> 76
     (centre x 67, z 134.7), entre l'etagere a fruits et l'arbre, la ou il travaille. C'est le seul
     mur present a tous les etages pres de son pad (x 70, z 91 : le cote de l'escalier change selon
-    la voie A / B). Bouton vert = argent ; bouton violet = Robux "coming soon" comme les autres
+    la voie A / B). Bouton vert = argent ; bouton violet = Robux comme les autres
     tuiles. Achat refuse tant que le Fruit Picker n'est pas embauche ("Buy Fruit Picker first!").
 - **Tuile d'un panneau** (style refait le 2026-11-20 d'apres les captures de l'utilisateur, tuile
   7.2 x 4) : couleur pure et saturee, palette des captures (violet 180,50,235 ; rouge 235,35,45 ;
@@ -131,7 +141,7 @@ Register, on comprend pas a quoi ca sert" ; "quand on ameliore, on ne voit pas d
   le pastel a ete refuse), contour noir epais, titre
   en haut, grosse icone a gauche avec une **fleche verte** (dessinee en Frames), effet
   "actuel → suivant" (ex. "4.5s → 4s", "NEW!" pour un mixeur pas encore achete, "MAX"), bouton vert
-  (prix) et violet (Robux, "coming soon"). Plus de phrase `desc` ni de "Lv" sur la tuile. En-tete du
+  (prix) et violet (Robux). Plus de phrase `desc` ni de "Lv" sur la tuile. En-tete du
   panneau : titre en gros + icone de la premiere tuile a droite.
 - **CLIQUER le bouton vert = acheter un niveau** (demandes du 2026-11-20 : "on doit CLIQUER dessus
   et pas avec E", puis "c'est les boutons qui doivent hover, pas toute l'interface") : Part
@@ -306,7 +316,23 @@ delai, niveau max, argent). Prompt E des machines construites : `Triggered` cote
 | Blender1..4 | bol de 5 fruits | 8 / 12 / 16 / 20 | 5 | achat : - / 250 / 500 / 1 000 ; niveaux 2-5 : 100 / 200 / 400 / 800 x 1 / 1.2 / 1.4 / 1.6 (mixeur 1 / 2 / 3 / 4) (avant : 1 200 / 5 000 ; 120 / 500 / 2 000 / 8 000 x 1 / 1.5 / 2.5 / 4) |
 | Operator1 / 2 / 3 / 4 | appuie au bouton | - | 1 | 150 / 300 / 500 / 800 (avant 150 / 400 / 1 500 / 5 000) |
 
-Prix Robux : 5 + 3 x (niv-1), **A VALIDER**, aucun produit cree.
+Prix Robux : 5 + 3 x (niv-1), plafonne a **9 R$** (`Upgrades.RobuxMax`, demande du 2026-11-23) :
+5 R$ (niveau 1), 8 R$ (niveau 2), puis 9 R$.
+
+**Achat Robux d'une tuile (bouton violet, 2026-11-23) :** 3 Developer Products (Roblox : un prix fixe
+par produit), `Upgrades.RobuxProducts` : "Machine Upgrade I" 5 R$ (3734912690), "II" 8 R$
+(3734912738), "III" 9 R$ (3734912752). Clic sur le bouton violet (ClickDetector serveur : proprietaire,
+pres de la tuile, delai `Gameplay.BuyCooldownSeconds`, tuile pas `Unbuilt`) -> memes verifications
+qu'un achat en argent (`checkBuyable` : id revele, pas au max, pas verrouille) -> le serveur note la
+tuile (etage, id) pour ce produit et ouvre la fenetre Roblox. Au recu (`ReceiptService`,
+`DataService.GrantPurchaseOnce`, une fois par PurchaseId) : +1 niveau a la tuile notee, puis les memes
+effets qu'un achat en argent (`afterBought` : etage rafraichi, `Bought`, `OnBought`). Tuile notee perdue
+(autre serveur, plus de `Upgrades.RobuxPendingSeconds` = 10 min) ou deja au max : +1 niveau a la
+premiere amelioration construite avec une tuile au meme prix Robux, etage le plus haut d'abord (ordre
+`Upgrades.List`). Rien a donner : recu accepte + avertissement. Chaque recu donne est ecrit dans la
+sortie (`[UpgradeService] Recu ...`). Joueur parti / sauvegarde pas chargee : recu laisse en attente.
+Au demarrage, `Config/Upgrades` verifie que chaque prix Robux possible a son produit.
+Test : `Debug.Call:Invoke("Upgrade", "RobuxBuy", "<Nom>", "<id>" ou "", "<PurchaseId>")` (ecrit la sauvegarde).
 
 **Revue de l'economie (2026-11-20)** : l'arbre plafonne chaque etage (au max 1.2 fruit/s, etage 1 :
 ~9.4 $/s). Le mixeur 1 (bol 12 + operateur : 1.34 jus/s) suit deja l'arbre au max, le tapis aussi

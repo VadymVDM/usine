@@ -41,7 +41,7 @@ local list: { PlayerUpgrade } = {
 		effectBase = 16 * 1.15 * 1.1, -- vitesse Roblox par defaut (16) x1.15 puis x1.1 = 20.24 (demandes du 2026-11-20)
 		effectStep = 3, -- niveau 6 : 35.24
 		cashPrices = { 40, 140, 490 },
-		productId = 0,
+		productId = 3734031179,
 	},
 	{
 		id = "FruitCarry",
@@ -53,7 +53,7 @@ local list: { PlayerUpgrade } = {
 		effectBase = Gameplay.CarryCapacity, -- 20
 		effectStep = 8, -- niveau 6 : 60 (TrayController.MAX_FRUITS = 60 : ne pas depasser)
 		cashPrices = { 30, 105, 370 },
-		productId = 0,
+		productId = 3734031231,
 	},
 	{
 		id = "JuiceCarry",
@@ -65,7 +65,7 @@ local list: { PlayerUpgrade } = {
 		effectBase = Gameplay.JuiceCarryCapacity, -- 18 (2 couches de 3 x 3)
 		effectStep = 5, -- niveau 6 : 43 (avant : 42 au niveau 9)
 		cashPrices = { 30, 105, 370 },
-		productId = 0,
+		productId = 3734031188,
 	},
 }
 
@@ -79,6 +79,11 @@ local PlayerUpgrades = {}
 
 PlayerUpgrades.List = table.freeze(list)
 PlayerUpgrades.ById = table.freeze(byId)
+-- Tutoriel (2026-11-22) : le premier achat de cette amelioration est gratuit, une seule fois par
+-- profil (Data.FreeSpeedUsed, PlayerUpgradeService ; attribut joueur "FreeSpeed" pour le menu).
+PlayerUpgrades.FreeFirstId = "WalkSpeed"
+PlayerUpgrades.FreeText = "FREE"
+
 PlayerUpgrades.RobuxPrice = 9 -- prix d'UN niveau ; a recopier dans chaque Developer Product sur Roblox
 PlayerUpgrades.BuyCooldownSeconds = 0.5 -- delai minimum entre deux demandes d'achat (clics rapides)
 PlayerUpgrades.ReceiptWaitSeconds = 15 -- recu arrive avant la sauvegarde : attente max

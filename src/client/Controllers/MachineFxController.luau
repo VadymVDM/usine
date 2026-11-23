@@ -68,6 +68,7 @@ local function playSound(name: string, volume: number?)
 	if volume then
 		sound.Volume = volume
 	end
+	sound.SoundGroup = SoundFx.Group() -- curseur Sons (menu Settings)
 	sound.Parent = SoundService
 	sound:Play()
 	sound.Ended:Once(function()
@@ -361,11 +362,15 @@ local function refreshOwnership()
 		-- Pad "Upgrade Tree" (Repeat) : il reste a acheter tant qu'il n'est pas au max
 		local price = entry.machine:GetAttribute("Price")
 		local repeatPad = entry.machine:GetAttribute("Repeat") == true and type(price) == "number" and price >= 0
-		-- Verrouillee (mixeur suivant pas encore achete...) : ni etiquette ni contour
-		local wanted = isMine(entry.floor) and (ghost or repeatPad) and entry.machine:GetAttribute("Locked") ~= true
+		-- Verrouillee (mixeur suivant pas encore achete...) : ni etiquette ni contour. Usine a
+		-- construire : cachee (Hidden) = rien ; a construire par un pad FREE (SetupGhost, mixeur 1) =
+		-- contour bleu mais pas d'etiquette de prix.
+		local hidden = entry.machine:GetAttribute("Hidden") == true
+		local wanted = isMine(entry.floor) and (ghost or repeatPad) and entry.machine:GetAttribute("Locked") ~= true and not hidden
 		local tag = findTag(entry.machine)
-		if tag and tag.Enabled ~= wanted then
-			tag.Enabled = wanted
+		local tagWanted = wanted and entry.machine:GetAttribute("SetupGhost") ~= true
+		if tag and tag.Enabled ~= tagWanted then
+			tag.Enabled = tagWanted
 		end
 		-- De pres, l'etiquette arrete de grossir (elle ne cache plus l'ecran)
 		if tag and tag.DistanceLowerLimit ~= TAG_MIN_DISTANCE then

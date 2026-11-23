@@ -23,6 +23,9 @@ PackStyle.MONEY_STROKE = Color3.fromRGB(9, 48, 0)
 PackStyle.SIDE_BUTTON_WIDTH = 0.075
 PackStyle.SIDE_BUTTON_WIDTH_PHONE = 0.085 -- ecran de moins de 450 px de haut
 PackStyle.SIDE_MARGIN = 0.005
+-- Shop/Index : leur icone remplit tout le bouton, alors que celle des offres n'en prend que ~74 %.
+-- A largeur egale ils paraissaient plus gros : on reduit leur colonne pour que les icones se ressemblent.
+PackStyle.LEFT_BUTTON_SCALE = 0.8
 -- En-tete de tous les menus (bandeau cyan de l'Index du pack) : degrade bas -> haut + bord du bas.
 PackStyle.HEADER = { Color3.fromRGB(51, 168, 255), Color3.fromRGB(6, 255, 255), Color3.fromRGB(0, 123, 255) }
 

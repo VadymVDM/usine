@@ -2,14 +2,20 @@
 -- Pose des bras quand un personnage porte quelque chose : joueurs, employes, clients.
 --   * plateau sur la tete (attribut TrayFruits ou HandJuices non vide, joueurs) : bras leves, mains
 --     sous le plateau, comme si on le tenait (2026-11-20, demande utilisateur) ;
---   * objets devant le torse (attribut CarryPose = true, employes / clients) : bras tendus devant.
+--   * objets devant le torse (attribut CarryPose = true, employes / clients) : bras tendus devant ;
+--   * arbre niveau 1 dans les mains (attribut JOUEUR HoldingSapling, SaplingController, 2026-11-22) :
+--     bras tendus devant, un peu plus bas (Config/Intro.HoldArmDegrees).
 -- Le serveur (ou CustomerController en local) pose le tag "CarryPoseRig" sur le modele. Ici on
 -- ecrase seulement l'angle des epaules apres les animations de Roblox (RunService.Stepped), pour
 -- tous les personnages proches. Passage d'une pose a l'autre en douceur.
 -- Doc : docs/systems/chaine-production.md (section Mains)
 
 local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+
+local Intro = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"):WaitForChild("Intro"))
 
 local CarryPoseController = {}
 
@@ -17,6 +23,7 @@ local TAG = "CarryPoseRig"
 local FRONT_ANGLE = math.rad(78) -- bras presque a l'horizontale (objets portes devant)
 local TRAY_ANGLE = math.rad(155) -- bras leves, mains un peu devant, juste sous le plateau
 local BLEND_SPEED = 12 -- vitesse du passage d'une pose a l'autre
+local SAPLING_ANGLE = math.rad(Intro.HoldArmDegrees)
 local MAX_DISTANCE = 160
 
 -- Epaule : Motor6D (anciens rigs) ou AnimationConstraint (Avatar Joint Upgrade de Roblox, 2026) ;
@@ -80,6 +87,10 @@ local function targetAngle(model: Model): number
 	end
 	if model:GetAttribute("CarryPose") == true then
 		return FRONT_ANGLE
+	end
+	local owner = Players:GetPlayerFromCharacter(model)
+	if owner and owner:GetAttribute("HoldingSapling") == true then
+		return SAPLING_ANGLE
 	end
 	return 0
 end

@@ -42,9 +42,9 @@ les appelants verifient) : `TreeService.DebugDrop`, `CustomerService.DebugAction
 | Upgrades | Max / Reset Floor Upg. (ameliorations de l'etage ou est la cible, puis tour reconstruite), Max / Reset Player Upg. (vitesse, fruits et jus portes), Max Elevator (TowerUpgrades) |
 | Floors | +1, -1, 10 Floors, 1 Floor, Set N Floors, Go To Floor N |
 | Rebirth | +1 Rebirth (vrai rebirth sans conditions), Rebirth Keep $, Set N Rebirths (la tour ne change pas) |
-| Passes (bascule ON/OFF, sans achat) | Instant Sell, Waiter x10 (`SpeedBoost`), Billboard, Thief, Rebirth Master, Auto Collect (tous des attributs joueur depuis le 2026-11-21) |
+| Passes (bascule ON/OFF, sans achat) | Instant Sell, Waiter x10 (`SpeedBoost`), Billboard, Thief, Rebirth Master, Auto Collect, VIP, 3x Cash, Drink Master, Greedy, Speed Master (tous des attributs joueur ; boutique ajoutee le 2026-11-21). Le createur du jeu ne recoit plus aucun pass de Roblox (`Lib/GamePass`) : il les active ici |
 | Index | Discover All (100 fruits), Reset Index (seul le 1er fruit reste, CLAIM oublies) |
-| Player | TP To Target, Bring Target, Respawn, RESET ALL (kick) |
+| Player | TP To Target, Bring Target, Respawn, Replay Intro (rejoue la cinematique d'ouverture chez la cible : remet l'attribut `IntroPending` a vrai, IntroDone le remet a faux a la fin ; ne touche pas la sauvegarde), RESET ALL (kick) |
 
 ## Fonctionnement
 

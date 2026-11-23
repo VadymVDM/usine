@@ -17,8 +17,9 @@ sont encore ceux du pack (textes "[Name]", "Item Name", "$123,456,789"), pas bra
 | `src/gui/HUD.rbxm` | client (StarterGui.HUD) | HUD : Canvas (Buttons, Money, TopButtons, ProgressBar), Gamepasses, Multipliers |
 | `src/gui/ShopGUI.rbxm` | client (StarterGui.ShopGUI) | Tous les menus dans `MenuFrames` |
 | `src/client/Controllers/MenuController.luau` | client | Ouvre/ferme les menus, animations, flou, sons, bouton Settings en haut |
-| `src/client/Controllers/MusicController.luau` | client | Musique de fond (coupee par le reglage Music) |
-| `src/client/Controllers/SettingsController.luau` | client | Menu Settings : Music, Sounds, Low Quality |
+| `src/client/Controllers/MusicController.luau` | client | Musique de fond : morceaux de `Config/Music` en alternance (1, 2, 1...), volume = curseur Music (pause a 0) ; ne demarre qu'apres la cinematique d'ouverture |
+| `src/shared/Config/Music.luau` | partage | Liste des musiques (id, volume de base) : BGMusic, NYOBORA (2026-11-23) |
+| `src/client/Controllers/SettingsController.luau` | client | Menu Settings : curseurs de volume Music et Sounds (0-100 %), interrupteur Low Quality |
 | `src/server/Services/SettingsService.luau` | serveur | Sauvegarde des reglages (`Data.Settings`), remote `SetSetting` |
 | `src/client/Controllers/InventoryController.luau` | client | Effets de ramassage / depot ; cache la barre Roblox (l'inventaire = plateau sur la tete) |
 | `src/client/Controllers/TrayController.luau` | client | Plateau sur la tete et fruits empiles, compteur "12/20" / "FULL!" (voir `chaine-production.md`) |
@@ -46,6 +47,13 @@ Les `.rbxm` sont des fichiers binaires Roblox : on les modifie dans Studio puis 
 (voir "Modifier l'interface"). Ils ne contiennent **aucun script**.
 
 ## Fonctionnement
+
+### Boutons des cotes (Shop/Index et offres)
+
+- Offres a droite : largeur `PackStyle.SIDE_BUTTON_WIDTH` (0.075 de l'ecran, 0.085 sur petit ecran).
+- Shop/Index a gauche : meme largeur x `PackStyle.LEFT_BUTTON_SCALE` (0.8, depuis le 2026-11-22) :
+  leur icone remplit tout le bouton alors que celle des offres n'en prend que ~74 %, ils paraissaient
+  plus gros. Meme marge au bord (`SIDE_MARGIN`). Calcul dans `MenuController` (`applyLayout`).
 
 ### Envie d'acheter (2026-11-20)
 
@@ -95,11 +103,19 @@ Les `.rbxm` sont des fichiers binaires Roblox : on les modifie dans Studio puis 
   le plus grand des deux (Mega Cash ~$44K a l'etage 1). Mega Cash = 0.5 (au plus $750 a l'etage 1
   ... 5.5B a l'etage 10 ; courbe des etages du 2026-11-20), Starter Pack = 0.06 avec un minimum `minAmount` =
   **$1K** (au debut il montrait +$300, trop peu).
+  **Jamais "+$0" ni une duree a la place du montant** (2026-11-22 : Mega Cash affichait "+$0" a
+  droite et "+1 HOUR" dans la fenetre sans gains recents) : chaque recompense Cash DOIT avoir
+  `minAmount` ou `minFloorShare` (RobuxShopService refuse de demarrer sinon ; Mega Cash : minimum
+  0.25 x prochain etage, soit $375 a l'etage 1), le serveur ne renvoie jamais moins de $1, et le
+  client laisse le texte vide tant que l'attribut `Cash_<cle>` n'est pas arrive.
 - L'offre se cache quand un menu est ouvert (le temps continue de tourner). Fin de l'offre pendant
   que sa fenetre est ouverte : la fenetre se ferme.
 - 2026-11-20 : remise de ce que donne chaque offre codee cote serveur (voir `achats-robux.md`) ;
   le bouton Buy passe par le remote `ShopBuy`, montants d'argent = attributs `Cash_<cle>` du serveur.
 - **Pas encore fait** : produits Robux pas crees (`productId` = 0 : "coming soon").
+- Menu Shop (2026-11-23) : plus de titre "POTIONS" (les potions sont tout en haut) ; cartes moins
+  hautes et espaces reduits (`ShopController` : ecart entre lignes 8 px, titres 0.06 x largeur) pour
+  voir plus de passes sans defiler.
 
 ### Retour des boutons (2026-11-20, retour de test : "des fois l'animation, des fois non")
 
@@ -177,6 +193,14 @@ Regle : une seule apparence. Toute interface nouvelle prend police, couleurs et 
   "Limited Offer!") est remplacee par le cadeau (`Icons.Gift`) dans `MenuController` (2026-11-20).
 - **Interrupteurs Settings** : le bouton du pack (relief avec ombre, qui restait verte sous OFF et
   rouge sous ON) est cache ; a la place un `PackStyle.button` vert ON / rouge OFF, comme YES / NO.
+  Depuis le 2026-11-23, seul Low Quality garde un interrupteur.
+- **Curseurs de volume Settings** (2026-11-23, Music et Sounds) : dans la case du bouton du pack
+  (cache) : pourcentage, barre sombre, remplissage vert, bouton rond ; zone de prise large pour le
+  doigt, la liste ne defile pas pendant le glissement. Le volume suit en direct (attribut
+  `Setting<Cle>` change cote client) ; une demande `SetSetting` au plus toutes les 0.3 s, puis la
+  valeur finale au relachement. Le son passe par des SoundGroup locaux (`SoundFx.Group("Effects")`
+  / `SoundFx.Group("Music")`, dans SoundService) : tous les sons du jeu y sont ranges (SoundFx,
+  MenuController, BlenderFx, MachineFx, oiseaux de l'intro), meme les boucles deja lancees suivent.
 - **Index** (2026-11-20) : filtres de rarete du pack retires ; contenu refait par
   `IndexController` (grille des 100 fruits, bouton CLAIM). Voir `systems/fruits.md` (section Index).
 - Icones ICONSPACK mises en ligne (17, type Image) : ids dans `Config/Icons.luau`. HUD : panier et

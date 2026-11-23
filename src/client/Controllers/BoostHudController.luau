@@ -1,6 +1,6 @@
 --!strict
--- Boosts Robux en cours (2026-11-20) : une petite potion par boost actif en bas a gauche, au-dessus
--- de l'argent (HUD.Canvas.Boosts) : "x2" jaune + temps restant. Lit seulement les attributs joueur
+-- Boosts Robux en cours (2026-11-20) : une petite potion par boost actif, en ligne tout en bas a
+-- droite de l'ecran (HUD.Canvas.Boosts, deplace le 2026-11-22) : "x2" jaune + temps restant. Lit seulement les attributs joueur
 -- poses par le serveur (RobuxShopService) : "Boost<Stat>" (multiplicateur) et "Boost<Stat>End"
 -- (fin, en workspace:GetServerTimeNow). Aucune decision ici.
 -- Aussi : tag "[VIP]" dore devant le nom dans le chat pour les joueurs qui ont le pass VIP
@@ -113,11 +113,16 @@ function BoostHudController:Start()
 	local row = Instance.new("Frame")
 	row.Name = "Boosts"
 	row.BackgroundTransparency = 1
-	row.AnchorPoint = Vector2.new(0, 1)
-	row.Position = UDim2.fromScale(0.008, 0.865) -- juste au-dessus de l'argent (Canvas.Money)
+	-- Tout en bas a droite, sous la colonne des offres. Telephone : decale a gauche pour laisser
+	-- libre le bouton de saut (coin bas droit).
+	local camera = workspace.CurrentCamera
+	local phone = camera ~= nil and camera.ViewportSize.Y < 450
+	row.AnchorPoint = Vector2.new(1, 1)
+	row.Position = if phone then UDim2.fromScale(0.74, 0.98) else UDim2.fromScale(0.992, 0.985)
 	row.Size = UDim2.fromScale(0.4, 0.085)
 	local layout = Instance.new("UIListLayout")
 	layout.FillDirection = Enum.FillDirection.Horizontal
+	layout.HorizontalAlignment = Enum.HorizontalAlignment.Right
 	layout.VerticalAlignment = Enum.VerticalAlignment.Bottom
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Padding = UDim.new(0, 6)

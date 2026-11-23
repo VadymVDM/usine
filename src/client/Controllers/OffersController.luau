@@ -199,6 +199,11 @@ local function cashAmount(reward: Reward): number
 	return if type(value) == "number" then value else 0
 end
 
+-- Texte d'un montant d'argent : "+$2.5K", ou rien si le montant n'est pas encore connu (jamais "+$0").
+local function cashText(amount: number): string
+	return if amount > 0 then "+" .. NumberFormat.Money(amount) else ""
+end
+
 local function durationText(minutes: number): string
 	if minutes >= 60 and minutes % 60 == 0 then
 		return `{minutes // 60} HOUR`
@@ -249,13 +254,9 @@ local function rewardTile(parent: Instance, reward: Reward, order: number)
 		bottom = durationText(reward.minutes)
 	elseif reward.kind == "Cash" then
 		-- Le vrai montant, jamais "5 min" (incomprehensible), adapte a l'etage du joueur.
-		local amount = cashAmount(reward)
-		if amount > 0 then
-			bottom = "+" .. NumberFormat.Money(amount)
-			bottomColor = PackStyle.MONEY_GREEN
-		else
-			bottom = "+" .. durationText(reward.minutes)
-		end
+		-- Jamais une duree ("+1 HOUR") ni "+$0" : vide tant que le serveur n'a pas donne le montant.
+		bottom = cashText(cashAmount(reward))
+		bottomColor = PackStyle.MONEY_GREEN
 	else
 		bottom = durationText(reward.minutes)
 	end
@@ -445,7 +446,7 @@ local function buildOffer(offer: Offer, order: number)
 			local label = badgeLabel(button, "", UDim2.fromScale(0.5, 0.5), UDim2.fromScale(1.05, 0.2), 44)
 			label.Rotation = -6
 			label.TextColor3 = PackStyle.MONEY_GREEN
-			label.Text = "+" .. NumberFormat.Money(cashAmount(cash))
+			label.Text = cashText(cashAmount(cash))
 			cashBadge = { label = label, reward = cash }
 		end
 	end
@@ -547,7 +548,7 @@ local function tick()
 	end
 	local text = formatTime(remaining)
 	if cashBadge then
-		cashBadge.label.Text = "+" .. NumberFormat.Money(cashAmount(cashBadge.reward))
+		cashBadge.label.Text = cashText(cashAmount(cashBadge.reward))
 	end
 	for _, label in timerLabels do
 		label.Text = text

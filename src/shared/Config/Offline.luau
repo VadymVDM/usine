@@ -17,6 +17,9 @@ Offline.MinAmount = 10 -- montant plus petit : rien (pas d'ecran pour "$2")
 Offline.FallbackMinutes = 10
 
 Offline.ActionCooldownSeconds = 0.5 -- delai minimum entre deux demandes du client
+-- L'offre est calculee au plus tard ce temps apres le chargement, meme sans "Ready" du client :
+-- sinon un client qui retient "Ready" pourrait d'abord acheter des ameliorations (argent/s plus haut).
+Offline.ComputeDeadlineSeconds = 8
 Offline.ReceiptWaitSeconds = 15 -- attente max de la sauvegarde a la reception d'un recu
 
 Offline.Messages = table.freeze({

@@ -52,6 +52,8 @@ local NotifyService = require(script.Parent.NotifyService)
 local TreeService = require(script.Parent.TreeService)
 -- Capacites du joueur (fruits / jus portes) : menu Upgrade du HUD (Config/PlayerUpgrades)
 local PlayerUpgradeService = require(script.Parent.PlayerUpgradeService)
+-- Usine a construire (profil neuf) : etagere (etape 2), mixeur 1 + table a jus (etape 3)
+local SetupService = require(script.Parent.SetupService)
 
 local ProductionService = {}
 
@@ -352,6 +354,8 @@ local function updateJuiceLabel(state: FloorState)
 	local limit = getJuiceLimit(state.player, state.index)
 	if label and limit then
 		WorldLabel.SetCount(label, #state.juices, limit)
+		-- Table a jus pas encore construite (usine a construire) : pas de "0/10"
+		WorldLabel.SetVisible(label, SetupService.Allows(state.floor, 3))
 	end
 	-- Prix de vente total des jus sur la table (meme prix qu'au comptoir : fruit.value).
 	local valueLabel = state.juiceValueLabel
@@ -422,7 +426,7 @@ end
 
 local function isOwned(state: FloorState, index: number): boolean
 	if index == 1 then
-		return true
+		return SetupService.Allows(state.floor, 3) -- offert, mais construit au pad "Build blender"
 	end
 	local levels = levelsOf(state.player, state.index)
 	return levels ~= nil and (levels["Blender" .. index] or 0) >= 1
@@ -527,7 +531,8 @@ local function runFeed(state: FloorState)
 		-- Pour l'animation (BlenderFxController : trajet ; LevelLookController : lattes du tapis)
 		if production then
 			production:SetAttribute("ConveyorTravel", travel)
-			production:SetAttribute("ConveyorRate", rate)
+			-- Tapis pas encore construit (usine a construire) : les lattes ne defilent pas
+			production:SetAttribute("ConveyorRate", if SetupService.Allows(state.floor, 2) then rate else nil)
 		end
 		task.wait(1 / math.max(rate, 0.1))
 		if not state.active then
@@ -726,7 +731,7 @@ end
 -- pads quand le proprietaire se tient sur Production.FruitDropPad.PadZone (position verifiee la-bas).
 local function dropFruits(state: FloorState)
 	local player = state.player
-	if DataService.GetData(player) == nil then
+	if DataService.GetData(player) == nil or not SetupService.Allows(state.floor, 2) then
 		return
 	end
 	local inventory = getInventory(player)
@@ -773,7 +778,7 @@ end
 -- des pads (position verifiee la-bas). `entered` = le joueur vient de monter sur le pad.
 local function takeJuices(state: FloorState, entered: boolean)
 	local player = state.player
-	if DataService.GetData(player) == nil then
+	if DataService.GetData(player) == nil or not SetupService.Allows(state.floor, 3) then
 		return
 	end
 	local inventory = getInventory(player)

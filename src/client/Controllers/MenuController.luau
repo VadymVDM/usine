@@ -52,6 +52,7 @@ local PACK_ARROW_ICON = "rbxassetid://94770154818570"
 
 local PackStyle = require(script.Parent.Parent:WaitForChild("UI"):WaitForChild("PackStyle"))
 local ButtonFx = require(script.Parent.Parent:WaitForChild("UI"):WaitForChild("ButtonFx"))
+local SoundFx = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Util"):WaitForChild("SoundFx")) :: any
 
 
 type MenuState = {
@@ -113,6 +114,7 @@ local function prepareSound(name: string): SoundPool?
 		voice.Name = `{name}_{index}`
 		voice.Looped = false
 		voice.PlayOnRemove = false
+		voice.SoundGroup = SoundFx.Group() -- curseur Sons (menu Settings)
 		voice.Parent = soundFolder
 		table.insert(pool.voices, voice)
 	end
@@ -121,8 +123,8 @@ local function prepareSound(name: string): SoundPool?
 end
 
 local function playSound(name: string)
-	-- Sons coupes dans Settings (attribut pose par SettingsService)
-	if player:GetAttribute("SettingEffects") == false then
+	-- Sons a 0 dans Settings (attribut pose par SettingsService)
+	if not SoundFx.IsEnabled() then
 		return
 	end
 	local pool = soundPools[name] or prepareSound(name)
@@ -666,12 +668,14 @@ local function applyLayout()
 	local buttons = c:FindFirstChild("Buttons")
 	local touch = UserInputService.TouchEnabled
 	if buttons then
-		-- Meme largeur que les offres de droite : la grille a 2 colonnes (cellule = 0.5 de la largeur),
-		-- donc la colonne fait 2 fois la largeur d'une offre. Hauteur 1 : c'est la largeur qui decide
+		-- Taille visuelle des offres de droite : la grille a 2 colonnes (cellule = 0.5 de la largeur),
+		-- donc la colonne fait 2 fois la largeur d'une offre, x LEFT_BUTTON_SCALE (icone pleine largeur). Hauteur 1 : c'est la largeur qui decide
 		-- (UIAspectRatioConstraint du .rbxm), comme pour les offres.
 		local camera = workspace.CurrentCamera
 		local phone = camera ~= nil and camera.ViewportSize.Y < 450
-		local width = 2 * (if phone then PackStyle.SIDE_BUTTON_WIDTH_PHONE else PackStyle.SIDE_BUTTON_WIDTH)
+		local width = 2
+			* PackStyle.LEFT_BUTTON_SCALE
+			* (if phone then PackStyle.SIDE_BUTTON_WIDTH_PHONE else PackStyle.SIDE_BUTTON_WIDTH)
 		buttons.Size = UDim2.fromScale(width, 1)
 		-- Bord gauche de Shop/Index a la meme marge que le bord droit des offres.
 		local shop = buttons:FindFirstChild("Shop", true)

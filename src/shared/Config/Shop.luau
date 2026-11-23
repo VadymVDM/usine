@@ -23,6 +23,7 @@ export type Pass = {
 	color2: Color3,
 	price: number,
 	passId: number,
+	giftProductId: number, -- Developer Product "Gift - <pass>" (meme prix), GiftService ; 0 = pas de cadeau
 	tag: string?,
 	oldPrice: number?, -- prix barre : UNIQUEMENT pendant une vraie promotion
 }
@@ -50,8 +51,8 @@ Shop.Boosts = {
 		color = Color3.fromRGB(122, 28, 255),
 		color2 = Color3.fromRGB(224, 112, 255),
 		options = {
-			{ minutes = 15, price = 9, productId = 0 },
-			{ minutes = 30, price = 16, productId = 0 },
+			{ minutes = 15, price = 9, productId = 3734031035 },
+			{ minutes = 30, price = 16, productId = 3734031053 },
 		},
 	},
 	{
@@ -63,8 +64,8 @@ Shop.Boosts = {
 		color = Color3.fromRGB(31, 168, 0),
 		color2 = Color3.fromRGB(157, 255, 58),
 		options = {
-			{ minutes = 15, price = 9, productId = 0 },
-			{ minutes = 30, price = 16, productId = 0 },
+			{ minutes = 15, price = 9, productId = 3734031057 },
+			{ minutes = 30, price = 16, productId = 3734031061 },
 		},
 	},
 	{
@@ -76,8 +77,8 @@ Shop.Boosts = {
 		color = Color3.fromRGB(0, 74, 228),
 		color2 = Color3.fromRGB(0, 255, 234),
 		options = {
-			{ minutes = 15, price = 9, productId = 0 },
-			{ minutes = 30, price = 16, productId = 0 },
+			{ minutes = 15, price = 9, productId = 3734031066 },
+			{ minutes = 30, price = 16, productId = 3734031073 },
 		},
 	},
 } :: { Boost }
@@ -86,33 +87,37 @@ Shop.Boosts = {
 -- `oldPrice` (prix barre) : a mettre seulement si le prix a vraiment baisse (promo, evenement).
 -- Un faux "ancien prix" jamais pratique est trompeur (regles Roblox sur les offres honnetes).
 Shop.Passes = {
-	{ key = "VIP", title = "VIP", lines = { "VIP name tag", "VIP chat tag" }, icon = "Vip", color = Color3.fromRGB(255, 140, 0), color2 = Color3.fromRGB(255, 238, 58), price = 149, passId = 0 },
-	{ key = "Cash3x", title = "3X CASH", lines = { "Permanent", "3x money" }, icon = "Cash3x", color = Color3.fromRGB(31, 168, 0), color2 = Color3.fromRGB(157, 255, 58), price = 399, passId = 0, tag = "BEST" },
-	{ key = "DrinkMaster", title = "DRINK MASTER", lines = { "2x chance of", "rare fruits" }, icon = "Clover", color = Color3.fromRGB(212, 90, 0), color2 = Color3.fromRGB(255, 176, 58), price = 249, passId = 0 },
-	{ key = "GreedyCustomers", title = "GREEDY CUSTOMERS", lines = { "Customers buy", "2 drinks at a time" }, icon = "Customers", color = Color3.fromRGB(0, 128, 255), color2 = Color3.fromRGB(106, 224, 255), price = 199, passId = 0 },
-	{ key = "SpeedMaster", title = "SPEED MASTER", lines = { "2x walk speed", "2x customer speed" }, icon = "Shoe", color = Color3.fromRGB(42, 60, 255), color2 = Color3.fromRGB(92, 184, 255), price = 99, passId = 0 },
-	{ key = "AutoCollect", title = "AUTO COLLECT", lines = { "Cash goes straight", "to your wallet" }, icon = "Magnet", color = Color3.fromRGB(224, 0, 48), color2 = Color3.fromRGB(255, 122, 92), price = 149, passId = 0 },
+	{ key = "VIP", title = "VIP", lines = { "VIP name tag", "VIP chat tag" }, icon = "Vip", color = Color3.fromRGB(255, 140, 0), color2 = Color3.fromRGB(255, 238, 58), price = 149, passId = 2092883003, giftProductId = 3734927628 },
+	{ key = "Cash3x", title = "3X CASH", lines = { "Permanent", "3x money" }, icon = "Cash3x", color = Color3.fromRGB(31, 168, 0), color2 = Color3.fromRGB(157, 255, 58), price = 399, passId = 2097328717, giftProductId = 3734927641, tag = "BEST" },
+	{ key = "DrinkMaster", title = "DRINK MASTER", lines = { "2x chance of", "rare fruits" }, icon = "Clover", color = Color3.fromRGB(212, 90, 0), color2 = Color3.fromRGB(255, 176, 58), price = 249, passId = 2092763123, giftProductId = 3734927655 },
+	{ key = "GreedyCustomers", title = "GREEDY CUSTOMERS", lines = { "Customers buy", "2 drinks at a time" }, icon = "Customers", color = Color3.fromRGB(0, 128, 255), color2 = Color3.fromRGB(106, 224, 255), price = 199, passId = 2093182972, giftProductId = 3734927668 },
+	{ key = "SpeedMaster", title = "SPEED MASTER", lines = { "2x walk speed", "2x customer speed" }, icon = "Shoe", color = Color3.fromRGB(42, 60, 255), color2 = Color3.fromRGB(92, 184, 255), price = 99, passId = 2093482922, giftProductId = 3734927675 },
+	{ key = "AutoCollect", title = "AUTO COLLECT (All Floors)", lines = { "Cash goes straight", "to your wallet" }, icon = "Magnet", color = Color3.fromRGB(224, 0, 48), color2 = Color3.fromRGB(255, 122, 92), price = 149, passId = 2092570991, giftProductId = 3734927684 },
 	-- Instant Sell (2026-11-21, ancien "Auto Sell") : pad violet a droite du pad Drop Juices
 	-- (PassPadService) ; les jus poses sur le comptoir sont vendus tout de suite (CustomerService).
-	{ key = "InstantSell", title = "INSTANT SELL", lines = { "Juices sell as soon", "as you drop them" }, icon = "Customers", color = Color3.fromRGB(0, 168, 120), color2 = Color3.fromRGB(80, 240, 180), price = 199, passId = 0 },
+	{ key = "InstantSell", title = "INSTANT SELL (All Floors)", lines = { "Juices sell as soon", "as you drop them" }, icon = "Customers", color = Color3.fromRGB(0, 168, 120), color2 = Color3.fromRGB(80, 240, 180), price = 199, passId = 2093680945, giftProductId = 3734927692 },
 	-- Pads violets dans l'usine (PassPadService, 2026-11-20, prix A VALIDER) : Speed x10 a cote de
 	-- Take Juices (apres le Waiter), Billboard dans la cour (99 R$ comme la capture de reference).
-	{ key = "SpeedBoost", title = "WAITER SPEED x10", lines = { "10x waiter speed", "Permanent" }, icon = "Shoe", color = Color3.fromRGB(0, 120, 255), color2 = Color3.fromRGB(0, 230, 255), price = 149, passId = 0 },
-	{ key = "Billboard", title = "BILLBOARD", lines = { "2x sell price", "Permanent" }, icon = "Cash", color = Color3.fromRGB(255, 120, 0), color2 = Color3.fromRGB(255, 220, 40), price = 99, passId = 0 },
-	{ key = "Thief", title = "THIEF", lines = { "Steal ready drinks", "from other stands" }, icon = "Thief", color = Color3.fromRGB(90, 0, 200), color2 = Color3.fromRGB(195, 77, 255), price = 149, passId = 0, tag = "OP" },
-	{ key = "RebirthMaster", title = "REBIRTH MASTER", lines = { "Keep your tree", "level on rebirth" }, icon = "Rebirth", color = Color3.fromRGB(255, 0, 122), color2 = Color3.fromRGB(255, 138, 216), price = 299, passId = 0 },
+	{ key = "SpeedBoost", title = "WAITER SPEED x10 (All Floors)", lines = { "10x waiter speed", "Permanent" }, icon = "Shoe", color = Color3.fromRGB(0, 120, 255), color2 = Color3.fromRGB(0, 230, 255), price = 149, passId = 2092415019, giftProductId = 3734927704 },
+	{ key = "Billboard", title = "BILLBOARD", lines = { "2x sell price", "Permanent" }, icon = "Cash", color = Color3.fromRGB(255, 120, 0), color2 = Color3.fromRGB(255, 220, 40), price = 99, passId = 2093464945, giftProductId = 3734927718 },
+	{ key = "Thief", title = "THIEF", lines = { "Steal ready drinks", "from other stands" }, icon = "Thief", color = Color3.fromRGB(90, 0, 200), color2 = Color3.fromRGB(195, 77, 255), price = 149, passId = 2097082802, giftProductId = 3734927725, tag = "OP" },
+	{ key = "RebirthMaster", title = "REBIRTH MASTER", lines = { "Keep your tree", "level on rebirth" }, icon = "Rebirth", color = Color3.fromRGB(255, 0, 122), color2 = Color3.fromRGB(255, 138, 216), price = 299, passId = 2096880861, giftProductId = 3734927736 },
 } :: { Pass }
 
 -- Prix des packs : propositions de docs/game-design.md, a valider.
+-- 2026-11-22 (demande utilisateur) : un peu plus d'argent, prix un peu plus bas, et "BEST VALUE" sur
+-- un pack du milieu (ancrage : le gros pack fait paraitre le 4 h pas cher). L'etiquette reste VRAIE :
+-- le 4 h donne le plus de minutes par Robux (240 / 189 = 1.27 contre 600 / 479 = 1.25).
+-- Les cles (Cash5m...) restent les anciennes (attributs Cash_<cle>, ids des produits).
 Shop.CashPacks = {
-	{ key = "Cash5m", title = "CASH - 5 minutes", minutes = 5, minFloorShare = 0.25, price = 25, productId = 0 },
-	{ key = "Cash30m", title = "CASH - 30 minutes", minutes = 30, minFloorShare = 0.5, price = 79, productId = 0 },
-	{ key = "Cash3h", title = "CASH - 3 hours", minutes = 180, minFloorShare = 1, price = 199, productId = 0 },
-	{ key = "Cash10h", title = "CASH - 10 hours", minutes = 600, minFloorShare = 2.5, price = 499, productId = 0, bestValue = true },
+	{ key = "Cash5m", title = "CASH - 6 minutes", minutes = 6, minFloorShare = 0.3, price = 22, productId = 3734031076 },
+	{ key = "Cash30m", title = "CASH - 35 minutes", minutes = 35, minFloorShare = 0.6, price = 75, productId = 3734031080 },
+	{ key = "Cash3h", title = "CASH - 4 hours", minutes = 240, minFloorShare = 1.2, price = 189, productId = 3734031084, bestValue = true },
+	{ key = "Cash10h", title = "CASH - 10 hours", minutes = 600, minFloorShare = 3, price = 479, productId = 3734031092 },
 } :: { CashPack }
 
 -- Ecran "Welcome Back!" (gains hors ligne) : bouton x2 en Robux (docs/game-design.md : 9 R$).
-Shop.OfflineDouble = { price = 9, productId = 0 }
+Shop.OfflineDouble = { price = 9, productId = 3734031096 }
 
 -- Offres limitees a droite de l'ecran (OffersController). Choix utilisateur 2026-11-20 :
 -- UNE seule offre a la fois, visible `OnSeconds` (3 min, minuteur rouge), puis elle disparait ;
@@ -131,7 +136,10 @@ Shop.OfflineDouble = { price = 9, productId = 0 }
 --     du joueur (Floors.Prices). Ex. Mega Cash 0.5 : au plus $750 a l'etage 1, 5.5K a l'etage 2...
 --     (courbe des etages du 2026-11-20 ; le minimum $1K du Starter Pack, demande utilisateur, est garde)
 --     (2026-11-20 : avant, le plus grand des deux -> ~$44K a l'etage 1, "beaucoup trop").
---     `minAmount` (optionnel) = montant minimum (Starter Pack : jamais moins de $1K au debut).
+--     `minAmount` = montant minimum en $ (Starter Pack : jamais moins de $1K au debut).
+--     `minFloorShare` = montant minimum en part du prix du prochain etage.
+--     OBLIGATOIRE (2026-11-22) : chaque recompense Cash a `minAmount` ou `minFloorShare`, sinon un
+--     joueur sans gains recents verrait "+$0" (RobuxShopService refuse de demarrer sinon).
 -- Nouvelle offre : elle apparait d'abord en grand au milieu de l'ecran, puis file a sa place a droite.
 -- Chaque offre a son propre produit Robux (`productId`, 0 = pas encore cree : "coming soon").
 -- Remise des `rewards` par RobuxShopService a la reception du paiement (2026-11-20).
@@ -146,13 +154,13 @@ Shop.LimitedOffers = {
 		icon = "Gift",
 		price = 19,
 		rewards = { { kind = "Boost", stat = "Money", mult = 2, minutes = 15 }, { kind = "Cash", minutes = 5, floorShare = 0.06, minAmount = 1000 } },
-		productId = 0,
+		productId = 3734031104,
 	},
 	Pool = {
-		{ key = "OfferMoneyRush", title = "Money Rush", icon = "Cash", badge = "x3", price = 15, rewards = { { kind = "Boost", stat = "Money", mult = 3, minutes = 10 } }, productId = 0 },
-		{ key = "OfferLuckyHour", title = "Lucky Hour", icon = "Clover", badge = "x2", price = 29, rewards = { { kind = "Boost", stat = "Luck", mult = 2, minutes = 60 } }, productId = 0 },
-		{ key = "OfferRush", title = "Customer Rush", icon = "Shoe", badge = "x3", price = 15, rewards = { { kind = "Boost", stat = "Speed", mult = 3, minutes = 10 } }, productId = 0 },
-		{ key = "OfferMegaCash", title = "Mega Cash", icon = "Cash", price = 99, minCycle = 3, rewards = { { kind = "Cash", minutes = 60, floorShare = 0.5 } }, productId = 0 }, -- minCycle 3 : pas avant ~10 min de jeu (99 R$)
+		{ key = "OfferMoneyRush", title = "Money Rush", icon = "Cash", badge = "x3", price = 15, rewards = { { kind = "Boost", stat = "Money", mult = 3, minutes = 10 } }, productId = 3734031113 },
+		{ key = "OfferLuckyHour", title = "Lucky Hour", icon = "Clover", badge = "x2", price = 29, rewards = { { kind = "Boost", stat = "Luck", mult = 2, minutes = 60 } }, productId = 3734031128 },
+		{ key = "OfferRush", title = "Customer Rush", icon = "Shoe", badge = "x3", price = 15, rewards = { { kind = "Boost", stat = "Speed", mult = 3, minutes = 10 } }, productId = 3734031132 },
+		{ key = "OfferMegaCash", title = "Mega Cash", icon = "Cash", price = 99, minCycle = 3, rewards = { { kind = "Cash", minutes = 60, floorShare = 0.5, minFloorShare = 0.25 } }, productId = 3734031138 }, -- minCycle 3 : pas avant ~10 min de jeu (99 R$) ; 2026-11-22 : minimum 0.25 x prochain etage (avant : $0 sans gains recents)
 		{
 			key = "OfferTriple",
 			title = "Triple Boost",
@@ -164,9 +172,9 @@ Shop.LimitedOffers = {
 				{ kind = "Boost", stat = "Luck", mult = 2, minutes = 20 },
 				{ kind = "Boost", stat = "Speed", mult = 2, minutes = 20 },
 			},
-			productId = 0,
+			productId = 3734031141,
 		},
-		{ key = "OfferRareRain", title = "Rare Rain", icon = "Clover", badge = "x5", price = 19, rewards = { { kind = "Boost", stat = "Luck", mult = 5, minutes = 5 } }, productId = 0 },
+		{ key = "OfferRareRain", title = "Rare Rain", icon = "Clover", badge = "x5", price = 19, rewards = { { kind = "Boost", stat = "Luck", mult = 5, minutes = 5 } }, productId = 3734031150 },
 	},
 }
 
@@ -188,17 +196,49 @@ Shop.ServicePasses = table.freeze({ "VIP", "Cash3x", "DrinkMaster", "GreedyCusto
 -- Meme stat, meme multiplicateur : les temps s'additionnent. Multiplicateurs differents (x2 boutique
 -- + x3 Money Rush) : le plus fort tourne d'abord, les autres attendent (rien n'est perdu).
 Shop.BoostStats = table.freeze({ "Money", "Luck", "Speed" })
+
+-- Boost GRATUIT (2026-11-22, demande utilisateur) : le joueur goute au boost 2x SPEED (clients 2x
+-- plus rapides) sans payer, pour sentir la difference quand il s'arrete. Aucune proposition d'achat
+-- liee. Compte en temps de jeu de la session : FirstDelaySeconds apres le debut du tuto (fin de la
+-- cinematique pour un profil neuf, arrivee sinon), puis Minutes de boost, puis GapSeconds de pause,
+-- et ainsi de suite. S'ajoute au temps du boost Speed x2 (meme potion dans le HUD). RobuxShopService.
+Shop.FreeBoost = table.freeze({
+	stat = "Speed",
+	mult = 2,
+	minutes = 5,
+	firstDelaySeconds = 3 * 60,
+	gapSeconds = 10 * 60, -- pause entre la fin d'un boost gratuit et le suivant
+})
 Shop.BoostMaxSeconds = 7 * 24 * 3600 -- plafond du temps stocke par stat et multiplicateur (filet de securite)
 Shop.PendingSeconds = 120 -- montant d'argent montre au clic garde X s (le recu donne ce montant)
 Shop.ReceiptWaitSeconds = 20 -- attente max du chargement de la sauvegarde a la reception d'un recu
 Shop.BuyCooldownSeconds = 0.5 -- delai entre deux clics d'achat (remote ShopBuy)
 
+-- Cadeaux de passes (GiftService, 2026-11-23) : bouton rose d'un pass -> choix d'un joueur du serveur
+-- -> produit "Gift - <pass>" (giftProductId, meme prix que le pass). Le cadeau passe par une boite aux
+-- lettres DataStore (cle "u<UserId>" du destinataire) : il arrive meme si le destinataire est parti.
+Shop.Gifts = table.freeze({
+	StoreName = "PassGifts_v1",
+	PendingSeconds = 600, -- destinataire choisi garde X s (sinon le recu offre le pass a l'acheteur)
+	MaxMailbox = 50, -- cadeaux en attente gardes au plus par joueur
+	MaxDone = 100, -- ids de cadeaux deja livres gardes (un recu redonne n'offre jamais deux fois)
+	Retries = 3,
+})
+
 Shop.Messages = table.freeze({
 	ComingSoon = "Robux purchases: coming soon!",
 	GiftSoon = "Gifts: coming soon!",
+	GiftPickPlayer = "Choose a player to gift!",
+	GiftNoPlayer = "That player left the server!",
+	GiftSelf = "You can't gift yourself!",
+	GiftAlreadyOwned = "%s already has this pass!", -- %s = pseudo du destinataire
+	GiftSent = "Gift sent to %s!", -- acheteur
+	GiftGot = "%s gifted you %s!", -- destinataire : (pseudo de l'acheteur, nom du pass)
+	GiftSelfGot = "%s unlocked!", -- recu sans destinataire note : pass offert a l'acheteur
 	AlreadyOwned = "You already own this pass!",
 	AlreadyBought = "You already got this offer!",
 	BoostOn = "%s x%d for %d min!", -- "MONEY x2 for 15 min!"
+	FreeBoostOn = "FREE %s x%d for %d min!", -- boost gratuit (Shop.FreeBoost)
 	CashGot = "+%s cash!",
 	PassOn = "%s unlocked!",
 })

@@ -11,8 +11,26 @@ local Floors = require(script.Parent:WaitForChild("Floors"))
 
 local LuckyCash = {}
 
-LuckyCash.Price = 29 -- Robux (affiche dans la fenetre ; le vrai prix est celui du produit sur Roblox)
-LuckyCash.ProductId = 0
+-- Prix selon le nombre d'etages possedes (2026-11-22, demande utilisateur) : 9 R$ tant que le joueur
+-- n'a que l'etage 1, puis 24 R$. Un Developer Product par prix (le prix d'un produit est fixe sur
+-- Roblox). `price` = affiche dans la fenetre ; le vrai prix est celui du produit sur Roblox.
+-- `maxFloors` = ce produit sert jusqu'a X etages possedes ; le dernier (sans maxFloors) sert ensuite.
+LuckyCash.Products = table.freeze({
+	table.freeze({ maxFloors = 1, price = 9, productId = 3734874589 }), -- "Lucky Cash (Floor 1)"
+	table.freeze({ price = 24, productId = 3734031154 }), -- "Lucky Cash" (29 -> 24 le 2026-11-22)
+})
+
+-- Produit Lucky Cash pour un joueur qui possede `floorsOwned` etages.
+function LuckyCash.ProductFor(floorsOwned: number): { maxFloors: number?, price: number, productId: number }
+	for _, product in LuckyCash.Products do
+		if product.maxFloors == nil or floorsOwned <= product.maxFloors then
+			return product
+		end
+	end
+	return LuckyCash.Products[#LuckyCash.Products]
+end
+
+LuckyCash.PriceAttribute = "LuckyCashPrice" -- attribut joueur pose par le serveur (prix actuel en R$)
 
 -- Montant = Minutes x gains theoriques de toute la tour (CustomerService.GetIncomePerSecond),
 -- PLAFONNE a FloorShare x prix du prochain etage du joueur (Floors.Prices), jamais sous MinAmount.
@@ -21,14 +39,18 @@ LuckyCash.ProductId = 0
 -- un etage entier. Prix des etages / 2 le 2026-11-20 (revue de l'economie) : etage 2 = $2.5K, donc
 -- MinAmount 1 500 -> 600 pour garder 0.4 x le prochain etage. Courbe progressive (etage 2 = $1.5K) :
 -- ex. etage 1 : $600 ; etage 3 (prochain = $62K) : jusqu'a $24.8K.
-LuckyCash.Minutes = 45
-LuckyCash.FloorShare = 0.4
-LuckyCash.MinAmount = 600
+-- 2026-11-22 (demande utilisateur "un peu plus de cash", surtout a l'etage 1) : Minutes 45 -> 55,
+-- FloorShare 0.4 -> 0.5, MinAmount 600 -> 900 (etage 1 : $600 -> $900).
+LuckyCash.Minutes = 55
+LuckyCash.FloorShare = 0.5
+LuckyCash.MinAmount = 900
 
 -- Place du tas dans le repere de l'etage (pivot de l'etage, sol a y = 0) : allee nord de la zone
 -- STAIRS (z 78 -> 84, libre sur tous les etages), contre l'escalier (voie B, z 78) et pres du mur
 -- (x 109). 2026-11-21 : (78, 81.3) -> (96, 80.5), "plus proche du mur et de l'escalier".
-LuckyCash.Spot = Vector3.new(96, 0, 80.5)
+-- 2026-11-22 : -> (106, 80.2), "approche le plus vers l'escalier et le mur" (mesure : bande du mur a
+-- x ~109, bloqueur de l'escalier a z ~78.6 ; ~3 studs de marge cote mur, ~1.6 cote escalier).
+LuckyCash.Spot = Vector3.new(106, 0, 80.2)
 
 -- Apparition (cote client, 2026-11-21 : "plus rarement") : UN seul tas a la fois, sur un etage
 -- ouvert tire au hasard. Il apparait FirstSpawnSeconds apres l'arrivee, reste VisibleSeconds, puis

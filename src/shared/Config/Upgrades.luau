@@ -1,5 +1,5 @@
 --!strict
--- Ameliorations et employes de la zone 1 : effets, prix en argent, prix Robux (A VALIDER).
+-- Ameliorations et employes de la zone 1 : effets, prix en argent, prix Robux (bouton violet des tuiles).
 -- Ou s'achete chaque id dans l'usine (refonte du 2026-11-19 soir : "on comprend pas a quoi ca sert") :
 --   * Tree : un pad vert a cote de l'arbre ("Upgrade Tree"), on se tient dessus (repeatPad) ;
 --   * Blender1..4 : la vraie machine teintee bleu pour l'acheter (E), puis un panneau suspendu
@@ -69,16 +69,27 @@ export type Upgrade = {
 	prices: { number }?,
 	priceBase: number,
 	priceGrowth: number,
-	-- Prix Robux A VALIDER (aucun produit cree) : robuxBase + robuxStep*(n-1).
+	-- Prix Robux : robuxBase + robuxStep*(n-1), plafonne a Upgrades.RobuxMax.
 	robuxBase: number,
 	robuxStep: number,
 }
 
 local Upgrades = {}
 
--- A VALIDER : prix Robux provisoires, affiches seulement (pas d'achat Robux en phase 1).
+-- Prix Robux des tuiles (5, 8, puis 9 R$ ; un produit par prix : Upgrades.RobuxProducts).
 local ROBUX_BASE = 5
 local ROBUX_STEP = 3
+Upgrades.RobuxMax = 9 -- plafond du prix Robux sur les panneaux d'achat (demande utilisateur 2026-11-23)
+-- Bouton violet des tuiles (2026-11-23) : un Developer Product par prix Robux possible (Roblox : prix
+-- fixe par produit). Le serveur note quelle tuile a ete cliquee et donne +1 niveau au recu.
+-- Crees par Open Cloud le 2026-11-23 ("Machine Upgrade I / II / III"). Prix Roblox = cle.
+Upgrades.RobuxProducts = table.freeze({
+	[5] = 3734912690,
+	[8] = 3734912738,
+	[9] = 3734912752,
+} :: { [number]: number })
+Upgrades.RobuxPendingSeconds = 600 -- tuile cliquee gardee en memoire ce temps (puis recu = meilleure tuile au meme prix)
+Upgrades.ReceiptWaitSeconds = 20 -- recu : attente max de la sauvegarde du joueur (il vient d'arriver)
 
 -- Arbre : chaque niveau fait surtout tomber les fruits PLUS VITE (effet visible), et un peu de Luck.
 -- (Avant le 2026-11-19 soir : deux machines, Sprinkler = vitesse et Lucky Fertilizer = luck.)
@@ -409,11 +420,24 @@ function Upgrades.GetPrice(id: string, level: number): number
 	return math.floor(upgrade.priceBase * upgrade.priceGrowth ^ n + 0.5)
 end
 
--- Prix Robux affiche (A VALIDER, aucun achat en phase 1).
+-- Prix Robux du bouton violet d'une tuile pour passer du niveau `level` au suivant.
 function Upgrades.GetRobuxPrice(id: string, level: number): number
 	local upgrade = byId[id]
 	assert(upgrade, "Upgrades : id inconnu")
-	return upgrade.robuxBase + upgrade.robuxStep * (math.max(level, 1) - 1)
+	return math.min(upgrade.robuxBase + upgrade.robuxStep * (math.max(level, 1) - 1), Upgrades.RobuxMax)
+end
+
+-- Developer Product a ouvrir pour ce prix Robux (nil = aucun produit a ce prix).
+function Upgrades.RobuxProductFor(id: string, level: number): number?
+	return Upgrades.RobuxProducts[Upgrades.GetRobuxPrice(id, level)]
+end
+
+-- Au demarrage : chaque prix Robux affiche doit avoir son produit (sinon le bouton ne marcherait pas)
+for _, upgrade in list do
+	for level = 0, Upgrades.GetMaxLevel(upgrade.id, 0) - 1 do
+		local price = Upgrades.GetRobuxPrice(upgrade.id, level)
+		assert(Upgrades.RobuxProducts[price], `Upgrades : pas de produit Robux a {price} R$ ({upgrade.id} niveau {level})`)
+	end
 end
 
 -- Niveau a partir duquel la machine de cet id est construite (voir `builtAt`).

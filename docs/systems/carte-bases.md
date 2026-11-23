@@ -29,6 +29,7 @@ propre et se promene ; il recoit la premiere base qui se libere.
 | `tools/build-map/02d-base-counter.luau` | Studio | Comptoir dans la fenetre de la facade, auvent, tapis "SERVE", plateau a argent |
 | `tools/build-map/02e-base-machines.luau` | Studio | Pads verts : "Upgrade Tree", Fruit Picker, Waiter + pad violet Auto Sell a la meme place (x 12, z 70, a cote de Take Juices) ; dossier `Looks` (panneau FRESH JUICE! de More Customers) |
 | `tools/build-map/02f-base-annex-markers.luau` | Studio | Annexe (BaseTemplate.Annex) : terrasse fermee + portail + bas de la cage d'ascenseur, salle du Rebirth (vitre "Reach Floor 10", machine doree) ; marqueurs de l'etage |
+| `tools/build-map/02l-floor-setup.luau` | Studio | `FloorTemplate.Setup` : les 4 pads FREE de l'usine a construire (positions dans `Config/Setup`), voir `usine-a-construire.md` (2026-11-21) |
 | `tools/build-map/02k-floor-walkway.luau` | Studio | Allee gris-bleu en relief (plaque de 0.4, solide) dans les passages de l'etage : `FloorTemplate.Building.Walkway` (Entry, Corridor, ToBack, ToSales, SalesWalk) |
 | `tools/build-map/02j-base-elevator.luau` | Studio | Annexe : panneau ELEVATOR colle sur la cage de l'ascenseur, face nord (2 tuiles `TowerUpgradeId`, a CLIQUER, dessin `Util/UpgradeTile`) + cabine `Annex.ElevatorBase.Cabin` |
 | `tools/build-map/07-floor-studs.luau` | Studio | Dessus des sols (TopSurface Inlet) -> Studs comme la route ; FloorTemplate, BaseTemplate, Map. A lancer en dernier |
@@ -48,7 +49,7 @@ propre et se promene ; il recoit la premiere base qui se libere.
 ## Reconstruire la carte
 
 Studio en mode Edit, lancer chaque script dans `execute_luau` (MCP) ou la barre de commande, dans
-l'ordre : `01`, `02a` ... `02h`, `02i` (coin des dons, `docs/systems/dons.md`), `02j` (panneau ELEVATOR + cabine, `tour-etages.md`), `02k` (allee), `03`, `04`, `05`, puis `06-no-touch` (CanTouch = false sur les modeles, a relancer apres tout 02*), puis `07-floor-studs` (sols en Studs, a relancer apres 01 et 02*), puis `08-leaderboards` (2 murs-ecrans des classements aux deux bouts de la route, `classements.md`). Chaque script est relancable (il detruit et recree sa
+l'ordre : `01`, `02a` ... `02h`, `02i` (coin des dons, `docs/systems/dons.md`), `02j` (panneau ELEVATOR + cabine, `tour-etages.md`), `02k` (allee), `02l` (pads FREE, `usine-a-construire.md`), `03`, `04`, `05`, puis `06-no-touch` (CanTouch = false sur les modeles, a relancer apres tout 02*), puis `07-floor-studs` (sols en Studs, a relancer apres 01 et 02*), puis `08-leaderboards` (2 murs-ecrans des classements aux deux bouts de la route, `classements.md`). Chaque script est relancable (il detruit et recree sa
 partie ; `02a` recree les deux modeles, donc relancer ensuite `02b` a `02j` puis `05`). Les scripts
 02a, 02e, 02f, 02g et 02h chargent une copie fraiche de la Config. Verifier avec `preview-tower` +
 `check-zfighting` (0 ligne), retirer l'apercu, puis `save_place`.
@@ -199,7 +200,7 @@ Les objets crees en jeu (fruits, gobelets, billets, outils de fruits) coupent le
 | `Counter.JuiceDropPad` / `Counter.CashPad` | Pads "Drop Juices" (derriere le comptoir) et "Collect Cash" (devant la table a argent), `PadZone` |
 | `Counter.CounterTopArea` / `CounterLabelAnchor` | Dessus du comptoir / texte "n/max" |
 | `Counter.MoneyPile` / `MoneyLabelAnchor` | Dessus de la table a argent (billets, prompt E "Collect") / montant |
-| `Counter.OnlyGround.AutoCollectPad` | Pad violet Robux "Auto Collect" (`PadTop` + `Tag`, `PadZone`), etage 1 |
+| `Counter.AutoCollectPad` | Pad violet Robux "Auto Collect" (`PadTop` + `Tag`, `PadZone`), chaque etage depuis le 2026-11-21 (avant : `OnlyGround`) |
 | `Counter.InstantSellPad` | Pad violet Robux "Instant Sell" (2026-11-21), juste a droite de Drop Juices (x 64.5-70.5, z 20-26), chaque etage |
 | `Machines.<UpgradeId>` | Pad a acheter : Tree ("Upgrade Tree"), Collector, Server (voir `ameliorations-employes.md`) |
 | `Boards.<Board>.<UpgradeId>` | Tuile d'un panneau d'ameliorations (ConveyorBoard, JuiceTableBoard, SalesBoard, BlenderSign1..4) |
@@ -212,6 +213,7 @@ Les objets crees en jeu (fruits, gobelets, billets, outils de fruits) coupent le
 | `OwnerBadge` | Cree en jeu (Lib/OwnerBadge, Model `Persistent`) : `Anchor.Badge` (BillboardGui 100 x 66 studs, ~ largeur de l'usine : `Ring.Avatar` = photo `rbxthumb://type=AvatarHeadShot`, `OwnerName`, `Rebirths` = "N Rebirths" en jaune plus petit, sans fond ni icone) pose 3 studs au-dessus de l'avant du toit de l'etage le plus haut (etage ferme compris), pas AlwaysOnTop (choix utilisateur), cache si la base est libre. Mis a jour par `FloorService.refreshAnnex` (achat d'etage, rebirth) |
 | `Floors.FloorN` | Les etages (FloorService, voir `tour-etages.md`) : `Tree`, `Production`, `Counter`, `Markers`... sont DANS chaque etage |
 | `Annex.Terrace` / `Annex.RebirthRoom` | Terrasse (ouverte a l'etage 2) et salle "???" (ouverte a l'etage 10) |
+| `Setup.<id>.Pad` | Pads FREE de l'usine a construire (PlantTree, BuildShelf, BuildBlender, OpenShop) ; caches sauf celui de l'etape en cours (SetupService) |
 | `Dynamic` | Tout ce qui est cree pendant le jeu : vide au depart du joueur |
 
 - Attribution : premiere base libre (ordre 1 -> 6). Attribut `OwnerUserId` sur la base (0 = libre),
@@ -219,6 +221,9 @@ Les objets crees en jeu (fruits, gobelets, billets, outils de fruits) coupent le
 - Apparition : a chaque `CharacterAdded`, le personnage est deplace sur le `Markers.SpawnPoint` de son
   etage le plus haut (point donne par FloorService, `BaseService.SetSpawnResolver` ; l'etage est
   d'abord charge chez le client avec `RequestStreamAroundAsync`).
+  Le personnage regarde **bien droit vers l'interieur de l'usine** (axe +Z de l'etage, porte cote Z
+  petit) : seule la position de `SpawnPoint` compte, pas sa rotation (piece tournee de 33 degres
+  dans le .rbxl, ce qui donnait une vue de travers ; corrige le 2026-11-22 dans `FloorService.spawnCFrame`).
 - Depart : `OnBaseReleased` (les services nettoient), `Dynamic` vide, panneau "Free Factory".
 - 7e joueur : pas de base, message `ServerFullMessage`, il attend.
 - Plus de salles a acheter (`ZoneLocks` / `Map.LockedZone*` supprimes le 2026-11-20) : la terrasse et

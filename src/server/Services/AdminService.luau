@@ -19,6 +19,7 @@ local Upgrades = require(Config:WaitForChild("Upgrades"))
 local NumberFormat = require(Shared:WaitForChild("Util"):WaitForChild("NumberFormat"))
 local Remotes = require(Shared:WaitForChild("Network"):WaitForChild("Remotes"))
 
+local NameTag = require(script.Parent.Parent.Lib.NameTag)
 local PlayerCheck = require(script.Parent.Parent.Lib.PlayerCheck)
 local CustomerService = require(script.Parent.CustomerService)
 local DataService = require(script.Parent.DataService)
@@ -36,7 +37,19 @@ local AdminService = {}
 
 local RESET_KICK_MESSAGE = "Your progress was reset. Rejoin to start fresh!"
 -- Passes basculables (attribut joueur = possede le pass ; lu par les services du jeu)
-local PASS_ATTRIBUTES = { "InstantSell", "SpeedBoost", "Billboard", "Thief", "AutoCollect" }
+-- (6 a 10 : passes de la boutique, 2026-11-21 ; le createur ne les recoit plus de Roblox, Lib/GamePass)
+local PASS_ATTRIBUTES = {
+	"InstantSell",
+	"SpeedBoost",
+	"Billboard",
+	"Thief",
+	"AutoCollect",
+	"VIP",
+	"Cash3x",
+	"DrinkMaster",
+	"GreedyCustomers",
+	"SpeedMaster",
+}
 local MAX_JUICES = 50 -- jus poses d'un coup sur le comptoir
 
 local function isAdmin(player: Player): boolean
@@ -233,6 +246,10 @@ local ACTIONS: { [string]: Action } = {
 		local key = PASS_ATTRIBUTES[intIn(value, 1, #PASS_ATTRIBUTES, 1)]
 		local owned = target:GetAttribute(key) == true
 		target:SetAttribute(key, if owned then nil else true)
+		if key == "VIP" then -- etiquette VIP au-dessus de la tete (comme RobuxShopService.setPass)
+			local data = DataService.GetData(target)
+			NameTag.Apply(target, if data then data.Rebirths else 0)
+		end
 		return `{key} {if owned then "OFF" else "ON"}`
 	end,
 	ToggleMaster = function(_, target)
@@ -285,6 +302,15 @@ local ACTIONS: { [string]: Action } = {
 	Respawn = function(_, target)
 		target:LoadCharacter()
 		return "respawned"
+	end,
+	-- Rejoue la cinematique d'ouverture chez la cible (2026-11-23). Seulement l'affichage : IntroDone
+	-- remet IntroPending a faux a la fin ; IntroSeen est deja vrai, rien d'autre ne change.
+	ReplayIntro = function(_, target)
+		if target:GetAttribute("IntroPending") == true then
+			target:SetAttribute("IntroPending", false) -- (le client ne reagit qu'a un changement)
+		end
+		target:SetAttribute("IntroPending", true)
+		return "intro replaying"
 	end,
 	ResetAll = function(_, target)
 		if DataService.ResetOnLeave(target) then

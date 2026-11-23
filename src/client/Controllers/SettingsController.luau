@@ -1,15 +1,17 @@
 --!strict
--- Menu Settings (menu "Settings" du pack, ouvert par l'engrenage en haut) : 3 interrupteurs
---   Music       : musique de fond (MusicController) ;
---   Sounds      : sons du jeu et de l'interface (SoundFx / MenuController lisent SettingEffects) ;
---   Low Quality : sans ombres, effets d'eclairage, particules ni decor lointain (telephones lents).
--- Le clic change l'interrupteur tout de suite et envoie SetSetting au serveur (SettingsService),
--- qui sauvegarde et pose les attributs joueur "Setting<Cle>". On applique toujours ces attributs.
+-- Menu Settings (menu "Settings" du pack, ouvert par l'engrenage en haut) :
+--   Music       : curseur de volume de la musique de fond (MusicController), 0-100 % ;
+--   Sounds      : curseur de volume des sons du jeu et de l'interface (SoundFx.Group) ;
+--   Low Quality : interrupteur, sans ombres, effets d'eclairage, particules ni decor lointain.
+-- (Music et Sounds etaient des interrupteurs ON / OFF jusqu'au 2026-11-23.)
+-- Le curseur / le clic change l'attribut joueur "Setting<Cle>" tout de suite (le son suit en direct)
+-- et envoie SetSetting au serveur (SettingsService), qui sauvegarde et repose l'attribut.
 -- Doc : docs/systems/interface.md (Settings)
 
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("Config"):WaitForChild("GameConfig"))
@@ -20,10 +22,12 @@ local SettingsController = {}
 
 -- Interrupteurs = boutons communs de l'interface (vert ON / rouge OFF, comme YES / NO).
 type Toggle = { button: TextButton, label: TextLabel, gradient: UIGradient?, stroke: UIStroke? }
+-- Curseur de volume : barre, remplissage vert, bouton rond, pourcentage au-dessus.
+type Slider = { fill: Frame, knob: Frame, label: TextLabel, dragging: boolean, value: number }
 -- Lignes du menu : cle du reglage -> nom de la ligne dans le pack, textes affiches (anglais)
 local ROWS = {
-	{ key = "Music", row = "Music", title = "Music", description = "Background music" },
-	{ key = "Effects", row = "Effects", title = "Sounds", description = "Game and button sounds" },
+	{ key = "Music", row = "Music", title = "Music", description = "Music volume" },
+	{ key = "Effects", row = "Effects", title = "Sounds", description = "Sound effects volume" },
 	{ key = "LowQuality", row = "LowQuality", title = "Low Quality", description = "No shadows, faster game" },
 }
 
@@ -31,6 +35,8 @@ local player = Players.LocalPlayer
 local started = false
 local setEvent: RemoteEvent? = nil
 local toggles: { [string]: Toggle } = {}
+local sliders: { [string]: Slider } = {}
+local SEND_INTERVAL = 0.3 -- pendant le glissement : une demande au serveur au plus toutes les 0.3 s
 local lowQualityOn = false
 
 -- Valeur actuelle d'un reglage (attribut du serveur, sinon valeur par defaut).
@@ -40,6 +46,22 @@ local function getSetting(key: string): boolean
 		return value
 	end
 	return GameConfig.DefaultSettings[key] == true
+end
+
+-- Valeur actuelle d'un volume 0..1 (ancien booleen false = 0).
+local function getVolume(key: string): number
+	local value = player:GetAttribute("Setting" .. key)
+	if type(value) == "number" then
+		return math.clamp(value, 0, 1)
+	elseif value == false then
+		return 0
+	end
+	local default = GameConfig.DefaultSettings[key]
+	return if type(default) == "number" then default else 1
+end
+
+local function isVolume(key: string): boolean
+	return type(GameConfig.DefaultSettings[key]) == "number"
 end
 
 ---------------------------------------------------------------------------------------------
@@ -176,15 +198,35 @@ local function paintToggle(key: string)
 	end
 end
 
+local function paintSlider(key: string, value: number)
+	local slider = sliders[key]
+	if slider == nil then
+		return
+	end
+	slider.value = value
+	slider.fill.Size = UDim2.fromScale(value, 1)
+	slider.knob.Position = UDim2.fromScale(value, 0.5)
+	slider.label.Text = `{math.round(value * 100)}%`
+end
+
 local function apply(key: string)
-	local on = getSetting(key)
-	if key == "Music" then
-		local music = getMusic()
-		if music and music.SetEnabled then
-			music.SetEnabled(on)
+	if isVolume(key) then
+		local value = getVolume(key)
+		if key == "Music" then
+			local music = getMusic()
+			if music and music.SetVolume then
+				music.SetVolume(value)
+			end
 		end
-	elseif key == "LowQuality" then
-		applyLowQuality(on)
+		-- Pendant le glissement, le curseur suit le doigt (pas l'echo du serveur, en retard)
+		local slider = sliders[key]
+		if slider and not slider.dragging then
+			paintSlider(key, value)
+		end
+		return
+	end
+	if key == "LowQuality" then
+		applyLowQuality(getSetting(key))
 	end
 	paintToggle(key)
 end
@@ -196,6 +238,146 @@ local function onToggle(key: string)
 	if setEvent then
 		setEvent:FireServer(key, wanted)
 	end
+end
+
+-- Curseur de volume dans la case de l'interrupteur du pack (souris et doigt).
+local function buildSlider(key: string, parent: Frame, list: Instance)
+	local holder = Instance.new("Frame")
+	holder.Name = "VolumeSlider"
+	holder.BackgroundTransparency = 1
+	holder.AnchorPoint = Vector2.new(0.5, 0.5)
+	holder.Position = UDim2.fromScale(0.5, 0.5)
+	holder.Size = UDim2.fromScale(0.92, 0.9)
+	holder.ZIndex = 3
+	holder.Parent = parent
+
+	local label = PackStyle.label(holder, "100%", UDim2.fromScale(0.5, 0.02), UDim2.fromScale(1, 0.38), 30)
+
+	local track = Instance.new("Frame")
+	track.Name = "Track"
+	track.AnchorPoint = Vector2.new(0.5, 0.5)
+	track.Position = UDim2.fromScale(0.5, 0.68)
+	track.Size = UDim2.fromScale(0.84, 0.2)
+	track.BackgroundColor3 = Color3.fromRGB(40, 30, 60)
+	track.ZIndex = 3
+	track.Parent = holder
+	local trackCorner = Instance.new("UICorner")
+	trackCorner.CornerRadius = UDim.new(1, 0)
+	trackCorner.Parent = track
+	PackStyle.stroke(track, 2.5, PackStyle.TEXT_STROKE, Enum.ApplyStrokeMode.Border)
+
+	local fill = Instance.new("Frame")
+	fill.Name = "Fill"
+	fill.Size = UDim2.fromScale(1, 1)
+	fill.BackgroundColor3 = Color3.new(1, 1, 1)
+	fill.ZIndex = 4
+	fill.Parent = track
+	local fillCorner = Instance.new("UICorner")
+	fillCorner.CornerRadius = UDim.new(1, 0)
+	fillCorner.Parent = fill
+	local gradient = Instance.new("UIGradient")
+	gradient.Rotation = -90
+	gradient.Color = ColorSequence.new(PackStyle.GREEN[1], PackStyle.GREEN[2])
+	gradient.Parent = fill
+
+	local knob = Instance.new("Frame")
+	knob.Name = "Knob"
+	knob.AnchorPoint = Vector2.new(0.5, 0.5)
+	knob.Position = UDim2.fromScale(1, 0.5)
+	knob.Size = UDim2.fromScale(2.2, 2.2) -- 2.2 x la hauteur de la barre, rond
+	knob.SizeConstraint = Enum.SizeConstraint.RelativeYY
+	knob.BackgroundColor3 = Color3.new(1, 1, 1)
+	knob.ZIndex = 5
+	knob.Parent = track
+	local knobCorner = Instance.new("UICorner")
+	knobCorner.CornerRadius = UDim.new(1, 0)
+	knobCorner.Parent = knob
+	PackStyle.stroke(knob, 3, PackStyle.GREEN[3], Enum.ApplyStrokeMode.Border)
+
+	-- Zone de prise large (plus facile au doigt que la barre fine)
+	local hit = Instance.new("TextButton")
+	hit.Name = "Hit"
+	hit.Text = ""
+	hit.BackgroundTransparency = 1
+	hit.AnchorPoint = Vector2.new(0.5, 0.5)
+	hit.Position = UDim2.fromScale(0.5, 0.68)
+	hit.Size = UDim2.fromScale(1, 0.7)
+	hit.ZIndex = 6
+	hit.Parent = holder
+
+	local slider: Slider = { fill = fill, knob = knob, label = label, dragging = false, value = getVolume(key) }
+	sliders[key] = slider
+
+	local lastSent = 0
+	local sentValue: number? = nil
+	local function send(force: boolean)
+		local value = slider.value
+		local event = setEvent
+		if value == sentValue or event == nil then
+			return
+		end
+		if not force and os.clock() - lastSent < SEND_INTERVAL then
+			return
+		end
+		lastSent = os.clock()
+		sentValue = value
+		event:FireServer(key, value)
+	end
+	local function setFromX(x: number)
+		local width = track.AbsoluteSize.X
+		if width <= 0 then
+			return
+		end
+		local value = math.round(math.clamp((x - track.AbsolutePosition.X) / width, 0, 1) * 100) / 100
+		paintSlider(key, value)
+		player:SetAttribute("Setting" .. key, value) -- le son suit tout de suite
+		send(false)
+	end
+	local scrolling: ScrollingFrame? = if list:IsA("ScrollingFrame") then list else nil
+	local function stopDrag()
+		if not slider.dragging then
+			return
+		end
+		slider.dragging = false
+		if scrolling then
+			scrolling.ScrollingEnabled = true
+		end
+		send(true)
+	end
+	hit.InputBegan:Connect(function(input: InputObject)
+		local kind = input.UserInputType
+		if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
+			slider.dragging = true
+			sentValue = nil
+			if scrolling then
+				scrolling.ScrollingEnabled = false -- le doigt glisse le curseur, pas la liste
+			end
+			setFromX(input.Position.X)
+		end
+	end)
+	UserInputService.InputChanged:Connect(function(input: InputObject)
+		local kind = input.UserInputType
+		if not slider.dragging then
+			return
+		end
+		if kind == Enum.UserInputType.MouseMovement then
+			-- Bouton relache sans InputEnded (relache hors de la fenetre...) : on arrete
+			if not UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+				stopDrag()
+				return
+			end
+			setFromX(input.Position.X)
+		elseif kind == Enum.UserInputType.Touch then
+			setFromX(input.Position.X)
+		end
+	end)
+	UserInputService.InputEnded:Connect(function(input: InputObject)
+		local kind = input.UserInputType
+		if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
+			stopDrag()
+		end
+	end)
+	paintSlider(key, slider.value)
 end
 
 ---------------------------------------------------------------------------------------------
@@ -244,6 +426,14 @@ local function buildRows(list: Instance)
 		-- Bouton "ToggleButtonON" ou "ToggleButtonOFF" selon la ligne du pack : le premier bouton
 		local toggleFrame = row:FindFirstChild("Toggle", true)
 		local packButton = toggleFrame and toggleFrame:FindFirstChildWhichIsA("GuiButton", true)
+		if isVolume(info.key) then
+			-- Volume : le bouton du pack est cache, un curseur prend sa place
+			if packButton and toggleFrame and toggleFrame:IsA("Frame") and toggleFrame:FindFirstChild("VolumeSlider") == nil then
+				packButton.Visible = false
+				buildSlider(info.key, toggleFrame, list)
+			end
+			continue
+		end
 		if packButton and packButton:FindFirstChild("Switch") == nil then
 			packButton.Name = "ToggleButton"
 			-- Le bouton du pack (relief a ombre, autre contour) est cache : on met dedans le bouton

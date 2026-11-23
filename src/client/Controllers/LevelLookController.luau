@@ -11,6 +11,9 @@
 --     panneau HideWhenLocked) : cache (achat du mixeur seulement par E sur la machine) ;
 --   * lattes du tapis (Production.Conveyor, pieces "Slat") : elles defilent, plus vite quand le tapis
 --     est ameliore (attribut ConveyorRate de Production, pose par ProductionService).
+-- Depuis le 2026-11-21 (usine a construire) : un panneau qui apparait (HideWhenLocked : mixeur
+-- achete, Fruit Picker embauche, etape FREE faite) et un pad de decor (Pad avec LookId, ex. Waiter
+-- Speed x10) apparaissent en "pop" (Fx/Reveal) au lieu du fondu, dans SA base.
 -- Pieces cachees avec LocalTransparencyModifier et sans collision pour ce joueur (rien ne change
 -- cote serveur : les employes voient toutes les variantes). Rien au-dela de FX_DISTANCE pour le tapis.
 -- Doc : docs/systems/ameliorations-employes.md (section Ce qui se voit a chaque niveau)
@@ -21,6 +24,7 @@ local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local SoundFx = require(Shared:WaitForChild("Util"):WaitForChild("SoundFx")) :: any
 local FloorWatch = require(script.Parent.Parent:WaitForChild("Util"):WaitForChild("FloorWatch"))
+local Reveal = require(script.Parent.Parent:WaitForChild("Fx"):WaitForChild("Reveal"))
 
 local FX_DISTANCE = 150
 local FADE_SECONDS = 0.45
@@ -112,15 +116,25 @@ end
 local function applyId(look: BaseLook, id: string, animate: boolean)
 	local level = levelOf(look.base, id)
 	local appeared: { BasePart } = {}
+	local pads: { [Instance]: { BasePart } } = {} -- pads de decor qui apparaissent : pop
 	for _, item in look.parts[id] or {} do
 		local shown = level >= item.min and level <= item.max
 		local wasShown = item.part.LocalTransparencyModifier < 1
 		setShown(item, shown)
 		if shown and not wasShown and animate then
-			item.part.LocalTransparencyModifier = 1
-			table.insert(fades, { part = item.part, t = 0 })
+			local parent = item.part.Parent
+			if parent and parent.Name == "Pad" and parent:IsA("Model") then
+				pads[parent] = pads[parent] or {}
+				table.insert(pads[parent], item.part)
+			else
+				item.part.LocalTransparencyModifier = 1
+				table.insert(fades, { part = item.part, t = 0 })
+			end
 			table.insert(appeared, item.part)
 		end
+	end
+	for pad, list in pads do
+		Reveal.Pop(pad, list)
 	end
 	if #appeared > 0 and camDistance(appeared[1].Position) <= FX_DISTANCE then
 		local sum = Vector3.zero
@@ -136,10 +150,15 @@ end
 -- Collision d'origine des pieces d'un panneau cache (un panneau cache ne bloque personne)
 local boardCollide: { [BasePart]: boolean } = setmetatable({}, { __mode = "k" }) :: any
 
+-- Dernier etat de chaque panneau (pop quand il apparait)
+local boardHidden: { [Model]: boolean } = setmetatable({}, { __mode = "k" }) :: any
+
 local function applyBoards(look: BaseLook)
 	for _, entry in look.boards do
 		-- Cache aussi tant que le mixeur n'est pas construit (achat seulement par E sur la machine)
 		local hidden = entry.tile:GetAttribute("Locked") == true or entry.tile:GetAttribute("Unbuilt") == true
+		local was = boardHidden[entry.board]
+		boardHidden[entry.board] = hidden
 		for _, item in entry.board:GetDescendants() do
 			if item:IsA("BasePart") then
 				item.LocalTransparencyModifier = if hidden then 1 else 0
@@ -149,6 +168,20 @@ local function applyBoards(look: BaseLook)
 				item.CanCollide = not hidden and boardCollide[item]
 			elseif item:IsA("SurfaceGui") then
 				item.Enabled = not hidden
+			end
+		end
+		-- Il vient d'apparaitre (achat, etape FREE) : pop + etincelles, seulement dans SA base
+		if was == true and not hidden and os.clock() > look.quietUntil and FloorWatch.IsMine(look.base) then
+			local parts: { BasePart } = {}
+			for _, item in entry.board:GetDescendants() do
+				if item:IsA("BasePart") then
+					table.insert(parts, item)
+				end
+			end
+			local foot = Reveal.Pop(entry.board, parts)
+			if foot and camDistance(foot) <= FX_DISTANCE then
+				sparkles(foot + Vector3.new(0, 2, 0))
+				SoundFx.PlayAt("Pickup", foot, nil, 0.8)
 			end
 		end
 	end

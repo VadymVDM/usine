@@ -13,13 +13,15 @@
 -- RebirthRequest (menu Rebirth ; verifie par RebirthService : action connue, delai, 10 etages, distance, argent) et
 -- LuckyCashBuy (tas d'argent Lucky Cash ; verifie par LuckyCashService : sauvegarde chargee, delai, puis fenetre d'achat Robux) et
 -- OfflineEarnings (ecran Welcome Back ; verifie par OfflineService : action connue, delai, sauvegarde chargee, offre pas deja prise) et
--- ShopBuy (boutique et offres limitees ; verifie par RobuxShopService : types, cle connue, delai, puis fenetre d'achat Robux).
+-- ShopBuy (boutique et offres limitees ; verifie par RobuxShopService : types, cle connue, delai, puis fenetre d'achat Robux) et
+-- IntroDone (fin ou Skip de la cinematique d'ouverture ; IntroService : sauvegarde chargee, delai, une seule fois) et
+-- TutorialProgress (etape suivante du tutoriel ; TutorialService : entier, exactement +1, sauvegarde chargee, delai).
 -- Doc : docs/architecture.md (section Remotes)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
-export type RemoteName = "Notify" | "Feedback" | "WorldFx" | "SetSetting" | "BuyUpgrade" | "PadEnter" | "AdminAction" | "FloorTeleport" | "IndexState" | "IndexClaim" | "BuyPlayerUpgrade" | "RebirthRequest" | "LuckyCashBuy" | "OfflineEarnings" | "ShopBuy"
+export type RemoteName = "Notify" | "Feedback" | "WorldFx" | "SetSetting" | "BuyUpgrade" | "PadEnter" | "AdminAction" | "FloorTeleport" | "IndexState" | "IndexClaim" | "BuyPlayerUpgrade" | "RebirthRequest" | "LuckyCashBuy" | "OfflineEarnings" | "ShopBuy" | "ShopGift" | "IntroDone" | "TutorialProgress"
 
 -- Nom -> sens et role. Les verifications de chaque remote sont dans docs/architecture.md.
 local EVENTS: { [string]: string } = {
@@ -37,6 +39,9 @@ local EVENTS: { [string]: string } = {
 	RebirthRequest = "client -> serveur : (action) \"Rebirth\" (payer et renaitre) ou \"KeepCash\" (demande l'achat Robux) ; RebirthService : action connue, delai, 10 etages, pres de la machine, argent",
 	LuckyCashBuy = "client -> serveur : (rien) acheter le tas Lucky Cash (LuckyCashService : sauvegarde chargee, delai ; ouvre la fenetre d'achat Robux, le montant est calcule par le serveur)",
 	ShopBuy = "client -> serveur : (kind, key, isGift) acheter un boost / pass / pack d'argent / offre (RobuxShopService : chaines courtes, cle connue, delai ; ouvre la fenetre d'achat Robux, montants calcules par le serveur)",
+	ShopGift = "client -> serveur : (passKey, recipientUserId) offrir un pass a un joueur du serveur (GiftService : cle connue, destinataire present, pas soi-meme, pas deja possede, delai ; ouvre le produit Gift, rien n est donne avant le recu)",
+	TutorialProgress = "client -> serveur : (numero de l'etape suivante) etape du tutoriel faite (TutorialService : entier, exactement l'etape actuelle + 1, delai ; guidage seulement, aucun effet sur la partie)",
+	IntroDone = "client -> serveur : (rien) la cinematique d'ouverture est finie ou passee (IntroService : sauvegarde chargee, delai ; ecrit IntroSeen = true une fois)",
 	OfflineEarnings = "client -> serveur : (\"Ready\" | \"Claim\" | \"Double\") ecran Welcome Back (OfflineService : action connue, delai, offre pas deja prise ; le montant est calcule par le serveur). serveur -> un client : (\"Show\", secondes, montant) | (\"Claimed\") ferme l'ecran",
 }
 

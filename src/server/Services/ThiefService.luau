@@ -11,6 +11,7 @@
 -- Doc : docs/systems/vol.md
 
 local MarketplaceService = game:GetService("MarketplaceService")
+local GamePass = require(script.Parent.Parent.Lib.GamePass)
 local PurchasePrompt = require(script.Parent.Parent.Lib.PurchasePrompt)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -59,8 +60,8 @@ local function checkPass(player: Player)
 	if passId <= 0 then
 		return
 	end
-	local ok, owns = pcall(MarketplaceService.UserOwnsGamePassAsync, MarketplaceService, player.UserId, passId)
-	if ok and owns then
+	local owns = GamePass.Owns(player, passId) -- jamais vrai pour le createur (Lib/GamePass)
+	if owns then
 		grant(player)
 	end
 end
@@ -128,6 +129,12 @@ function ThiefService:Start()
 	end)
 	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player: Player, id: number, purchased: boolean)
 		if purchased and passId > 0 and id == passId then
+			grant(player)
+		end
+	end)
+	-- Pass offert (GiftService) : meme effet qu'un achat
+	GamePass.OnGranted(function(player: Player, id: number)
+		if passId > 0 and id == passId then
 			grant(player)
 		end
 	end)

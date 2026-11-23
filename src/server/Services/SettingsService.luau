@@ -3,7 +3,8 @@
 -- Data.Settings (seul module qui ecrit ce champ). Le serveur recopie chaque reglage dans un
 -- attribut du joueur "Setting<Cle>" (ex. SettingMusic = true) ; le client (SettingsController)
 -- lit ces attributs et applique. Remote SetSetting (client -> serveur) : cle connue
--- (GameConfig.DefaultSettings), valeur booleenne, sauvegarde chargee ; demandes trop rapprochees
+-- (GameConfig.DefaultSettings), valeur du meme type que la defaut (booleen, ou volume : nombre fini
+-- ramene dans 0..1 et arrondi au centieme, 2026-11-23), sauvegarde chargee ; demandes trop rapprochees
 -- (< SettingCooldownSeconds) regroupees : la derniere valeur demandee est appliquee apres le delai.
 -- Aucun effet sur l'argent ou la partie.
 -- Doc : docs/systems/interface.md (Settings), docs/systems/sauvegarde.md
@@ -22,20 +23,39 @@ local SettingsService = {}
 
 local ATTRIBUTE_PREFIX = "Setting"
 
-local function publish(player: Player, settings: { [string]: boolean })
+type Value = boolean | number
+
+-- Valeur acceptee pour `key`, ou nil (cle inconnue, mauvais type, nombre non fini).
+local function clean(key: any, value: any): Value?
+	if typeof(key) ~= "string" then
+		return nil
+	end
+	local default = GameConfig.DefaultSettings[key]
+	if type(default) == "boolean" then
+		return if typeof(value) == "boolean" then value else nil
+	elseif type(default) == "number" then
+		if typeof(value) ~= "number" or value ~= value or math.abs(value) == math.huge then
+			return nil
+		end
+		return math.round(math.clamp(value, 0, 1) * 100) / 100
+	end
+	return nil
+end
+
+local function publish(player: Player, settings: { [string]: Value })
 	for key, default in GameConfig.DefaultSettings do
 		local value = settings[key]
-		player:SetAttribute(ATTRIBUTE_PREFIX .. key, if type(value) == "boolean" then value else default)
+		player:SetAttribute(ATTRIBUTE_PREFIX .. key, if type(value) == type(default) then value else default)
 	end
 	player:SetAttribute("SettingsLoaded", true)
 end
 
 -- Demandes trop rapides : on garde la DERNIERE valeur demandee et on l'applique apres le delai
 -- (le client a deja change l'interrupteur a l'ecran : il doit finir d'accord avec la sauvegarde).
-local pending: { [Player]: { [string]: boolean } } = {}
+local pending: { [Player]: { [string]: Value } } = {}
 local flushScheduled: { [Player]: boolean } = {}
 
-local function store(player: Player, key: string, value: boolean)
+local function store(player: Player, key: string, value: Value)
 	local data = DataService.GetData(player)
 	if data == nil then
 		return
@@ -58,8 +78,9 @@ local function flush(player: Player)
 	end
 end
 
-local function onSetSetting(player: Player, key: any, value: any)
-	if typeof(key) ~= "string" or GameConfig.DefaultSettings[key] == nil or typeof(value) ~= "boolean" then
+local function onSetSetting(player: Player, key: any, raw: any)
+	local value = clean(key, raw)
+	if value == nil then
 		return
 	end
 	if PlayerCheck.Cooldown(player, "SetSetting", GameConfig.SettingCooldownSeconds) then

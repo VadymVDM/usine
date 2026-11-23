@@ -75,8 +75,14 @@ Cote code :
   choisit le palier (`Rebirth.KeepCashProduct(rebirths)`) et ouvre la fenetre d'achat. Le rebirth
   est fait a la reception du paiement (`ReceiptService` -> `onKeepCashReceipt` ->
   `DataService.GrantPurchaseOnce`) : PurchaseId note dans la sauvegarde, recu "donne" seulement
-  quand la sauvegarde qui le contient est ecrite. Le paiement est fait : le rebirth est donne meme si
-  le joueur n'a plus ses 10 etages au moment du recu (rare).
+  quand la sauvegarde qui le contient est ecrite.
+  - **Jeton Keep Cash (securite, 2026-11-21)** : le client peut ouvrir lui-meme la fenetre d'achat
+    d'un produit. Recu alors que le joueur a moins de 10 etages : PAS de rebirth, `KeepCashTokens + 1`
+    (message `Rebirth.Messages.KeepCashSaved`). "KeepCash" avec un jeton (memes verifications : 10
+    etages, pres de la machine) = rebirth en gardant l'argent tout de suite, sans fenetre d'achat.
+    Attribut joueur `KeepCashTokens` (nil = aucun), pas encore affiche par le menu.
+  - Palier moins cher achete directement (ex. 49 R$ a 25 rebirths) : accepte (seulement possible
+    avec un logiciel de triche, perte faible).
 - **Rebirth Master** (pass `Shop.Passes` "RebirthMaster", passId 0 = pas cree) : attribut joueur
   `RebirthMaster`. `KeptTrees[n]` = plus haut niveau d'arbre de l'etage n avant un rebirth (note
   pour tout le monde, a chaque rebirth). Avec le pass, un etage neuf (etage 1 du rebirth, ou etage
@@ -99,6 +105,7 @@ Cote code :
 | `Rebirths` | entier 0..`GameConfig.MaxRebirths` | 0 | RebirthService (existait deja) |
 | `KeptTrees` | liste d'entiers (niveau Tree par etage, sans trou, max 10 cases) | `{}` | RebirthService (ajoute le 2026-11-20) |
 | `PurchaseIds` | liste de chaines (50 derniers achats Robux appliques) | `{}` | DataService.GrantPurchaseOnce (ajoute le 2026-11-20, servira a tous les produits Robux) |
+| `KeepCashTokens` | entier 0..`GameConfig.MaxRebirths` | 0 | RebirthService (ajoute le 2026-11-21, Keep Cash paye sans rebirth possible) |
 
 Champs ajoutes sans migration (Reconcile les ajoute aux anciens profils, `sanitize` les nettoie) ;
 `SchemaVersion` reste 4. Le rebirth reecrit aussi `Money`, `Floors` et `TowerUpgrades`.

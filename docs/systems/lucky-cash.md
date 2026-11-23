@@ -1,7 +1,7 @@
 # Systeme : Lucky Cash (tas d'argent cache, a acheter en Robux)
 
 **Statut :** en cours (teste en playtest Studio PC a 1 joueur le 2026-11-20 ; produit Robux pas cree)
-**Derniere mise a jour :** 2026-11-21
+**Derniere mise a jour :** 2026-11-22
 
 ## Role
 
@@ -37,17 +37,17 @@ Cote joueur :
    l'ouvre toujours.
 3. Fenetre "Lucky Find!" : "WOW! You found a secret cash stash!", billets qui tanguent devant des
    rayons qui tournent, "+$12.5K", "Hidden on Floor N", "= 45 MIN of profit!" (vrai calcul : montant
-   / gains theoriques ; "SUPER DEAL!" si les gains sont 0), gros bouton vert [Robux] 29 qui pulse.
+   / gains theoriques ; "SUPER DEAL!" si les gains sont 0), gros bouton vert [Robux] qui pulse : **9 R$ tant que le joueur n'a que l'etage 1, puis 24 R$** (2026-11-22 ; 29 avant). Prix pris dans l'attribut joueur `LuckyCashPrice` (serveur).
    Son "WelcomeBack" a l'ouverture.
 4. Achat paye : gerbe de billets vers le HUD (CashController), la fenetre se ferme, la liasse
    disparait et reviendra au prochain tirage (6 a 10 min).
 
 Cote code :
 
-- Montant (serveur, `LuckyCash.Amount`) = 45 min des gains theoriques de toute la tour
-  (`CustomerService.GetIncomePerSecond`), **plafonne** a 0.4 x prix du prochain etage du joueur
-  (`Floors.Prices`), jamais sous $600 (`MinAmount` ; $1 500 avant les prix des etages / 2 du
-  2026-11-20). `MinAmount` $600 depuis l'etage 2 a $1.5K ; etage 1 : $600 (0.4 x $1.5K). Arrondi a 3 chiffres (le "+$12.5K" affiche = le montant donne).
+- Montant (serveur, `LuckyCash.Amount`) = 55 min des gains theoriques de toute la tour
+  (`CustomerService.GetIncomePerSecond`), **plafonne** a 0.5 x prix du prochain etage du joueur
+  (`Floors.Prices`), jamais sous $900 (`MinAmount`). Etage 1 : $900 (avant le 2026-11-22 : 45 min,
+  0.4, $600 -> $600 a l'etage 1 ; "un peu plus de cash"). Reste sous le prix du prochain etage. Arrondi a 3 chiffres (le "+$12.5K" affiche = le montant donne).
   Pose dans l'attribut joueur `LuckyCashAmount` toutes les `Gameplay.IncomeAttributeSeconds` (10 s).
 - Bouton -> `LuckyCashBuy` -> le serveur recalcule le montant, le note (`pending`, garde 10 min)
   puis ouvre la fenetre d'achat Roblox (`PurchasePrompt.Product`). productId 0 : "Robux purchases:
@@ -74,12 +74,12 @@ Rien de nouveau : `Money` et `PurchaseIds` (deja existants).
 
 ## Configuration
 
-`src/shared/Config/LuckyCash.luau` : `Price` (29, affiche), `ProductId` (0), `Minutes` (45),
-`FloorShare` (0.4), `MinAmount` (600), `Spot`, `TouchRadius`, `RearmRadius`,
+`src/shared/Config/LuckyCash.luau` : `Products` (2026-11-22 : `{ maxFloors = 1, price = 9, productId = 3734874589 }` "Lucky Cash (Floor 1)", puis `{ price = 24, productId = 3734031154 }` "Lucky Cash" ; `ProductFor(etages)` choisit ; le serveur ouvre le bon produit, enregistre les deux recus ; recu du produit 9 R$ sans montant note = montant calcule comme a l'etage 1), `PriceAttribute` (`LuckyCashPrice`), `Minutes` (55),
+`FloorShare` (0.5), `MinAmount` (900), `Spot`, `TouchRadius`, `RearmRadius`,
 `AutoOpenCooldownSeconds` (60), `PromptDistance`, `FirstSpawnSeconds` (120), `VisibleSeconds` (120),
 `SpawnMinSeconds` (360), `SpawnMaxSeconds` (600). Taille / vitesse de rotation : constantes en tete de
 `LuckyCashController` (`PILE_SCALE` 2, `SPIN_SPEED`, `HOVER`, `BOB`). **Prix et montants A VALIDER.**
-Comparaison : Mega Cash (99 R$) = 60 min ou 0.5 etage ; Lucky Cash (29 R$) = 45 min ou 0.4 etage
+Comparaison : Mega Cash (99 R$) = 60 min ou 0.5 etage ; Lucky Cash (24 R$) = 55 min ou 0.5 etage
 (~2.7x plus d'argent par Robux).
 
 ## Problemes connus / a faire
@@ -91,3 +91,6 @@ Comparaison : Mega Cash (99 R$) = 60 min ou 0.5 etage ; Lucky Cash (29 R$) = 45 
 - Pas teste : telephone (taille de la fenetre, bouton), 2 joueurs, etages 3+.
 - Rythme d'apparition (2 / 6-10 min) a valider en jeu : trop rare = personne ne la voit.
 - Le minuteur repart a chaque arrivee (cote client) : pas de memoire entre deux sessions.
+- 2026-11-22 : place du tas `Spot` (96, 80.5) -> (106, 80.2), "approche le plus vers l'escalier et le
+  mur" (bande du mur a x ~109, bloqueur de l'escalier a z ~78.6). Verifie avec un repere dans une copie
+  de l'etage (capture), pas avec le vrai tas.

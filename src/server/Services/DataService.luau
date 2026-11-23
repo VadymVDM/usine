@@ -20,6 +20,8 @@ local Fruits = require(Config:WaitForChild("Fruits"))
 local FloorsConfig = require(Config:WaitForChild("Floors"))
 local PlayerUpgrades = require(Config:WaitForChild("PlayerUpgrades"))
 local Shop = require(Config:WaitForChild("Shop"))
+local SetupConfig = require(Config:WaitForChild("Setup"))
+local TutorialConfig = require(Config:WaitForChild("Tutorial"))
 
 -- Premier fruit (toujours decouvert) : pris dans la Config, jamais ecrit en dur
 local FIRST_FRUIT_ID: string = Fruits.List[1].id
@@ -35,7 +37,7 @@ export type PlayerData = {
 	ClaimedFruits: { [string]: boolean }, -- recompenses de l'Index deja prises (IndexService)
 	LastLogout: number,
 	IntroSeen: boolean,
-	Settings: { [string]: boolean }, -- reglages du joueur (Music, Effects, LowQuality), SettingsService
+	Settings: { [string]: boolean | number }, -- reglages (Music, Effects = volumes 0..1 ; LowQuality), SettingsService
 	JuicesSold: number, -- jus vendus depuis toujours (LeaderboardService)
 	TimePlayed: number, -- secondes de jeu depuis toujours (LeaderboardService)
 	KeptTrees: { number }, -- niveau d'arbre le plus haut de chaque etage avant un rebirth (pass Rebirth Master, RebirthService)
@@ -47,7 +49,21 @@ export type PlayerData = {
 	-- RobuxShopService, 2026-11-21). Ex. { OfferStarter = true }. Champ ajoute sans migration :
 	-- absent des anciennes sauvegardes, sanitize le cree vide.
 	BoughtOffers: { [string]: boolean },
+	-- Passes recus en cadeau (cle de Shop.Passes -> true ; GiftService, 2026-11-23). Comptent comme
+	-- achetes (Lib/GamePass). Champ ajoute sans migration : sanitize le cree vide.
+	GiftedPasses: { [string]: boolean },
 	OfflineReward: OfflineReward, -- derniere offre de gains hors ligne (OfflineService)
+	-- Achats Robux "Keep Cash" payes alors que le rebirth n'etait pas possible (moins de 10 etages) :
+	-- utilises au prochain rebirth (RebirthService, 2026-11-21). Champ sans migration (Reconcile : 0).
+	KeepCashTokens: number,
+	-- Usine a construire (SetupService, SchemaVersion 6, 2026-11-21) : pads FREE de l'etage 1 deja
+	-- faits (0 = profil neuf, usine vide ; Config/Setup.Done = tout construit).
+	Setup: number,
+	-- Tutoriel (TutorialService, SchemaVersion 7, 2026-11-22) : etape faite (0 = debut, voir
+	-- Config/Tutorial.Phases ; Tutorial.Done = fini). Profils existants : Done (migration 6).
+	TutorialStep: number,
+	-- Premiere amelioration de vitesse gratuite deja prise (PlayerUpgradeService, SchemaVersion 7).
+	FreeSpeedUsed: boolean,
 }
 
 -- Gains hors ligne (OfflineService, SchemaVersion 5) : Claimed = argent deja donne (CLAIM, x2 ou
@@ -96,7 +112,12 @@ local TEMPLATE: PlayerData = {
 	PurchaseIds = {},
 	Boosts = {},
 	BoughtOffers = {},
+	GiftedPasses = {},
 	OfflineReward = { Amount = 0, Seconds = 0, Claimed = true, Doubled = true },
+	KeepCashTokens = 0,
+	Setup = 0, -- profil neuf : usine vide (les anciens profils passent a Done par la migration 5)
+	TutorialStep = 0, -- profil neuf : tutoriel au debut (anciens profils : fini, migration 6)
+	FreeSpeedUsed = false, -- profil neuf : 1re vitesse gratuite (anciens profils : deja prise, migration 6)
 }
 
 -- Nombre d'achats Robux retenus dans PurchaseIds (les plus recents)
@@ -115,6 +136,8 @@ local loadedCallbacks: { (Player, PlayerData) -> () } = {}
 local removingCallbacks: { (Player) -> () } = {}
 -- Joueurs dont la sauvegarde repart a zero a leur depart (panneau admin, AdminService)
 local resetOnLeave: { [Player]: boolean } = {}
+-- Joueurs dont la sauvegarde est remplacee par une copie a leur depart (tests Studio, DebugService)
+local replaceOnLeave: { [Player]: { [string]: any } } = {}
 
 local function isFiniteNumber(value: any): boolean
 	return type(value) == "number" and value == value and math.abs(value) ~= math.huge
@@ -189,6 +212,20 @@ local MIGRATIONS: { [number]: (PlayerData) -> () } = {
 	-- 4 -> 5 (2026-11-20, gains hors ligne) : champ OfflineReward ajoute. Reconcile l'a deja pose
 	-- (rien a prendre) ; LastLogout existait deja. Rien a convertir.
 	[4] = function(_data: PlayerData) end,
+	-- 5 -> 6 (2026-11-21, usine a construire) : Reconcile a pose Setup = 0 (profil neuf) ; un profil
+	-- existant a deja son usine : toutes les etapes sont faites (rien ne change pour lui).
+	[5] = function(data: PlayerData)
+		data.Setup = SetupConfig.Done
+	end,
+	-- 6 -> 7 (2026-11-22, tutoriel etape par etape) : Reconcile a pose TutorialStep = 0 et
+	-- FreeSpeedUsed = false. Un profil dont l'usine est deja construite n'a pas de tutoriel ni de
+	-- vitesse gratuite (rien ne change pour lui) ; une usine pas finie (profil du jour) : tuto au debut.
+	[6] = function(data: PlayerData)
+		if data.Setup >= SetupConfig.Done then
+			data.TutorialStep = TutorialConfig.Done
+			data.FreeSpeedUsed = true
+		end
+	end,
 }
 
 local function migrate(player: Player, data: PlayerData)
@@ -299,12 +336,23 @@ local function sanitize(player: Player, data: PlayerData)
 		end
 	end
 	data.ClaimedFruits = cleanClaimed
-	-- Reglages : seulement les cles connues, en booleens (valeur par defaut sinon)
+	-- Reglages : seulement les cles connues, du type de la valeur par defaut (sinon la defaut).
+	-- Volumes (nombre 0..1) : un ancien interrupteur (booleen, avant le 2026-11-23) devient 0 ou la defaut.
 	local settings: any = data.Settings
-	local cleanSettings: { [string]: boolean } = {}
+	local cleanSettings: { [string]: boolean | number } = {}
 	for key, default in GameConfig.DefaultSettings do
 		local value = if type(settings) == "table" then settings[key] else nil
-		cleanSettings[key] = if type(value) == "boolean" then value else default
+		if type(default) == "number" then
+			if type(value) == "number" and value == value then
+				cleanSettings[key] = math.clamp(value, 0, 1)
+			elseif value == false then
+				cleanSettings[key] = 0
+			else
+				cleanSettings[key] = default
+			end
+		else
+			cleanSettings[key] = if type(value) == "boolean" then value else default
+		end
 	end
 	data.Settings = cleanSettings
 	-- Statistiques des classements (LeaderboardService) : entiers >= 0
@@ -372,6 +420,21 @@ local function sanitize(player: Player, data: PlayerData)
 		end
 	end
 	data.BoughtOffers = cleanBought
+	-- Passes offerts : seulement des cles de passes connues, valeur true
+	local giftedRaw: any = raw.GiftedPasses
+	local cleanGifted: { [string]: boolean } = {}
+	local passKeys: { [string]: boolean } = {}
+	for _, pass in Shop.Passes do
+		passKeys[pass.key] = true
+	end
+	if type(giftedRaw) == "table" then
+		for key, value in giftedRaw do
+			if type(key) == "string" and passKeys[key] and value == true then
+				cleanGifted[key] = true
+			end
+		end
+	end
+	data.GiftedPasses = cleanGifted
 	-- Heure de depart : seconde entiere >= 0, jamais dans le futur (horloge d'un serveur en avance)
 	local logout: any = raw.LastLogout
 	data.LastLogout = if isFiniteNumber(logout) and logout > 0 then math.min(math.floor(logout), os.time()) else 0
@@ -389,6 +452,34 @@ local function sanitize(player: Player, data: PlayerData)
 	else
 		data.OfflineReward = { Amount = 0, Seconds = 0, Claimed = true, Doubled = true }
 	end
+	-- Jetons Keep Cash : entier 0..MaxRebirths (valeur abimee -> 0)
+	local tokens: any = raw.KeepCashTokens
+	data.KeepCashTokens = if isFiniteNumber(tokens) and tokens > 0
+		then math.min(math.floor(tokens), GameConfig.MaxRebirths)
+		else 0
+	-- Tutoriel : entier 0..Done (valeur abimee -> Done) ; vitesse gratuite : booleen (abime -> deja prise)
+	local tutorialStep: any = raw.TutorialStep
+	data.TutorialStep = if isFiniteNumber(tutorialStep)
+		then math.clamp(math.floor(tutorialStep), 0, TutorialConfig.Done)
+		else TutorialConfig.Done
+	if type(raw.FreeSpeedUsed) ~= "boolean" then
+		data.FreeSpeedUsed = true
+	end
+	-- Cinematique d'ouverture (IntroService) : booleen ; valeur abimee -> deja vue (jamais rejouee par erreur)
+	if type(raw.IntroSeen) ~= "boolean" then
+		data.IntroSeen = true
+	end
+	-- Usine a construire : entier 0..Done ; valeur abimee -> Done (jamais d'usine videe par erreur).
+	-- Plus d'un etage ou un rebirth : l'usine de l'etage 1 est forcement construite.
+	local setup: any = raw.Setup
+	if not isFiniteNumber(setup) then
+		setup = SetupConfig.Done
+	end
+	setup = math.max(0, math.min(math.floor(setup), SetupConfig.Done))
+	if #data.Floors > 1 or data.Rebirths > 0 then
+		setup = SetupConfig.Done
+	end
+	data.Setup = setup
 end
 
 local function runLoadedCallbacks(player: Player, data: PlayerData)
@@ -424,6 +515,15 @@ local function detachPlayer(player: Player): Profile?
 		local data = profile.Data :: any
 		table.clear(data)
 		for key, value in TEMPLATE :: any do
+			data[key] = deepCopy(value)
+		end
+	end
+	local replacement = replaceOnLeave[player]
+	if replacement then
+		replaceOnLeave[player] = nil
+		local data = profile.Data :: any
+		table.clear(data)
+		for key, value in replacement do
 			data[key] = deepCopy(value)
 		end
 	end
@@ -551,6 +651,7 @@ function DataService:Start()
 		loading[player] = nil
 		releasePlayer(player)
 		resetOnLeave[player] = nil
+		replaceOnLeave[player] = nil
 	end)
 	-- Joueurs deja presents avant la connexion (Studio).
 	for _, player in Players:GetPlayers() do
@@ -606,6 +707,16 @@ function DataService.ResetOnLeave(player: Player): boolean
 		return false
 	end
 	resetOnLeave[player] = true
+	return true
+end
+
+-- Tests Studio (DebugService, "Data RestoreBackup") : la sauvegarde est remplacee par `snapshot`
+-- au moment ou le joueur quitte (juste avant la derniere sauvegarde), comme ResetOnLeave.
+function DataService.ReplaceOnLeave(player: Player, snapshot: { [string]: any }): boolean
+	if profiles[player] == nil or type(snapshot) ~= "table" then
+		return false
+	end
+	replaceOnLeave[player] = deepCopy(snapshot)
 	return true
 end
 

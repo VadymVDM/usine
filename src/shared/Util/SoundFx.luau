@@ -10,10 +10,45 @@ local Sounds = require(script.Parent.Parent:WaitForChild("Config"):WaitForChild(
 
 local SoundFx = {}
 
--- Faux si le joueur a coupe les sons dans Settings (attribut pose par SettingsService).
-function SoundFx.IsEnabled(): boolean
+-- Volume choisi dans Settings (curseurs, 2026-11-23) : attribut "Setting<key>" pose par
+-- SettingsService, nombre 0..1 (ancien booleen false = 0). key = "Effects" (defaut) ou "Music".
+function SoundFx.Volume(key: string?): number
 	local player = Players.LocalPlayer
-	return player == nil or player:GetAttribute("SettingEffects") ~= false
+	local value = if player then player:GetAttribute("Setting" .. (key or "Effects")) else nil
+	if type(value) == "number" then
+		return math.clamp(value, 0, 1)
+	elseif value == false then
+		return 0
+	end
+	return 1
+end
+
+-- Faux si le joueur a mis les sons a 0 dans Settings.
+function SoundFx.IsEnabled(): boolean
+	return SoundFx.Volume() > 0
+end
+
+-- SoundGroup local dont le volume suit le curseur ("Effects" ou "Music") : tout son du jeu y est
+-- range (sound.SoundGroup = SoundFx.Group()), meme les boucles deja lancees suivent le curseur.
+local groups: { [string]: SoundGroup } = {}
+function SoundFx.Group(key: string?): SoundGroup
+	local name = key or "Effects"
+	local existing = groups[name]
+	if existing then
+		return existing
+	end
+	local group = Instance.new("SoundGroup")
+	group.Name = name .. "Volume"
+	group.Volume = SoundFx.Volume(name)
+	group.Parent = SoundService
+	groups[name] = group
+	local player = Players.LocalPlayer
+	if player then
+		player:GetAttributeChangedSignal("Setting" .. name):Connect(function()
+			group.Volume = SoundFx.Volume(name)
+		end)
+	end
+	return group
 end
 
 local rng = Random.new()
@@ -29,6 +64,7 @@ local function make(name: string, volumeScale: number?, pitchScale: number?): So
 	sound.Volume = def.volume * (volumeScale or 1)
 	local jitter = def.pitchJitter or 0
 	sound.PlaybackSpeed = ((def.pitch or 1) + rng:NextNumber(-jitter, jitter)) * (pitchScale or 1)
+	sound.SoundGroup = SoundFx.Group()
 	return sound
 end
 

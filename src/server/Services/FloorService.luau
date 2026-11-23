@@ -43,6 +43,7 @@ local BaseService = require(script.Parent.BaseService)
 local DataService = require(script.Parent.DataService)
 local MoneyService = require(script.Parent.MoneyService)
 local NotifyService = require(script.Parent.NotifyService)
+local TutorialService = require(script.Parent.TutorialService)
 
 local FloorService = {}
 
@@ -244,6 +245,9 @@ local function refreshAnnex(tower: Tower)
 		tower.rebirthSign.Text = if rebirthOpen then FloorsConfig.RebirthRoomOpenTitle else FloorsConfig.RebirthRoomTitle
 	end
 	tower.base:SetAttribute("FloorsOwned", if tower.player then owned else 0)
+	if tower.player then
+		TutorialService.OnFloorsOwned(tower.player, owned) -- etage 2 : tutoriel fini (2026-11-23)
+	end
 	refreshTowerBoard(tower)
 	-- Logo du proprietaire au-dessus de l'etage le plus haut (l'etage ferme a acheter compte),
 	-- avec son nombre de rebirths (rebirth : appele apres data.Rebirths + 1)
@@ -391,8 +395,12 @@ end
 local function spawnCFrame(floor: Model?): CFrame?
 	local markers = floor and floor:FindFirstChild("Markers")
 	local point = markers and markers:FindFirstChild("SpawnPoint")
-	if point and point:IsA("BasePart") then
-		return point.CFrame + Vector3.new(0, 3, 0)
+	if point and point:IsA("BasePart") and floor then
+		-- Regard bien droit vers l'interieur de l'usine (axe +Z du modele d'etage : la porte est
+		-- cote Z petit), quelle que soit la rotation de la piece SpawnPoint (tournee de 33 degres
+		-- dans le .rbxl : vue de travers apres la cinematique).
+		local rotation = floor:GetPivot().Rotation * CFrame.Angles(0, math.pi, 0)
+		return CFrame.new(point.Position + Vector3.new(0, 3, 0)) * rotation
 	end
 	return nil
 end

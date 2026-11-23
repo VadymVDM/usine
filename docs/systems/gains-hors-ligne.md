@@ -33,7 +33,9 @@ Code :
    derniere sauvegarde (pas de la session d'avant).
 2. `OfflineService` calcule l'offre UNE fois par session, quand le client dit "Ready" (apres
    `LoadingDone` : les attributs des passes Auto Sell / Billboard / Waiter Speed sont poses), ou au
-   recu x2, ou au depart :
+   recu x2, ou au depart, et au plus tard `Offline.ComputeDeadlineSeconds` (8 s) apres le chargement
+   (securite 2026-11-21 : un client qui retient "Ready" ne peut pas d'abord acheter des
+   ameliorations pour gonfler l'argent/s) :
    `montant = floor(GetIncomePerSecond x min(absence, 8 h) x 0.5)`.
    - `GetIncomePerSecond` = somme des etages **automatises** (Fruit Picker + Waiter +
      Operator 1), x rebirth et Billboard. Un etage pas automatise ne rapporte rien (voulu).

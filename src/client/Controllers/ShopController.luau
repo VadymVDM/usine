@@ -4,7 +4,7 @@
 -- Style du pack UI : bords carres, fond a motif + degrade 2 couleurs, liseret blanc, contour noir.
 -- Tout est en echelle (scale) + rapports fixes, pour rester centre sur PC, tablette et telephone.
 -- Les tailles de texte sont egalisees par groupe (titres, prix...) pour un rendu uniforme.
--- Les achats ne sont pas encore branches (ids a 0) : le clic affiche un avertissement.
+-- Achats : remote ShopBuy (RobuxShopService) ; bouton cadeau : GiftController (remote ShopGift).
 -- Doc : docs/systems/interface.md
 
 local Players = game:GetService("Players")
@@ -44,7 +44,7 @@ local lastFitSize: Vector2? = nil
 local strokeScale = 1 -- epaisseur des contours selon la hauteur de l'ecran
 local smallScreen = false
 local sectionTitles: { Frame } = {}
-local SECTION_TITLE_RATIO = 0.07 -- hauteur des titres de section / largeur de la boutique
+local SECTION_TITLE_RATIO = 0.06 -- hauteur des titres de section / largeur de la boutique
 
 -- Constructeurs de base ---------------------------------------------------------------------------
 
@@ -231,12 +231,18 @@ local function giftButton(parent: Instance, position: UDim2, size: UDim2): TextB
 end
 
 -- Achat : le serveur (RobuxShopService, remote ShopBuy) verifie, note le montant d'argent montre et
--- ouvre la fenetre d'achat Roblox ; id 0 (produit pas cree) ou cadeau : message "coming soon".
--- Cadeaux (choix du joueur + produit "Gift") : pas encore codes (docs/game-design.md).
+-- ouvre la fenetre d'achat Roblox ; id 0 (produit pas cree) : message "coming soon".
+-- Cadeau (bouton rose d'un pass, 2026-11-23) : fenetre de choix du joueur (GiftController), puis
+-- remote ShopGift (GiftService).
 local function onBuy(kind: string, key: string, _id: number, isGift: boolean)
+	if isGift then
+		local GiftController = require(script.Parent:WaitForChild("GiftController")) :: any
+		GiftController.Open(key)
+		return
+	end
 	local shopBuy = Remotes.WaitClientEvent("ShopBuy")
 	if shopBuy then
-		shopBuy:FireServer(kind, key, isGift)
+		shopBuy:FireServer(kind, key, false)
 	end
 end
 
@@ -249,7 +255,7 @@ local function grid(name: string, cellWidth: number, aspect: number): Frame
 	frame.LayoutOrder = nextOrder()
 	local layout = Instance.new("UIGridLayout")
 	layout.CellSize = UDim2.new(cellWidth, 0, 1, 0)
-	layout.CellPadding = UDim2.new(0.02, 0, 0, 14)
+	layout.CellPadding = UDim2.new(0.02, 0, 0, 8)
 	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	local ratio = Instance.new("UIAspectRatioConstraint")
@@ -313,8 +319,8 @@ end
 -- Sections ----------------------------------------------------------------------------------------
 
 local function buildBoosts()
-	sectionTitle("POTIONS")
-	local row = grid("Potions", 0.315, 0.95)
+	-- Pas de titre "POTIONS" : les potions sont en haut, le titre prenait de la place pour rien.
+	local row = grid("Potions", 0.315, 1.02)
 	for _, boost in Shop.Boosts do
 		local frame = card(row, boost.key, boost.color, boost.color2)
 		label(frame, boost.title, "PotionTitle", UDim2.fromScale(0.5, 0.04), UDim2.fromScale(0.9, 0.14))
@@ -332,7 +338,7 @@ end
 
 local function buildPasses()
 	sectionTitle("PASSES")
-	local row = grid("Passes", 0.315, 0.92)
+	local row = grid("Passes", 0.315, 0.98)
 	for _, pass in Shop.Passes do
 		local frame = card(row, pass.key, pass.color, pass.color2)
 		label(frame, pass.title, "PassTitle", UDim2.fromScale(0.5, 0.035), UDim2.fromScale(0.94, 0.15))
@@ -369,7 +375,7 @@ end
 
 local function buildCashPacks()
 	sectionTitle("CASH PACKS")
-	local row = grid("CashPacks", 0.475, 1.3)
+	local row = grid("CashPacks", 0.475, 1.4)
 	for _, pack in Shop.CashPacks do
 		local frame = card(row, pack.key, CASH_COLORS[1], CASH_COLORS[2])
 		label(frame, pack.title, "PackTitle", UDim2.fromScale(0.5, 0.05), UDim2.fromScale(0.9, 0.12))
@@ -480,7 +486,7 @@ function ShopController:Start()
 	strokeScale = math.clamp(viewportHeight / 700, 0.55, 1)
 
 	local padding = Instance.new("UIPadding")
-	padding.PaddingTop = UDim.new(0, 12)
+	padding.PaddingTop = UDim.new(0, 6)
 	padding.PaddingBottom = UDim.new(0, 20)
 	padding.Parent = scroll
 
@@ -510,6 +516,7 @@ function ShopController:Start()
 end
 
 -- Sections pour ScrollToSection : nom -> titre affiche (voir sectionTitle()).
+-- Potions : pas de titre, la section est tout en haut (ScrollToSection remonte juste en haut).
 local SECTION_TITLES = { Potions = "POTIONS", Passes = "PASSES", CashPacks = "CASH PACKS" }
 local scrollToken = 0
 

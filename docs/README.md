@@ -8,7 +8,7 @@ Lire `AGENTS.md` a la racine pour les regles de travail.
 |---|---|
 | [game-design.md](game-design.md) | Concept, boucle de jeu, progression, decisions |
 | [style.md](style.md) | Direction artistique (blocky, couleurs, panneaux, regles de construction) |
-| [first-session.md](first-session.md) | Cinematique d'ouverture + 30 premieres minutes (retention) |
+| [first-session.md](first-session.md) | Premiere minute (cinematique, usine a construire) + 30 premieres minutes (retention) |
 | [roadmap.md](roadmap.md) | Ce qui est fait, ce qui reste, decisions ouvertes, dette technique |
 | [references/](references/) | Captures de reference (style, boutique, ecran de retour) |
 | [prompts/](prompts/) | Prompts de demarrage des nouveaux chats (ex. phase 1 en ultracode) |
@@ -40,7 +40,11 @@ Un fichier par systeme dans `systems/`, a partir de [systems/_TEMPLATE.md](syste
 | Pads Robux Waiter Speed x10 (a cote de Take Juices) et Billboard (cour, 2X Sell Price) | [systems/pads-robux.md](systems/pads-robux.md) | en cours (teste en Studio le 2026-11-20 avec attributs ; passes pas crees) |
 | Lucky Cash (tas d'argent qui brille a chaque etage : E ou marcher dessus -> gros montant adapte a l'etage contre des Robux) | [systems/lucky-cash.md](systems/lucky-cash.md) | en cours (teste en Studio le 2026-11-20 ; produit Robux pas cree) |
 | Gains hors ligne (ecran Welcome Back : argent des etages automatises x temps absent, CLAIM, x2 Robux) | [systems/gains-hors-ligne.md](systems/gains-hors-ligne.md) | en cours (teste en Studio le 2026-11-20 ; produit x2 pas cree) |
+| Cadeaux de passes (bouton rose de la boutique, boite aux lettres DataStore) | [systems/cadeaux.md](systems/cadeaux.md) | en cours (recus simules en Studio le 2026-11-23 ; 2 joueurs et vrai achat pas testes) |
 | Achats Robux (boutique, offres limitees, boosts x2 sauvegardes, packs d'argent, passes 3X CASH / Drink Master / Greedy / Speed Master / VIP) | [systems/achats-robux.md](systems/achats-robux.md) | en cours (teste en Studio avec recus simules le 2026-11-20 ; produits pas crees) |
+| Usine a construire (profil neuf : usine vide, 4 pads FREE Plant tree / Build shelf / Build blender / Open shop, tout le reste revele au bon moment avec un pop) | [systems/usine-a-construire.md](systems/usine-a-construire.md) | fonctionne (playtest Studio PC le 2026-11-21 ; telephone et 2 joueurs pas testes) |
+| Cinematique d'ouverture (profil neuf : foret, arbre niveau 10, pelle, l'arbre niveau 1 dans les mains ; sans Skip) | [systems/cinematique.md](systems/cinematique.md) | fonctionne (playtest Studio PC le 2026-11-22 ; telephone et 2 joueurs pas testes) |
+| Tutoriel etape par etape (usine, Fruit Picker, Index, tour complet, vitesse FREE, Operator, ameliorations au hasard ; objectif en haut, ligne + fleches, etape sauvegardee) | [systems/tutoriel.md](systems/tutoriel.md) | fonctionne (parcours complet en playtest Studio PC le 2026-11-22 ; telephone et 2 joueurs pas testes) |
 | Rebirth (salle du Rebirth a l'etage 10, multiplicateur x2/x3..., keep cash en Robux, Rebirth Master) | [systems/rebirth.md](systems/rebirth.md) | en cours (code le 2026-11-20 ; produits Robux pas crees) |
 
 Statuts possibles : `a concevoir`, `en cours`, `fonctionne`, `a corriger`.

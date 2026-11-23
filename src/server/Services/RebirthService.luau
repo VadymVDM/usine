@@ -9,6 +9,9 @@
 --         palier du joueur et ouvre la fenetre d'achat (productId = 0 : "coming soon"). Le rebirth
 --         est fait seulement a la reception du paiement (ReceiptService -> DataService.GrantPurchaseOnce,
 --         un achat n'est jamais donne deux fois), sans payer le prix et en gardant l'argent.
+--         Recu alors que le joueur n'a pas les 10 etages (fenetre ouverte par le client lui-meme) :
+--         pas de rebirth, un jeton Data.KeepCashTokens est garde ; "KeepCash" avec un jeton = rebirth
+--         gratuit tout de suite (memes verifications). Attribut joueur "KeepCashTokens" (affichage).
 --   * Rebirth : niveaux d'arbre notes (KeptTrees, pour Rebirth Master), argent a 0 (sauf KeepCash),
 --     Rebirths + 1, fruits / jus portes vides (ProductionService.ClearCarried), tour remise a 1 etage
 --     et ascenseur a 0 (FloorService.ResetForRebirth), joueur ramene au depart.
@@ -22,6 +25,7 @@
 -- Doc : docs/systems/rebirth.md
 
 local MarketplaceService = game:GetService("MarketplaceService")
+local GamePass = require(script.Parent.Parent.Lib.GamePass)
 local PurchasePrompt = require(script.Parent.Parent.Lib.PurchasePrompt)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -49,6 +53,7 @@ local RebirthService = {}
 
 local REBIRTHS_ATTRIBUTE = "Rebirths" -- joueur : nombre de rebirths (lu par le client)
 local MASTER_ATTRIBUTE = "RebirthMaster" -- joueur : possede le pass Rebirth Master
+local TOKENS_ATTRIBUTE = "KeepCashTokens" -- joueur : Keep Cash deja payes (nil = aucun ; affichage seulement)
 
 local masterPassId = 0
 for _, pass in Shop.Passes do
@@ -100,6 +105,8 @@ local function syncPlayer(player: Player)
 		return
 	end
 	player:SetAttribute(REBIRTHS_ATTRIBUTE, RebirthService.GetRebirths(player))
+	local data = DataService.GetData(player)
+	player:SetAttribute(TOKENS_ATTRIBUTE, if data and data.KeepCashTokens > 0 then data.KeepCashTokens else nil)
 	MoneyService.SyncLeaderstats(player)
 	refreshTitle(player)
 end
@@ -183,6 +190,13 @@ local function onKeepCash(player: Player)
 	if data == nil then
 		return
 	end
+	-- Keep Cash deja paye (jeton) : rebirth tout de suite, sans nouvelle fenetre d'achat
+	if data.KeepCashTokens > 0 then
+		data.KeepCashTokens -= 1 -- performRebirth remet l'attribut a jour (syncPlayer)
+		CustomerService.CollectPile(player)
+		performRebirth(player, data, true)
+		return
+	end
 	local tier = Rebirth.KeepCashProduct(data.Rebirths)
 	if tier.productId <= 0 then
 		NotifyService.Notify(player, Rebirth.Messages.KeepCashSoon)
@@ -217,12 +231,25 @@ local function onKeepCashReceipt(receipt: ReceiptService.Receipt): boolean
 	while DataService.GetData(player) == nil and player.Parent == Players and os.clock() < deadline do
 		task.wait(0.25)
 	end
-	return DataService.GrantPurchaseOnce(player, receipt.PurchaseId, function(data: DataService.PlayerData): boolean
+	local saved = false
+	local granted = DataService.GrantPurchaseOnce(player, receipt.PurchaseId, function(data: DataService.PlayerData): boolean
+		-- Le client peut ouvrir lui-meme la fenetre d'achat (sans les 10 etages) : pas de rebirth
+		-- gratuit des conditions, l'achat devient un jeton garde pour le prochain rebirth.
+		if DataService.FloorsOwned(data) < Rebirth.RequiredFloors then
+			data.KeepCashTokens = math.min(data.KeepCashTokens + 1, GameConfig.MaxRebirths)
+			saved = true
+			return true
+		end
 		-- Le tas d'argent d'en bas est garde lui aussi (achat "keep your cash")
 		pcall(CustomerService.CollectPile, player)
 		performRebirth(player, data, true)
 		return true
 	end)
+	if saved then
+		syncPlayer(player)
+		NotifyService.Notify(player, string.format(Rebirth.Messages.KeepCashSaved, Rebirth.RequiredFloors))
+	end
+	return granted
 end
 
 ---------------------------------------------------------------------------------------------
@@ -238,8 +265,8 @@ local function checkMasterPass(player: Player)
 	if masterPassId <= 0 then
 		return
 	end
-	local ok, owns = pcall(MarketplaceService.UserOwnsGamePassAsync, MarketplaceService, player.UserId, masterPassId)
-	if ok and owns then
+	local owns = GamePass.Owns(player, masterPassId) -- jamais vrai pour le createur (Lib/GamePass)
+	if owns then
 		grantMaster(player)
 	end
 end
@@ -294,6 +321,12 @@ function RebirthService:Start()
 	FloorService.SetNewFloorLevels(newFloorLevels)
 	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player: Player, id: number, purchased: boolean)
 		if purchased and masterPassId > 0 and id == masterPassId then
+			grantMaster(player)
+		end
+	end)
+	-- Pass offert (GiftService) : meme effet qu'un achat
+	GamePass.OnGranted(function(player: Player, id: number)
+		if masterPassId > 0 and id == masterPassId then
 			grantMaster(player)
 		end
 	end)

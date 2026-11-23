@@ -284,6 +284,7 @@ local function ensureMotor(b: Blender): Sound?
 	end
 	local sound = Instance.new("Sound")
 	sound.Name = "BlenderMotorFx"
+	sound.SoundGroup = SoundFx.Group() -- curseur Sons (menu Settings)
 	sound.SoundId = def.id
 	sound.Looped = true
 	sound.Volume = 0

@@ -135,9 +135,11 @@ local function showRow(row: Row)
 	if row.button then
 		setButtonColors(row.button, if isCash then PackStyle.GREEN else PackStyle.PURPLE)
 	end
+	-- Premier achat de la vitesse gratuit (tutoriel ; le serveur decide : attribut joueur FreeSpeed)
+	local free = isCash and row.id == PlayerUpgrades.FreeFirstId and player:GetAttribute("FreeSpeed") == true
 	if row.cashLabel then
 		row.cashLabel.Visible = isCash
-		row.cashLabel.Text = if cashPrice then NumberFormat.Money(cashPrice) else ""
+		row.cashLabel.Text = if free then PlayerUpgrades.FreeText elseif cashPrice then NumberFormat.Money(cashPrice) else ""
 	end
 	if row.price then
 		row.price.Visible = not isMax and not isCash
@@ -145,6 +147,16 @@ local function showRow(row: Row)
 	if row.maxLabel then
 		row.maxLabel.Visible = isMax
 	end
+end
+
+-- Bouton d'achat d'une ligne (fleche du tutoriel, TutorialController)
+function UpgradeMenuController.GetBuyButton(id: string): GuiObject?
+	for _, row in rows do
+		if row.id == id then
+			return row.button
+		end
+	end
+	return nil
 end
 
 function UpgradeMenuController.Refresh()
@@ -634,6 +646,7 @@ function UpgradeMenuController:Start()
 			return
 		end
 		UpgradeMenuController.Refresh()
+		player:GetAttributeChangedSignal("FreeSpeed"):Connect(UpgradeMenuController.Refresh)
 		-- A chaque ouverture : liste en haut, valeurs a jour
 		if hud then
 			hud:GetAttributeChangedSignal("ActiveMenu"):Connect(function()

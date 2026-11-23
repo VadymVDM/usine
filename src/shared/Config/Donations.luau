@@ -12,14 +12,14 @@ local Donations = {}
 
 -- 8 boutons (2 colonnes x 4 lignes), du plus petit au plus grand.
 Donations.Amounts = table.freeze({
-	table.freeze({ robux = 5, productId = 0 }),
-	table.freeze({ robux = 10, productId = 0 }),
-	table.freeze({ robux = 25, productId = 0 }),
-	table.freeze({ robux = 50, productId = 0 }),
-	table.freeze({ robux = 100, productId = 0 }),
-	table.freeze({ robux = 500, productId = 0 }),
-	table.freeze({ robux = 1000, productId = 0 }),
-	table.freeze({ robux = 10000, productId = 0 }),
+	table.freeze({ robux = 5, productId = 3734031236 }),
+	table.freeze({ robux = 10, productId = 3734031243 }),
+	table.freeze({ robux = 25, productId = 3734031246 }),
+	table.freeze({ robux = 50, productId = 3734031251 }),
+	table.freeze({ robux = 100, productId = 3734031256 }),
+	table.freeze({ robux = 500, productId = 3734031263 }),
+	table.freeze({ robux = 1000, productId = 3734031268 }),
+	table.freeze({ robux = 10000, productId = 3734031277 }),
 }) :: { Amount }
 
 -- Sauvegarde (DataStore a part, pas dans le profil du joueur) :

@@ -1,7 +1,7 @@
 --!strict
 -- Comptoir, ventes et tas d'argent de chaque ETAGE (2026-11-20 : chaque etage a SA table a argent et
 -- SON pad Collect Cash ; les ventes d'un etage vont sur le tas de cet etage, il faut y aller pour
--- encaisser. Le pad Robux Auto Collect reste seulement a l'etage 1 et vaut pour toute la tour) :
+-- encaisser. Le pad Robux Auto Collect est sur chaque etage depuis le 2026-11-21 et vaut pour toute la tour) :
 --   * comptoir : se tenir sur le pad "Drop Juices" (Counter.JuiceDropPad, derriere le comptoir)
 --     = poser tous les jus portes. Pas de limite (2026-11-19) : on n'ameliore que la vitesse des
 --     clients. Au-dela de CounterCupLayersMax couches, les gobelets ne sont plus dessines (compteur seul) ;
@@ -27,6 +27,7 @@
 -- Doc : docs/systems/clients.md
 
 local MarketplaceService = game:GetService("MarketplaceService")
+local GamePass = require(script.Parent.Parent.Lib.GamePass)
 local PurchasePrompt = require(script.Parent.Parent.Lib.PurchasePrompt)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -56,6 +57,8 @@ local MoneyService = require(script.Parent.MoneyService)
 local NotifyService = require(script.Parent.NotifyService)
 local ProductionService = require(script.Parent.ProductionService)
 local LeaderboardService = require(script.Parent.LeaderboardService)
+-- Usine a construire (profil neuf) : comptoir, pads et clients seulement apres "Open shop" (etape 4)
+local SetupService = require(script.Parent.SetupService)
 
 local CustomerService = {}
 
@@ -92,6 +95,7 @@ type CounterState = {
 	cashLabel: BillboardGui?,
 	autoPad: Model?,
 	autoZone: BasePart?,
+	onAutoPad: boolean, -- le proprietaire est sur le pad Auto Collect de CET etage (achat a l'arrivee)
 	sales: { { t: number, amount: number } }, -- ventes recentes (argent / heure)
 	startedAt: number,
 	numbersPending: number, -- argent "en nombres" pas encore verse (fraction de $)
@@ -104,7 +108,6 @@ type CounterState = {
 local states: { [Model]: CounterState } = {}
 local AUTO_ATTRIBUTE = "AutoCollect"
 local INSTANT_ATTRIBUTE = "InstantSell"
-local onAutoPad: { [Player]: boolean } = {}
 local onJuicePad: { [Player]: boolean } = {}
 local feedbackEvent: RemoteEvent? = nil
 local worldFxEvent: RemoteEvent? = nil
@@ -262,6 +265,8 @@ local function refreshCash(state: CounterState)
 			bill:Destroy()
 		end
 	end
+	-- Montant du tas, lu par le client (TutorialController : fleche vers Collect Cash tant qu'il reste)
+	state.floor:SetAttribute("PileCash", state.cash)
 	local label = state.cashLabel
 	if label then
 		WorldLabel.SetVisible(label, state.cash > 0)
@@ -454,7 +459,16 @@ local function runSales(state: CounterState)
 		-- (l'ascenseur ne change plus la vitesse des clients depuis le 2026-11-20 : il augmente le prix, sellOne)
 		local seconds = getLevelValue(state.player, state.index, "CustomerSpeed")
 		local slots = math.clamp(math.floor(getLevelValue(state.player, state.index, "CustomerCount")), 1, Gameplay.SaleMaxSpots)
-		state.floor:SetAttribute("CustomerSlots", slots)
+		-- Boutique pas encore ouverte : aucun client (CustomerController n'en dessine pas)
+		local open = SetupService.Allows(state.floor, 4)
+		state.floor:SetAttribute("CustomerSlots", if open then slots else 0)
+		if state.label then
+			WorldLabel.SetVisible(state.label, open) -- pas de "x0" au-dessus du comptoir fantome
+		end
+		if not open then
+			task.wait(0.25)
+			continue
+		end
 		-- Achats Robux (Lib/Perks) : Speed Master et boost Speed = clients plus rapides ; Greedy
 		-- Customers = 2 jus par client
 		task.wait(math.max(seconds / Perks.CustomerSpeedMultiplier(state.player, true), 0.2))
@@ -612,16 +626,16 @@ local function checkContacts(state: CounterState)
 	local player = state.player
 	local root = PlayerCheck.GetRoot(player)
 	if root == nil then
-		onAutoPad[player] = nil
+		state.onAutoPad = false
 		onJuicePad[player] = nil
 		return
 	end
-	if DataService.GetData(player) == nil then
+	if DataService.GetData(player) == nil or not SetupService.Allows(state.floor, 4) then
 		return
 	end
 	local juiceZone = state.juiceZone
-	-- Un joueur a plusieurs etages : chaque etage ne touche le drapeau Auto Collect que s'il a ce
-	-- pad (sinon l'etage 2 effacerait "sur le pad" de l'etage 1 a chaque tour).
+	-- Pad Auto Collect sur chaque etage (2026-11-21) : drapeau "sur le pad" PAR ETAGE (state), sinon
+	-- l'etage 2 effacerait celui de l'etage 1 a chaque tour et la fenetre d'achat se rouvrirait.
 	local onJuice = juiceZone ~= nil and PlayerCheck.IsOver(juiceZone, root.Position)
 	if onJuice then
 		placeJuices(state)
@@ -634,10 +648,10 @@ local function checkContacts(state: CounterState)
 	local zone = state.autoZone
 	if zone then
 		local inside = PlayerCheck.IsOver(zone, root.Position)
-		if inside and not onAutoPad[player] then
+		if inside and not state.onAutoPad then
 			onAutoPadEnter(player, state)
 		end
-		onAutoPad[player] = inside or nil
+		state.onAutoPad = inside
 	end
 end
 
@@ -695,6 +709,7 @@ local function startFloor(player: Player, floor: Model, index: number)
 		cashLabel = nil,
 		autoPad = if autoPad and autoPad:IsA("Model") then autoPad else nil,
 		autoZone = if autoZone and autoZone:IsA("BasePart") then autoZone else nil,
+		onAutoPad = false,
 		sales = {},
 		startedAt = os.clock(),
 		numbersPending = 0,
@@ -738,6 +753,7 @@ local function stopFloor(floor: Model)
 	floor:SetAttribute("CounterJuices", 0)
 	floor:SetAttribute("CustomerSlots", 0)
 	floor:SetAttribute("IncomePerHour", 0)
+	floor:SetAttribute("PileCash", 0)
 	local incomeLabel = findIncomeLabel(floor)
 	if incomeLabel then
 		incomeLabel.Text = "$0"
@@ -748,8 +764,8 @@ local function checkPass(player: Player)
 	if autoCollectPass <= 0 then
 		return
 	end
-	local ok, owns = pcall(MarketplaceService.UserOwnsGamePassAsync, MarketplaceService, player.UserId, autoCollectPass)
-	if ok and owns and player.Parent == Players then
+	local owns = GamePass.Owns(player, autoCollectPass) -- jamais vrai pour le createur (Lib/GamePass)
+	if owns and player.Parent == Players then
 		player:SetAttribute(AUTO_ATTRIBUTE, true) -- onAutoCollectChanged fait le reste
 	end
 end
@@ -758,10 +774,11 @@ end
 -- Avec le pass, plus rien n'arrive sur les tas : on les encaisse tout de suite (avec l'effet de
 -- billets pour l'etage ou est le joueur).
 local function onAutoCollectChanged(player: Player)
-	local ground = FloorService.GetFloor(player, 1)
-	local groundState = ground and states[ground]
-	if groundState then
-		refreshAutoPad(groundState)
+	-- Etiquette "ACTIVE" / prix sur le pad de chaque etage du joueur (un pad par etage depuis le 2026-11-21)
+	for _, state in states do
+		if state.player == player then
+			refreshAutoPad(state)
+		end
 	end
 	if not ownsAutoCollect(player) then
 		return
@@ -788,6 +805,9 @@ local function onPadEnter(player: Player, padName: any)
 	if state == nil or state.player ~= player or root == nil or DataService.GetData(player) == nil then
 		return
 	end
+	if not SetupService.Allows(floor :: Model, 4) then
+		return
+	end
 	if not PlayerCheck.Cooldown(player, "PadEnter" .. padName, 0.15) then
 		return
 	end
@@ -812,7 +832,6 @@ end
 function CustomerService:Start()
 	FloorService.OnFloorStarted(startFloor)
 	FloorService.OnFloorStopped(function(player: Player, floor: Model)
-		onAutoPad[player] = nil
 		onJuicePad[player] = nil
 		stopFloor(floor)
 	end)
@@ -836,12 +855,17 @@ function CustomerService:Start()
 		task.spawn(watchPlayer, player)
 	end
 	Players.PlayerRemoving:Connect(function(player: Player)
-		onAutoPad[player] = nil
 		onJuicePad[player] = nil
 	end)
 	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player: Player, passId: number, purchased: boolean)
 		if purchased and passId == autoCollectPass and autoCollectPass > 0 and player.Parent == Players then
 			player:SetAttribute(AUTO_ATTRIBUTE, true) -- onAutoCollectChanged encaisse les tas
+		end
+	end)
+	-- Pass offert (GiftService) : meme effet qu'un achat
+	GamePass.OnGranted(function(player: Player, passId: number)
+		if passId == autoCollectPass and autoCollectPass > 0 and player.Parent == Players then
+			player:SetAttribute(AUTO_ATTRIBUTE, true)
 		end
 	end)
 

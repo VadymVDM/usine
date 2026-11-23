@@ -17,6 +17,9 @@
 --                     fruits portes, 2026-11-20) ;
 --   BlenderSign1..4 : suspendu au-dessus de chaque mixeur (Blender N, 5 niveaux), cache tant que
 --                     le mixeur est verrouille (attribut HideWhenLocked, LevelLookController).
+-- Depuis le 2026-11-21 (usine a construire) : Conveyor, Juice Table, Customers et Fruit Picker sont
+-- aussi HideWhenLocked : caches tant que leur etape FREE n'est pas faite (tuile Unbuilt, profil
+-- neuf) ou, pour Fruit Picker, tant que le Fruit Picker n'est pas embauche (tuiles Locked).
 -- (Avant : un seul panneau "Juice" avec Bigger Bowl, et des machines qu'on ne comprenait pas :
 -- Sprinkler, Lucky Fertilizer, Juice Cooler, Fast Register, Billboard.)
 -- Doc : docs/systems/ameliorations-employes.md
@@ -242,15 +245,15 @@ local function board(name: string, title: string, ids: { string }, cols: number,
 end
 
 -- Mur du fond (face interieure z = 135), a droite de la boite du tapis (x 23.4 -> 28.6) : vitesse du tapis
-board("ConveyorBoard", "Conveyor", { "ConveyorSpeed" }, 1, Vector3.new(15, 0.5, 134.7), Vector3.new(0, 0, -1), 3)
+board("ConveyorBoard", "Conveyor", { "ConveyorSpeed" }, 1, Vector3.new(15, 0.5, 134.7), Vector3.new(0, 0, -1), 3, { hideWhenLocked = true })
 -- Mur de droite vu de la route (face interieure x = 1), a cote de la table a jus : capacite de la table
-board("JuiceTableBoard", "Juice Table", { "JuiceLimit" }, 1, Vector3.new(1.3, 0.5, 78.5), Vector3.new(1, 0, 0), 3)
+board("JuiceTableBoard", "Juice Table", { "JuiceLimit" }, 1, Vector3.new(1.3, 0.5, 78.5), Vector3.new(1, 0, 0), 3, { hideWhenLocked = true })
 -- Facade (face interieure z = 15), entre le cadre de fenetre (x 18.5) et la fenetre du comptoir (x 47.5 -> 80) : clients
-board("SalesBoard", "Customers", { "CustomerSpeed", "CustomerCount" }, 2, Vector3.new(38.8, 0.5, 15.3), Vector3.new(0, 0, 1), 3)
+board("SalesBoard", "Customers", { "CustomerSpeed", "CustomerCount" }, 2, Vector3.new(38.8, 0.5, 15.3), Vector3.new(0, 0, 1), 3, { hideWhenLocked = true })
 -- Mur du fond (face interieure z = 135), partie pleine x 62 -> 76 (fenetres a gauche et a droite),
 -- derriere la zone du Fruit Picker : vitesse (haut) et fruits portes (bas) du Fruit Picker. Seul mur present a tous les etages
 -- pres de son pad (le cote de l'escalier change d'un etage a l'autre : voie A / B).
-board("PickerBoard", "Fruit Picker", { "PickerSpeed", "PickerCarry" }, 1, Vector3.new(67, 0.5, 134.7), Vector3.new(0, 0, -1), 3)
+board("PickerBoard", "Fruit Picker", { "PickerSpeed", "PickerCarry" }, 1, Vector3.new(67, 0.5, 134.7), Vector3.new(0, 0, -1), 3, { hideWhenLocked = true })
 -- Un panneau suspendu au-dessus de chaque mixeur (devant le bol, au-dessus du rebord a y 15)
 for n, x in { 12.5, 23, 33.5, 44 } do
 	board("BlenderSign" .. n, "", { "Blender" .. n }, 1, Vector3.new(x, 0.5, 90.3), Vector3.new(0, 0, -1), 14.8, {

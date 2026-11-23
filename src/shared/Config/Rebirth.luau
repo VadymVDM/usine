@@ -40,10 +40,10 @@ Rebirth.MultiplierPerRebirth = 1
 -- Le serveur choisit le palier d'apres le nombre de rebirths du joueur. productId = 0 tant que le
 -- produit n'est pas cree sur Roblox (bouton -> "coming soon"). Prix A VALIDER.
 Rebirth.KeepCashProducts = table.freeze({
-	table.freeze({ minRebirths = 0, price = 49, productId = 0 }),
-	table.freeze({ minRebirths = 3, price = 99, productId = 0 }),
-	table.freeze({ minRebirths = 10, price = 199, productId = 0 }),
-	table.freeze({ minRebirths = 25, price = 299, productId = 0 }),
+	table.freeze({ minRebirths = 0, price = 49, productId = 3734031157 }),
+	table.freeze({ minRebirths = 3, price = 99, productId = 3734031163 }),
+	table.freeze({ minRebirths = 10, price = 199, productId = 3734031169 }),
+	table.freeze({ minRebirths = 25, price = 299, productId = 3734031171 }),
 })
 
 Rebirth.RequestCooldown = 1 -- secondes entre deux demandes (remote RebirthRequest)
@@ -67,6 +67,8 @@ Rebirth.Messages = table.freeze({
 	Done = "Rebirth %d! Cash x%s forever!",
 	Others = "%s reached Rebirth %d!",
 	KeepCashSoon = "Robux purchases: coming soon!",
+	-- Achat Keep Cash recu alors que le rebirth n'est pas possible : garde pour le prochain (jeton)
+	KeepCashSaved = "Keep Cash saved! Reach Floor %d, then press Keep Cash for free.",
 })
 Rebirth.Texts = table.freeze({
 	Before = "Now:",

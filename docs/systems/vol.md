@@ -1,7 +1,7 @@
 # Systeme : Vol de boissons (pass Thief)
 
 **Statut :** en cours (seule la proposition d'achat est codee ; le vol lui-meme ne l'est pas)
-**Derniere mise a jour :** 2026-11-20
+**Derniere mise a jour :** 2026-11-23
 
 ## Role
 
@@ -13,7 +13,7 @@ boissons d'une autre base, la fenetre d'achat Roblox du pass s'ouvre directement
 | Fichier | Cote | Role |
 |---|---|---|
 | `src/server/Services/ThiefService.luau` | serveur | Detecte le joueur sur un pad a jus d'une autre base, ouvre la fenetre d'achat, pose l'attribut `Thief` |
-| `src/shared/Config/Shop.luau` | partage | Pass `Thief` : prix, `passId` (0 = pas cree sur Roblox) |
+| `src/shared/Config/Shop.luau` | partage | Pass `Thief` : prix, `passId` 2097082802 (cree sur Roblox) |
 | `src/shared/Config/Gameplay.luau` | partage | `ThiefPromptCooldown`, message `ThiefOwned` |
 
 ## Fonctionnement
@@ -40,10 +40,11 @@ Aucune : Roblox garde le pass.
 ## Configuration
 
 - `Gameplay.ThiefPromptCooldown` (8 s), `Gameplay.Messages.ThiefOwned`.
-- `Shop.Passes` cle `Thief` : `passId` a remplir une fois le pass cree sur Roblox.
+- `Shop.Passes` cle `Thief` : `passId` 2097082802 (verifie le 2026-11-23 : "Thief", 149 R$, en vente).
 
 ## Problemes connus / a faire
 
-- `passId = 0` : la vraie fenetre Roblox n'apparaitra qu'une fois le pass cree et son id mis dans `Shop.luau`.
 - Le vol lui-meme (prendre les jus d'un autre, garde-fous de `docs/game-design.md`) n'est pas code.
-- Pas teste a 2 joueurs dans Studio.
+- Pas teste a 2 joueurs dans Studio (seul cas qui ouvre la fenetre : il faut la base vivante d'un
+  autre joueur ; test MCP a 1 joueur impossible). A faire : Test > Clients and Servers, 2 joueurs.
+- Le createur n'a jamais le pass (Lib/GamePass) : il voit donc toujours la fenetre d'achat.

@@ -1,7 +1,7 @@
 # Systeme : Sauvegarde des joueurs
 
 **Statut :** fonctionne (quitter / revenir teste en Studio avec le vrai DataStore le 2026-11-19 ; 2 serveurs non testes)
-**Derniere mise a jour :** 2026-11-20 (SchemaVersion 5 : gains hors ligne)
+**Derniere mise a jour :** 2026-11-22 (SchemaVersion 7 : `TutorialStep`, `FreeSpeedUsed`)
 
 ## Role
 
@@ -70,14 +70,17 @@ Aucun.
 | `ClaimedFruits` | { [FruitId]: true } | {} | IndexService (recompenses CLAIM de l'Index prises ; seulement des fruits decouverts, 2026-11-20) |
 | `PlayerUpgrades` | { WalkSpeed, FruitCarry, JuiceCarry: number } | tous a 1 | PlayerUpgradeService (menu Upgrade ; entiers 1..maxLevel, cles connues seulement ; ajoute le 2026-11-20 sans migration, pose par Reconcile ; garde au rebirth) |
 | `LastLogout` | number (os.time, entier, jamais dans le futur) | 0 | DataService : mis a `os.time()` a CHAQUE sauvegarde (`OnSave`, depuis le 2026-11-20) et a la derniere ; la valeur lue au chargement est gardee (`DataService.GetPreviousLogout`) pour les gains hors ligne |
-| `IntroSeen` | boolean | false | (phase 2) |
-| `Settings` | { Music, Effects, LowQuality : boolean } | Music true, Effects true, LowQuality false (`GameConfig.DefaultSettings`) | SettingsService (ajoute le 2026-11-19 soir ; `Reconcile` l'ajoute aux anciens profils, `sanitize` ne garde que ces 3 cles en booleens) |
+| `TutorialStep` | number | 0 | etape du tutoriel (TutorialService, SchemaVersion 7 ; anciens profils : 10 = fini ; voir `tutoriel.md`) |
+| `FreeSpeedUsed` | boolean | false | 1re vitesse gratuite deja prise (PlayerUpgradeService, SchemaVersion 7 ; anciens profils : vrai) |
+| `IntroSeen` | boolean | false | cinematique d'ouverture deja vue (IntroService, 2026-11-22 ; valeur abimee -> true ; voir `cinematique.md`) |
+| `Settings` | { Music, Effects : number 0..1 ; LowQuality : boolean } | Music 1, Effects 1, LowQuality false (`GameConfig.DefaultSettings`) | SettingsService (ajoute le 2026-11-19 soir ; `Reconcile` l'ajoute aux anciens profils, `sanitize` ne garde que ces 3 cles, du type de la defaut). 2026-11-23 : Music / Effects deviennent des volumes ; ancien `true` -> 1, ancien `false` -> 0 |
 | `JuicesSold` | number (entier >= 0) | 0 | LeaderboardService (jus vendus depuis toujours, ajoute le 2026-11-20, `classements.md`) |
 | `TimePlayed` | number (secondes, entier >= 0 au chargement) | 0 | LeaderboardService (temps de jeu, ajoute le 2026-11-20) |
 | `KeptTrees` | liste d'entiers (niveau Tree le plus haut de chaque etage avant un rebirth), sans trou, 0 a `MaxFloors` cases, bornes entre depart et max de l'arbre | `{}` | RebirthService (pass Rebirth Master ; ajoute le 2026-11-20 sans migration) |
 | `OfflineReward` | { Amount (entier 0..MaxMoney), Seconds, Claimed, Doubled } | { 0, 0, true, true } (rien a prendre) | OfflineService (`systems/gains-hors-ligne.md`) ; ajoute le 2026-11-20 (SchemaVersion 5) |
 | `PurchaseIds` | liste de chaines : les 50 derniers achats Robux appliques (le plus recent en premier) | `{}` | `DataService.GrantPurchaseOnce` (ajoute le 2026-11-20 sans migration ; premier utilisateur : "Rebirth & keep your cash") |
 | `Boosts` | `{ [stat]: { ["x<mult>"]: secondes } }` : temps restant des boosts Robux (Money, Luck, Speed) | `{}` | `RobuxShopService` (ajoute le 2026-11-20 sans migration ; voir `achats-robux.md`) |
+| `Setup` | entier 0..4 : pads FREE de l'etage 1 deja faits (usine a construire) ; abime -> 4 ; plus d'un etage ou rebirth -> 4 | 0 (profil neuf) ; migration 5 -> 6 : 4 pour les anciens profils | `SetupService` (`systems/usine-a-construire.md`, 2026-11-21) |
 | `BoughtOffers` | `{ [cle d'offre]: true }` : offres uniques (`oneTime`) deja achetees, ex. `OfferStarter` ; sanitize ne garde que des cles d'offres connues | `{}` | `RobuxShopService` (ajoute le 2026-11-21 sans migration) |
 
 Le niveau de l'arbre (`Tree`) est dans les `Upgrades` de chaque etage (meme mecanisme d'achat).
@@ -127,6 +130,10 @@ apres `Reconcile`, avant `sanitize`).
   d'argent cree). Teste en Studio sur le profil de l'utilisateur (Presser 1 -> Operator1 1).
 
 ## Autres DataStores (hors profil du joueur)
+
+- `DebugBackups` (Studio seulement, cle `player_<UserId>`) : copie JSON du profil faite par
+  `Debug Data Backup` avant un test "profil neuf" ; remise au depart par `Data RestoreBackup`
+  (`DataService.ReplaceOnLeave`).
 
 - `Donations_v1` (cle `u<UserId>`) et l'OrderedDataStore `DonationRanking_v1` : dons en Robux,
   ecrits seulement par `DonationService` (UpdateAsync, voir `systems/dons.md`). Pas touches par le

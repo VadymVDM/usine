@@ -15,7 +15,7 @@ contrairement aux ameliorations des machines (`ameliorations-employes.md`, une s
 | Fichier | Cote | Role |
 |---|---|---|
 | `src/shared/Config/PlayerUpgrades.luau` | partage | Liste des 3 ameliorations, effets, prix Robux, productId, messages |
-| `src/server/Services/PlayerUpgradeService.luau` | serveur | Demande d'achat (remote) -> fenetre Robux, recu (ReceiptService), seul a ecrire `Data.PlayerUpgrades`, vitesse du Humanoid, attributs |
+| `src/server/Services/PlayerUpgradeService.luau` | serveur | Demande d'achat (remote) -> fenetre Robux, recu (ReceiptService), seul a ecrire `Data.PlayerUpgrades`, vitesse du Humanoid, attributs ; premier achat de vitesse gratuit une fois (2026-11-22, tutoriel : `Data.FreeSpeedUsed`, attribut `FreeSpeed`, "FREE" dans le menu) |
 | `src/server/Services/ProductionService.luau` | serveur | Lit les capacites (`PlayerUpgradeService.GetValue`) au lieu de `Gameplay.CarryCapacity` / `JuiceCarryCapacity` |
 | `src/client/Controllers/UpgradeMenuController.luau` | client | Affiche le bouton UPGRADE du HUD et remplit le menu |
 | `src/gui/HUD.rbxm` / `src/gui/ShopGUI.rbxm` | client | Bouton `Canvas.Buttons.UpgradeButton` et menu `MenuFrames.Upgrade` du pack (inchanges, caches/remplis par code) |

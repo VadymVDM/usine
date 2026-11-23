@@ -1,4 +1,4 @@
-# Premiere session : cinematique + 30 premieres minutes
+# Premiere session : premiere minute + 30 premieres minutes
 
 
 > **A reecrire (tour d'etages, 2026-11-20)** : ce deroule date d'avant la tour. Ce qui change : chaque
@@ -24,23 +24,23 @@
 - **Pas de popup d'achat pendant les 5 premieres minutes** (on donne d'abord, on vend apres).
 - Garder les effets speciaux pour les grands moments (sinon plus rien n'impressionne).
 
-## La cinematique d'ouverture
+## La premiere minute (validee et codee le 2026-11-22)
 
-L'utilisateur voulait ~15 s. **Recommandation : 8-10 s, une seule fois (premiere visite), passable
-a tout moment** (bouton "Skip" + toucher l'ecran). Raison : les donnees des skills montrent que les
-joueurs quittent si on leur prend le controle trop longtemps au debut. Si les stats montrent que
-les joueurs regardent jusqu'au bout, on pourra l'allonger.
+Remplace l'ancien plan (arbre de vitrine, survol des stands, logo), perime depuis l'usine a construire.
+Detail : `systems/cinematique.md` et `systems/usine-a-construire.md`.
 
-| Temps | Image | But |
-|---|---|---|
-| 0-2 s | Gros plan sur un arbre geant de vitrine (pas celui du joueur). Il tremble, un **fruit legendaire dore** tombe au ralenti, rayons de lumiere, "NEW FRUIT!" | Montrer le reve (le jackpot) tout de suite |
-| 2-5 s | La camera survole la route et les 6 stands ; on voit des clients qui achetent, des billets qui volent | Montrer le jeu vivant et le but (stands qui gagnent de l'argent) |
-| 5-8 s | La camera plonge vers la base du joueur ; le **logo du jeu** apparait avec un son ; le petit arbre du joueur fait tomber **3 pommes** qui rebondissent | "Ca, c'est a toi" |
-| 8-9 s | La camera se place derriere le joueur, le controle revient | Le joueur agit tout de suite |
-| 9 s+ | **Fleche 3D sur les pommes** + chemin lumineux au sol | Premiere action evidente, sans texte |
+| Temps | Ce qui se passe |
+|---|---|
+| 0-2.6 s | Cinematique (une fois, profil neuf, **pas de Skip** depuis le 2026-11-22) : son personnage marche dans une foret calme, oiseaux |
+| 2.6-7.4 s | Il s'arrete net : il voit DE LOIN l'arbre niveau 10 de l'etage 1 qui scintille, "Wow!" bras en l'air, il court jusqu'a lui |
+| 7.4-11.4 s | Il leve la tete (arbre immense), reflechit ("?"), voit la pelle plantee ("!"), l'arrache du sol |
+| 11.4-18.6 s | 3 coups de pelle (la terre va sur le tas), l'arbre tombe (fruits qui roulent), devient l'arbre niveau 1 qui vole dans ses mains ; il le brandit au-dessus de sa tete |
+| 18.6-20 s | Fondu blanc : il est dans son usine vide, l'arbre en main, il a la main |
+| 20 s+ | Tutoriel etape par etape (`systems/tutoriel.md`) : Plant the tree (marcher sur le pad) -> Pick up the fruits -> Build the shelf -> Drop the fruits -> Build the blender -> Blend the fruits -> Take the juices -> Open the shop -> Sell the juices -> Collect your cash |
 
-Technique : camera scriptee (`roblox-camera`), petite musique "jingle", rien du HUD pendant la
-cinematique, drapeau `IntroSeen` dans la sauvegarde. Sans sauvegarde chargee, ne pas la rejouer en boucle.
+Regles gardees : intro courte (~20 s, sans Skip : demande utilisateur du 2026-11-22), une seule chose a faire a la fois, pas de texte
+(5 mots max), un succes a chaque etape. `IntroSeen` dans la sauvegarde ; sans sauvegarde chargee,
+pas d'intro.
 
 ## Les 30 premieres minutes (quelque chose de nouveau a chaque palier)
 
@@ -71,12 +71,12 @@ bouton qui brille ou le prochain mur), **la surprise des fruits rares** (aleatoi
 
 ## A coder pour cette premiere session
 
-- Cinematique (camera + effets) avec "Skip", jouee une fois.
+- ~~Cinematique avec "Skip", jouee une fois~~ : fait le 2026-11-22 (`systems/cinematique.md`).
 - Systeme de guidage : file de chevrons lumineux du joueur a la cible (Beam, voir `game-design.md`)
   + fleche 3D + objet qui brille (Highlight),
   pilote par une liste d'etapes declenchees par l'etat du joueur.
 - Tutoriel en etapes (machine a etats), qui reprend a la bonne etape apres une deconnexion.
 - Gains acceleres pendant les premieres minutes (les joueurs ne le remarquent pas ensuite).
-- Fruits garantis au debut : 3 pommes au depart, Orange garantie au Luck niv. 2.
+- Fruits garantis au debut : 5 pommes a l'arbre plante (`Setup.FirstApples`), Orange garantie au Luck niv. 2.
 - Annonces "NEW FRUIT!" et pastilles sur Index.
 - Mesure (`roblox-analytics`) : un entonnoir par etape du tutoriel pour voir ou les joueurs partent.

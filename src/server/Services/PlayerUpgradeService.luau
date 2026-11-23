@@ -10,6 +10,8 @@
 -- Effets : Humanoid.WalkSpeed a chaque apparition du personnage et apres un achat ; capacites lues
 -- par ProductionService (PlayerUpgradeService.GetValue), attributs InvMax / HandMax remis a jour ici.
 -- Boost route : sur la route et les trottoirs (Workspace.Map.Road), vitesse x Gameplay.RoadSpeedMultiplier (boucle serveur).
+-- Premier achat de PlayerUpgrades.FreeFirstId (vitesse) gratuit une fois (tutoriel, 2026-11-22) :
+-- Data.FreeSpeedUsed, attribut joueur "FreeSpeed" (vrai tant qu'il reste a prendre).
 -- Vitesse finale plafonnee a Gameplay.MaxWalkSpeed. (Le pass "Waiter Speed x10" n'accelere plus le
 -- joueur depuis le 2026-11-20 : il accelere le Waiter, WorkerService.)
 -- Doc : docs/systems/ameliorations-joueur.md
@@ -122,6 +124,8 @@ local function sync(player: Player)
 	for _, upgrade in PlayerUpgrades.List do
 		player:SetAttribute(PlayerUpgrades.AttributePrefix .. upgrade.id, PlayerUpgradeService.GetLevel(player, upgrade.id))
 	end
+	local data = DataService.GetData(player)
+	player:SetAttribute("FreeSpeed", data ~= nil and data.FreeSpeedUsed ~= true)
 	player:SetAttribute("InvMax", PlayerUpgradeService.GetValue(player, "FruitCarry"))
 	player:SetAttribute("HandMax", PlayerUpgradeService.GetValue(player, "JuiceCarry"))
 	applyWalkSpeed(player, player.Character)
@@ -159,6 +163,13 @@ local function onBuy(player: Player, id: any)
 		return
 	end
 	local cashPrice = PlayerUpgrades.GetCashPrice(id, level)
+	-- Gratuit une fois (tutoriel) : decide ici, garde dans la sauvegarde
+	if id == PlayerUpgrades.FreeFirstId and cashPrice and data.FreeSpeedUsed ~= true then
+		data.FreeSpeedUsed = true
+		data.PlayerUpgrades[id] = level + 1
+		sync(player)
+		return
+	end
 	if cashPrice then
 		if not MoneyService.TrySpend(player, cashPrice, "PlayerUpgrade:" .. id) then
 			NotifyService.Notify(player, PlayerUpgrades.Messages.NotEnoughMoney, true)

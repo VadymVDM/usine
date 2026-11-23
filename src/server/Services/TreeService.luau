@@ -23,7 +23,10 @@
 -- Ramassage EN MARCHANT DESSUS (2026-11-19, avant : prompt E "Pick up" sur chaque fruit) :
 -- ProductionService teste la position du joueur et appelle TakeNear.
 -- Le Fruit Picker (WorkerService) utilise FindNearest / TakeFruit.
--- Doc : docs/systems/chaine-production.md, docs/systems/fruits.md
+-- Usine a construire (2026-11-21, SetupService) : etage 1 d'un profil neuf, tant que le pad FREE
+-- "Plant tree" n'est pas fait : pas d'arbre (cache, Lib/Ghost), aucun fruit. Au pad : arbre normal
+-- + Tree.PlantStamp +1 (SetupController le fait pousser), puis Setup.FirstApples pommes tombent.
+-- Doc : docs/systems/chaine-production.md, docs/systems/fruits.md, docs/systems/usine-a-construire.md
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -44,6 +47,9 @@ local UpgradeService = require(script.Parent.UpgradeService)
 local IndexService = require(script.Parent.IndexService)
 local Remotes = require(Shared:WaitForChild("Network"):WaitForChild("Remotes"))
 local TreeBuilder = require(script.Parent.Parent.Lib.TreeBuilder)
+local Ghost = require(script.Parent.Parent.Lib.Ghost)
+local SetupService = require(script.Parent.SetupService)
+local SetupConfig = require(Config:WaitForChild("Setup"))
 
 local TreeService = {}
 
@@ -117,6 +123,10 @@ local function setTreeModel(floor: Model, index: number, level: number): TreeBui
 		old:Destroy()
 	end
 	body.Parent = tree
+	-- Pas encore plante (usine a construire) : pas d'arbre du tout (ni fantome)
+	if not SetupService.Allows(floor, 1) then
+		Ghost.SetMode(Ghost.Capture(body), "Hidden")
+	end
 	local anchor = tree:FindFirstChild("TreeLabelAnchor")
 	if anchor and anchor:IsA("BasePart") then
 		anchor.CFrame = root.CFrame * CFrame.new(0, metrics.labelHeight, 0)
@@ -264,7 +274,7 @@ local function runTree(state: TreeState)
 			pcall(updateStage, state)
 			-- Lot 5 : l'arbre ne fait tomber des fruits que sur l'etage ou est le joueur (les autres
 			-- etages produisent en nombres : Lib/FloorIncome)
-			if FloorService.IsLive(state.floor) then
+			if FloorService.IsLive(state.floor) and SetupService.Allows(state.floor, 1) then
 				local ok, err = pcall(dropOne, state)
 				if not ok then
 					warn(`[TreeService] Erreur de chute ({state.floor:GetFullName()}) : {err}`)
@@ -287,8 +297,11 @@ local function stopTree(floor: Model)
 	-- Les modeles sont dans le Dynamic de l'etage, vide (ou l'etage detruit) juste apres.
 	table.clear(state.fruits)
 	table.clear(state.falling)
-	-- Base libre (l'etage 1 reste) : on remet la jeune pousse
-	if state.shownLevel ~= 1 and floor.Parent ~= nil then
+	-- Base libre (l'etage 1 reste) : on remet la jeune pousse (normale, plus en fantome)
+	local tree = floor:FindFirstChild("Tree")
+	local body = tree and tree:FindFirstChild("Body")
+	local ghost = body ~= nil and body:GetAttribute("SetupHidden") == true
+	if (state.shownLevel ~= 1 or ghost) and floor.Parent ~= nil then
 		setTreeModel(floor, state.index, 1)
 	end
 end
@@ -350,7 +363,8 @@ local function startTree(player: Player, floor: Model, index: number)
 
 	-- Premiere visite : quelques pommes (premier fruit de la Config) deja au sol de l'etage 1
 	-- (une seule fois par session, meme si la base est rendue puis redonnee)
-	if index == 1 and DataService.IsFirstVisit(player) and not applesGiven[player] then
+	-- (profil neuf : pas encore plante -> les pommes tombent au pad "Plant tree", plantTree)
+	if index == 1 and DataService.IsFirstVisit(player) and not applesGiven[player] and SetupService.Allows(floor, 1) then
 		applesGiven[player] = true
 		local firstId = Fruits.List[1].id
 		for _ = 1, math.min(Gameplay.FirstVisitApples, Gameplay.MaxGroundFruits) do
@@ -361,12 +375,50 @@ local function startTree(player: Player, floor: Model, index: number)
 	state.thread = task.spawn(runTree, state)
 end
 
+-- Pad FREE "Plant tree" fait : l'arbre redevient normal et pousse (client), puis les pommes tombent.
+local function plantTree(player: Player, floor: Model)
+	local state = states[floor]
+	if state == nil or state.player ~= player then
+		return
+	end
+	local level = getLevel(player, state.index) or 1
+	state.shownLevel = level
+	state.metrics = setTreeModel(floor, state.index, level)
+	local tree = floor:FindFirstChild("Tree")
+	if tree then
+		local stamp = tree:GetAttribute("PlantStamp")
+		tree:SetAttribute("PlantStamp", (if type(stamp) == "number" then stamp else 0) + 1)
+	end
+	applesGiven[player] = true
+	local firstId = Fruits.List[1].id
+	for i = 1, SetupConfig.FirstApples do
+		task.delay(SetupConfig.TreeGrowSeconds + (i - 1) * SetupConfig.AppleStagger, function()
+			if states[floor] == state and state.active and state.count < Gameplay.MaxGroundFruits then
+				spawnFruit(state, firstId, true)
+				updateLabel(state)
+			end
+		end)
+	end
+end
+
 function TreeService:Init()
 	feedbackEvent = Remotes.GetServerEvent("Feedback")
 end
 
 function TreeService:Start()
 	FloorService.OnFloorStarted(startTree)
+	SetupService.OnStepDone(function(player: Player, step: number, floor: Model)
+		local tree = floor:FindFirstChild("Tree")
+		local body = tree and tree:FindFirstChild("Body")
+		local ghost = body ~= nil and body:GetAttribute("SetupHidden") == true
+		local state = states[floor]
+		if step >= 1 and ghost then
+			plantTree(player, floor)
+		elseif step < 1 and not ghost and state then
+			-- (tests : retour en arriere) l'arbre redevient a planter
+			state.metrics = setTreeModel(floor, state.index, state.shownLevel)
+		end
+	end)
 	FloorService.OnFloorStopped(function(_player: Player, floor: Model)
 		stopTree(floor)
 	end)

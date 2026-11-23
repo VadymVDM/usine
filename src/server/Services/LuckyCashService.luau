@@ -30,25 +30,42 @@ local ReceiptService = require(script.Parent.ReceiptService)
 
 local LuckyCashService = {}
 
-type Pending = { amount: number, at: number }
+-- Prix selon les etages (2026-11-22) : LuckyCash.ProductFor ; attribut joueur LuckyCashPrice.
+type Pending = { amount: number, at: number, productId: number }
 local pending: { [Player]: Pending } = {}
 local feedbackEvent: RemoteEvent? = nil
 
--- Montant offert maintenant (nil si la sauvegarde n'est pas chargee).
-function LuckyCashService.GetAmount(player: Player): number?
+-- Montant offert maintenant (nil si la sauvegarde n'est pas chargee). `maxFloors` : compter au plus
+-- X etages (recu du produit "etage 1" sans montant note : jamais le montant d'un etage plus haut).
+function LuckyCashService.GetAmount(player: Player, maxFloors: number?): number?
 	local data = DataService.GetData(player)
 	if data == nil then
 		return nil
 	end
 	local ok, income = pcall(CustomerService.GetIncomePerSecond, player)
 	local perSecond = if ok and type(income) == "number" then income else 0
-	return LuckyCash.Amount(perSecond, DataService.FloorsOwned(data))
+	local floors = DataService.FloorsOwned(data)
+	if maxFloors then
+		floors = math.min(floors, maxFloors)
+	end
+	return LuckyCash.Amount(perSecond, floors)
+end
+
+-- Produit (et donc prix) du joueur maintenant. nil si la sauvegarde n'est pas chargee.
+local function currentProduct(player: Player)
+	local data = DataService.GetData(player)
+	if data == nil then
+		return nil
+	end
+	return LuckyCash.ProductFor(DataService.FloorsOwned(data))
 end
 
 local function refresh(player: Player): number?
 	local amount = LuckyCashService.GetAmount(player)
-	if amount and player.Parent == Players then
+	local product = currentProduct(player)
+	if amount and product and player.Parent == Players then
 		player:SetAttribute(LuckyCash.AmountAttribute, amount)
+		player:SetAttribute(LuckyCash.PriceAttribute, product.price)
 	end
 	return amount
 end
@@ -58,27 +75,32 @@ local function onBuy(player: Player)
 		return
 	end
 	local amount = refresh(player)
-	if amount == nil then
+	local product = currentProduct(player)
+	if amount == nil or product == nil then
 		return
 	end
-	pending[player] = { amount = amount, at = os.clock() }
-	if LuckyCash.ProductId <= 0 then
+	pending[player] = { amount = amount, at = os.clock(), productId = product.productId }
+	if product.productId <= 0 then
 		NotifyService.Notify(player, LuckyCash.Messages.ComingSoon)
 		return
 	end
-	PurchasePrompt.Product(player, LuckyCash.ProductId)
+	PurchasePrompt.Product(player, product.productId)
 end
 
 -- Donne l'argent d'un achat (recu ou test). true = ecrit (ou deja donne pour ce PurchaseId).
-local function grant(player: Player, purchaseId: string): boolean
+-- `maxFloors` : plafond d'etages du produit paye (nil = aucun).
+local function grant(player: Player, purchaseId: string, productId: number?, maxFloors: number?): boolean
 	local deadline = os.clock() + LuckyCash.ReceiptWaitSeconds
 	while DataService.GetData(player) == nil and player.Parent == Players and os.clock() < deadline do
 		task.wait(0.25)
 	end
 	local entry = pending[player]
-	local amount = if entry and os.clock() - entry.at <= LuckyCash.PendingSeconds
+	-- Montant note au clic, seulement s'il correspond au produit paye (sinon : recalcule, plafonne).
+	local amount = if entry
+			and os.clock() - entry.at <= LuckyCash.PendingSeconds
+			and (productId == nil or entry.productId == productId)
 		then entry.amount
-		else LuckyCashService.GetAmount(player)
+		else LuckyCashService.GetAmount(player, maxFloors)
 	if amount == nil then
 		return false
 	end
@@ -109,7 +131,13 @@ local function receiptHandler(receipt: ReceiptService.Receipt): boolean
 	if player == nil then
 		return false -- joueur parti : Roblox redonnera le recu
 	end
-	return grant(player, receipt.PurchaseId)
+	local maxFloors: number? = nil
+	for _, product in LuckyCash.Products do
+		if product.productId == receipt.ProductId then
+			maxFloors = product.maxFloors
+		end
+	end
+	return grant(player, receipt.PurchaseId, receipt.ProductId, maxFloors)
 end
 
 -- Test Studio (DebugService) : simule un achat paye.
@@ -119,8 +147,10 @@ end
 
 function LuckyCashService:Init()
 	Remotes.GetServerEvent("LuckyCashBuy")
-	if LuckyCash.ProductId > 0 then
-		ReceiptService.Register(LuckyCash.ProductId, receiptHandler)
+	for _, product in LuckyCash.Products do
+		if product.productId > 0 then
+			ReceiptService.Register(product.productId, receiptHandler)
+		end
 	end
 end
 

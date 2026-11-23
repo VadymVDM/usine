@@ -113,10 +113,8 @@ local counter = Instance.new("Folder")
 counter.Name = "Counter"
 -- Tour d'etages : un tas d'argent PAR ETAGE (2026-11-20, demande : "a chaque etage, un truc pour
 -- recuperer l'argent, comme au premier") : table a argent et pad Collect Cash sur tous les etages.
--- Seul le pad Robux Auto Collect est dans OnlyGround (retire des etages 2+ au clonage, FloorAssembly).
-local onlyGround = Instance.new("Folder")
-onlyGround.Name = "OnlyGround"
-onlyGround.Parent = counter
+-- Pad Robux Auto Collect aussi sur tous les etages depuis le 2026-11-21 (avant : OnlyGround, etage 1
+-- seulement ; demande : "les pads payants du premier etage, la aux prochains etages aussi").
 
 -- ===== COMPTOIR dans la fenetre de la facade (x 32..64, mur a z 14..15) =====
 local stall = Instance.new("Model")
@@ -255,7 +253,7 @@ do
 	RobuxPad.Style(instant, "Instant Sell", 199)
 	instant.Parent = counter
 end
-pad.Parent = onlyGround
+pad.Parent = counter
 
 -- ===== PANNEAU "MONEY / HOUR" au-dessus du comptoir (2026-11-19 soir) =====
 -- Sur le mur au-dessus de la fenetre, cote interieur (final x 54 -> 74, y 11.8 -> 16.6). Le texte

@@ -32,6 +32,7 @@ local GameConfig = require(Config:WaitForChild("GameConfig"))
 local Remotes = require(Shared:WaitForChild("Network"):WaitForChild("Remotes"))
 local NumberFormat = require(Shared:WaitForChild("Util"):WaitForChild("NumberFormat"))
 
+local GamePass = require(script.Parent.Parent.Lib.GamePass)
 local PlayerCheck = require(script.Parent.Parent.Lib.PlayerCheck)
 local PurchasePrompt = require(script.Parent.Parent.Lib.PurchasePrompt)
 local NameTag = require(script.Parent.Parent.Lib.NameTag)
@@ -107,12 +108,18 @@ for _, offer in offerList do
 	local rewards: { Reward } = {}
 	for _, reward in offer.rewards do
 		assert(reward.kind ~= "Boost" or KNOWN_STATS[reward.stat], `Shop : stat de boost inconnue dans {offer.key}`)
+		-- Un paquet d'argent sans minimum vaudrait $0 pour un joueur sans gains recents ("+$0").
+		assert(
+			reward.kind ~= "Cash" or (reward.minAmount or 0) > 0 or (reward.minFloorShare or 0) > 0,
+			`Shop : recompense Cash sans minAmount ni minFloorShare dans {offer.key}`
+		)
 		table.insert(rewards, {
 			kind = reward.kind,
 			stat = reward.stat,
 			mult = reward.mult,
 			minutes = reward.minutes,
 			floorShare = reward.floorShare,
+			minFloorShare = reward.minFloorShare,
 			minAmount = reward.minAmount,
 		})
 	end
@@ -136,6 +143,8 @@ end
 
 local pending: { [Player]: { [string]: Pending } } = {}
 local lastEnd: { [Player]: { [string]: number } } = {}
+-- Boost gratuit (Shop.FreeBoost) : secondes de jeu avant le prochain, par joueur (session seulement).
+local freeBoostIn: { [Player]: number } = {}
 local feedbackEvent: RemoteEvent? = nil
 
 ---------------------------------------------------------------------------------------------
@@ -175,7 +184,9 @@ local function cashAmount(player: Player, reward: Reward): number?
 		amount = math.max(amount, reward.minFloorShare * price)
 	end
 	amount = math.max(amount, reward.minAmount or 0)
-	return math.clamp(math.floor(amount), 0, GameConfig.MaxMoney)
+	-- Jamais $0 (filet de securite, la config impose deja un minimum) : 1 % du prochain etage.
+	amount = math.max(amount, price * 0.01, 1)
+	return math.clamp(math.floor(amount), 1, GameConfig.MaxMoney)
 end
 
 -- Montants des recompenses d'argent d'un produit (index de la recompense -> $). nil si pas charge.
@@ -292,6 +303,26 @@ local function tickBoosts(player: Player, data: DataService.PlayerData, dt: numb
 	publishBoosts(player, data)
 end
 
+-- Boost gratuit : le compte a rebours ne tourne pas pendant la cinematique d'ouverture (attribut
+-- "IntroPending", IntroService) : pour un profil neuf il demarre avec le tuto. Pas de yield.
+local function tickFreeBoost(player: Player, data: DataService.PlayerData, dt: number)
+	local left = freeBoostIn[player]
+	if left == nil or player:GetAttribute("IntroPending") == true then
+		return
+	end
+	left -= dt
+	if left > 0 then
+		freeBoostIn[player] = left
+		return
+	end
+	local free = Shop.FreeBoost
+	addBoost(data, free.stat, free.mult, free.minutes * 60)
+	publishBoosts(player, data)
+	freeBoostIn[player] = free.minutes * 60 + free.gapSeconds
+	local name = Shop.StatNames[free.stat] or free.stat
+	NotifyService.Notify(player, string.format(MESSAGES.FreeBoostOn, name, free.mult, free.minutes))
+end
+
 ---------------------------------------------------------------------------------------------
 -- Offres uniques achetees : attribut joueur "Bought_<cle>" = true (OffersController ne les propose plus).
 local function publishBoughtOffers(player: Player, data: DataService.PlayerData)
@@ -400,8 +431,8 @@ end
 local function checkPasses(player: Player)
 	for key, passId in servicePasses do
 		if passId > 0 then
-			local ok, owns = pcall(MarketplaceService.UserOwnsGamePassAsync, MarketplaceService, player.UserId, passId)
-			if ok and owns then
+			local owns = GamePass.Owns(player, passId) -- jamais vrai pour le createur (Lib/GamePass)
+			if owns then
 				setPass(player, key, true)
 			end
 		end
@@ -419,7 +450,8 @@ local function onShopBuy(player: Player, kind: any, key: any, isGift: any)
 		return
 	end
 	if isGift == true then
-		NotifyService.Notify(player, MESSAGES.GiftSoon)
+		-- Ancien client : les cadeaux passent par le remote ShopGift (GiftService) et un choix de joueur
+		NotifyService.Notify(player, MESSAGES.GiftPickPlayer)
 		return
 	end
 	if kind == "Pass" then
@@ -427,7 +459,9 @@ local function onShopBuy(player: Player, kind: any, key: any, isGift: any)
 		if passId == nil then
 			return
 		end
-		if player:GetAttribute(key) == true then
+		local data = DataService.GetData(player)
+		local gifted = data ~= nil and data.GiftedPasses[key] == true
+		if player:GetAttribute(key) == true or gifted then
 			NotifyService.Notify(player, MESSAGES.AlreadyOwned)
 		elseif passId <= 0 then
 			NotifyService.Notify(player, MESSAGES.ComingSoon)
@@ -528,6 +562,16 @@ function RobuxShopService.DebugClearBoosts(player: Player): any
 	return true
 end
 
+-- Avance le prochain boost gratuit a dans `seconds` s (0 = a la prochaine seconde). Renvoie l'ancien delai.
+function RobuxShopService.DebugFreeBoost(player: Player, seconds: number?): any
+	local old = freeBoostIn[player]
+	if old == nil then
+		return false
+	end
+	freeBoostIn[player] = seconds or 0
+	return old
+end
+
 ---------------------------------------------------------------------------------------------
 
 function RobuxShopService:Init()
@@ -544,6 +588,7 @@ function RobuxShopService:Start()
 		publishBoosts(player, data)
 		publishBoughtOffers(player, data)
 		refreshCashAttributes(player)
+		freeBoostIn[player] = Shop.FreeBoost.firstDelaySeconds
 	end)
 	Players.PlayerAdded:Connect(checkPasses)
 	for _, player in Players:GetPlayers() do
@@ -552,17 +597,26 @@ function RobuxShopService:Start()
 	Players.PlayerRemoving:Connect(function(player)
 		pending[player] = nil
 		lastEnd[player] = nil
+		freeBoostIn[player] = nil
 	end)
-	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player: Player, id: number, purchased: boolean)
-		if not purchased then
-			return
-		end
+	local function onPassGranted(player: Player, id: number, notify: boolean)
 		for key, passId in servicePasses do
 			if passId > 0 and id == passId then
 				setPass(player, key, true)
-				NotifyService.Notify(player, string.format(MESSAGES.PassOn, passTitles[key] or key))
+				if notify then
+					NotifyService.Notify(player, string.format(MESSAGES.PassOn, passTitles[key] or key))
+				end
 			end
 		end
+	end
+	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player: Player, id: number, purchased: boolean)
+		if purchased then
+			onPassGranted(player, id, true)
+		end
+	end)
+	-- Pass offert (GiftService : cadeau recu ou sauvegarde chargee) : meme effet, message par GiftService
+	GamePass.OnGranted(function(player: Player, id: number)
+		onPassGranted(player, id, false)
 	end)
 
 	-- Temps des boosts (seulement pendant le jeu, sauvegarde chargee)
@@ -579,6 +633,10 @@ function RobuxShopService:Start()
 					local ok, err = pcall(tickBoosts, player, data, dt)
 					if not ok then
 						warn(`[RobuxShopService] boosts : {err}`)
+					end
+					local okFree, errFree = pcall(tickFreeBoost, player, data, dt)
+					if not okFree then
+						warn(`[RobuxShopService] boost gratuit : {errFree}`)
 					end
 				end
 			end

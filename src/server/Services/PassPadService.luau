@@ -22,10 +22,13 @@ local Shop = require(Config:WaitForChild("Shop"))
 local Upgrades = require(Config:WaitForChild("Upgrades"))
 local RobuxPad = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Util"):WaitForChild("RobuxPad"))
 
+local GamePass = require(script.Parent.Parent.Lib.GamePass)
 local PlayerCheck = require(script.Parent.Parent.Lib.PlayerCheck)
 local PurchasePrompt = require(script.Parent.Parent.Lib.PurchasePrompt)
 local FloorService = require(script.Parent.FloorService)
 local NotifyService = require(script.Parent.NotifyService)
+-- Usine a construire (profil neuf) : pads Robux caches et inactifs avant "Open shop" (etape 4)
+local SetupService = require(script.Parent.SetupService)
 
 local PassPadService = {}
 
@@ -104,8 +107,8 @@ end
 local function checkPasses(player: Player)
 	for _, def in PADS do
 		if def.passId > 0 then
-			local ok, owns = pcall(MarketplaceService.UserOwnsGamePassAsync, MarketplaceService, player.UserId, def.passId)
-			if ok and owns then
+			local owns = GamePass.Owns(player, def.passId) -- jamais vrai pour le createur (Lib/GamePass)
+			if owns then
 				grant(player, def.key)
 			end
 		end
@@ -145,7 +148,7 @@ local function checkContact(player: Player)
 				if zone and zone:IsA("BasePart") and PlayerCheck.IsOver(zone, root.Position) then
 					inside = true
 					local level = if def.gate then floor:GetAttribute(def.gate) else 1
-					gated = type(level) ~= "number" or level < 1
+					gated = type(level) ~= "number" or level < 1 or not SetupService.Allows(floor, 4)
 				end
 				index += 1
 			end
@@ -196,6 +199,14 @@ function PassPadService:Start()
 		if not purchased then
 			return
 		end
+		for _, def in PADS do
+			if def.passId > 0 and id == def.passId then
+				grant(player, def.key)
+			end
+		end
+	end)
+	-- Pass offert (GiftService) : meme effet qu'un achat
+	GamePass.OnGranted(function(player: Player, id: number)
 		for _, def in PADS do
 			if def.passId > 0 and id == def.passId then
 				grant(player, def.key)

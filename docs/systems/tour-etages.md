@@ -113,8 +113,11 @@ pour recuperer l'argent comme au premier ; il faut y aller et marcher sur le pad
   table x 82 -> 92, pad x 83.5 -> 90.5, z 24.5 -> 31.5). Les ventes d'un etage (dessinees ou "en
   nombres" quand le joueur n'y est pas) vont sur le tas de CET etage.
 - Pour encaisser, il faut aller sur l'etage et marcher sur son pad (panneau Floors = teleport).
-- Le pad Robux **Auto Collect** reste seulement a l'etage 1 mais vaut pour toute la tour : avec le
-  pass, l'argent de tous les etages va directement au joueur. A l'achat, tous les tas sont encaisses.
+- Le pad Robux **Auto Collect** est sur chaque etage (depuis le 2026-11-21, avant : etage 1
+  seulement) et vaut pour toute la tour : avec le pass, l'argent de tous les etages (ventes dessinees
+  et "en nombres") va directement au joueur. A l'achat, tous les tas sont encaisses.
+- Pads payants par etage : Auto Collect, Instant Sell, Waiter Speed x10 sur tous les etages ;
+  Billboard seulement a l'etage 1 (dans la cour, choix de l'utilisateur le 2026-11-21).
 - Rebirth : `CustomerService.CollectPile` encaisse les tas de tous les etages avant le calcul.
 - Avant (decision du matin du 2026-11-20) : un seul tas, a l'etage 1, pour toute la tour.
 
@@ -182,8 +185,8 @@ L'annexe (x -46 -> 0) n'existe qu'au rez-de-chaussee : la tour ne monte que sur 
   l'escalier qui monte), `HoleA` / `HoleB` (trou d'arrivee, n >= 2), `SolidA` / `SolidB` (voie sans
   trou : dalle pleine), `Open` / `Closed`.
   - `Building.Walls.OnlyGround` / `OnlyUpper` : mur x 0 avec les portes de l'annexe / avec des fenetres.
-  - `Counter.OnlyGround` : pad `AutoCollectPad` (depuis le 2026-11-20 au soir, table a argent et
-    `CashPad` sont directement dans `Counter`, sur tous les etages).
+  - (`Counter.OnlyGround` retire le 2026-11-21 : le pad `AutoCollectPad` est maintenant sur tous les
+    etages, comme la table a argent, `CashPad` et `InstantSellPad`.)
   - `Machines.OnlyGround` : pad Robux `Billboard` de la cour (2026-11-20, `pads-robux.md`).
   - `Markers.OnlyGround.CustomerEntry` (trottoir) / `Markers.OnlyUpper.CustomerEntry` (sortie de
     l'ascenseur sur le balcon).

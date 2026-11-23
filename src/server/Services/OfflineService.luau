@@ -7,7 +7,8 @@
 -- L'offre est sauvegardee (Data.OfflineReward) : un CLAIM ou un achat x2 n'est donne qu'une fois,
 -- meme si le recu Robux arrive plus tard. Calculee une fois par session, au plus tard :
 --   * quand le client a fini de charger (remote OfflineEarnings "Ready") ;
---   * a la reception d'un recu x2 ; au depart du joueur.
+--   * a la reception d'un recu x2 ; au depart du joueur ;
+--   * au plus tard Offline.ComputeDeadlineSeconds apres le chargement (le client ne choisit pas le moment).
 -- Pas reclamee au depart (ecran ferme, joueur parti) : l'argent est donne quand meme (rien de perdu).
 -- Remote OfflineEarnings (client -> serveur : "Ready" | "Claim" | "Double" ; serveur -> client :
 -- "Show" (secondes, montant) | "Claimed"). Le client n'envoie jamais de montant.
@@ -223,6 +224,8 @@ function OfflineService:Start()
 				computed = false,
 			}
 		end
+		-- Le client ne choisit pas le moment du calcul (voir Offline.ComputeDeadlineSeconds)
+		task.delay(Offline.ComputeDeadlineSeconds, ensureOffer, player)
 	end)
 	-- Avant la derniere sauvegarde : offre pas reclamee = donnee quand meme
 	DataService.OnPlayerRemoving(function(player: Player)

@@ -41,6 +41,20 @@ local Sounds: { [string]: SoundDef } = {
 	-- Interface
 	TileClick = { id = "rbxassetid://10128760939", volume = 1, pitchJitter = 0.04 }, -- "RBLX UI Click" (meme son que les boutons des menus) : appui sur une tuile de panneau (BoardFxController)
 	Notify = { id = "rbxassetid://3623733749", volume = 1 }, -- petit "tap" doux (message en haut de l'ecran)
+	-- Cinematique d'ouverture (IntroController, 2026-11-22 ; Creator Store, ProSoundEffects, gratuits)
+	IntroBirds = { id = "rbxassetid://9112831327", volume = 1 }, -- "Morning Birds 2 (SFX)", en boucle pendant l'intro
+	IntroDig = { id = "rbxassetid://9114083260", volume = 1, pitchJitter = 0.06 }, -- "Dirt Dig Dirt Throws From Shovel 1" (1.0 s)
+	IntroTreeFall = { id = "rbxassetid://9113466920", volume = 1 }, -- "Board Drops Wood Impacts Wobble 3" (2.2 s)
+	-- Ajouts du 2026-11-23 ("plus de bruitages dans la cinematique"), verifies charges dans Studio
+	IntroStepL = { id = "rbxassetid://106672010112184", volume = 1, pitchJitter = 0.08 }, -- "walk_grass_left" (0.52 s)
+	IntroStepR = { id = "rbxassetid://82667401006591", volume = 1, pitchJitter = 0.08 }, -- "walk_grass_right" (0.52 s)
+	IntroJump = { id = "rbxasset://sounds/action_jump.mp3", volume = 1, pitchJitter = 0.05 }, -- saut Roblox (0.34 s)
+	IntroLand = { id = "rbxasset://sounds/action_jump_land.mp3", volume = 1, pitchJitter = 0.08 }, -- atterrissage Roblox (0.26 s)
+	IntroWhoosh = { id = "rbxassetid://9126229267", volume = 1, pitchJitter = 0.08 }, -- "Whoosh By Fast Airy Swooshing" (0.6 s, ProSoundEffects)
+	IntroRise = { id = "rbxassetid://9125807267", volume = 1 }, -- "Rising Whoosh Swooshing In" (1.3 s, ProSoundEffects)
+	IntroSkid = { id = "rbxassetid://9114518395", volume = 1 }, -- "Foliage Movement 5" (2.1 s) : il freine dans l'herbe
+	IntroTreeCrack = { id = "rbxassetid://9126240449", volume = 1 }, -- "Wood Crack Thick Splintering Creaking 2" (3.4 s)
+	IntroLeaves = { id = "rbxassetid://9114518260", volume = 1 }, -- "Foliage Movement 2" (2.5 s) : feuillage qui s'ecrase
 	WelcomeBack = { id = "rbxassetid://122766504688172", volume = 1 }, -- ding de recompense (gains hors ligne)
 }
 
