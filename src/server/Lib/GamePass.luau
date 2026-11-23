@@ -10,6 +10,7 @@
 -- (Rebirth Master), ThiefService, GiftService. Doc : docs/systems/achats-robux.md, docs/systems/cadeaux.md
 
 local MarketplaceService = game:GetService("MarketplaceService")
+local Players = game:GetService("Players")
 
 local GamePass = {}
 
@@ -17,6 +18,12 @@ type GrantedCallback = (player: Player, passId: number) -> ()
 
 local giftedCheck: ((player: Player, passId: number) -> boolean)? = nil
 local grantedCallbacks: { GrantedCallback } = {}
+local purchasedCallbacks: { GrantedCallback } = {}
+-- Passes deja confirmes par Roblox (par joueur) : evite de redemander, et un "oui" ne se perd pas.
+local confirmed: { [Player]: { [number]: boolean } } = {}
+
+-- Essais de UserOwnsGamePassAsync quand Roblox ne repond pas (attente 1 s, 2 s, 4 s).
+local OWNS_RETRY_WAITS = { 1, 2, 4 }
 
 -- Createur du jeu (jeu a un utilisateur ; meme regle que AdminService.isAdmin).
 function GamePass.IsCreator(player: Player): boolean
@@ -35,8 +42,28 @@ function GamePass.Owns(player: Player, passId: number): boolean
 	if GamePass.IsCreator(player) then
 		return false
 	end
-	local ok, owns = pcall(MarketplaceService.UserOwnsGamePassAsync, MarketplaceService, player.UserId, passId)
-	return ok and owns == true
+	local cache = confirmed[player]
+	if cache and cache[passId] then
+		return true
+	end
+	for attempt = 1, #OWNS_RETRY_WAITS + 1 do
+		local ok, owns = pcall(MarketplaceService.UserOwnsGamePassAsync, MarketplaceService, player.UserId, passId)
+		if ok then
+			if owns == true and player.Parent == Players then
+				local list = confirmed[player] or {}
+				list[passId] = true
+				confirmed[player] = list
+			end
+			return owns == true
+		end
+		local wait = OWNS_RETRY_WAITS[attempt]
+		if wait == nil or player.Parent ~= Players then
+			break
+		end
+		task.wait(wait)
+	end
+	warn(`[GamePass] UserOwnsGamePassAsync en echec pour {player.UserId} / {passId}`)
+	return false
 end
 
 -- GiftService (Init) : fonction qui dit si le pass a ete offert au joueur (sauvegarde).
@@ -55,5 +82,31 @@ function GamePass.FireGranted(player: Player, passId: number)
 		task.spawn(callback, player, passId)
 	end
 end
+
+-- Achat dans la fenetre Roblox (PromptGamePassPurchaseFinished). Le signal "purchased" vient de
+-- la fenetre du CLIENT (falsifiable) : on redemande toujours a Roblox (Owns) avant d'appeler les
+-- services. Seul endroit du serveur branche sur PromptGamePassPurchaseFinished (relecture du
+-- 2026-11-23). Le createur n'est jamais confirme (Owns), comme avant.
+function GamePass.OnPurchased(callback: GrantedCallback)
+	table.insert(purchasedCallbacks, callback)
+end
+
+MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player: Player, passId: number, purchased: boolean)
+	if not purchased or typeof(passId) ~= "number" or passId <= 0 then
+		return
+	end
+	task.spawn(function()
+		if not GamePass.Owns(player, passId) or player.Parent ~= Players then
+			return
+		end
+		for _, callback in purchasedCallbacks do
+			task.spawn(callback, player, passId)
+		end
+	end)
+end)
+
+Players.PlayerRemoving:Connect(function(player: Player)
+	confirmed[player] = nil
+end)
 
 return GamePass

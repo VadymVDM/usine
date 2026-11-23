@@ -12,7 +12,6 @@
 -- Rien de sauvegarde : Roblox garde le pass (UserOwnsGamePassAsync a chaque arrivee).
 -- Doc : docs/systems/pads-robux.md
 
-local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -195,10 +194,7 @@ function PassPadService:Start()
 	Players.PlayerRemoving:Connect(function(player: Player)
 		onPad[player] = nil
 	end)
-	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player: Player, id: number, purchased: boolean)
-		if not purchased then
-			return
-		end
+	GamePass.OnPurchased(function(player: Player, id: number) -- possession reverifiee
 		for _, def in PADS do
 			if def.passId > 0 and id == def.passId then
 				grant(player, def.key)

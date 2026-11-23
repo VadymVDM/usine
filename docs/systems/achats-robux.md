@@ -197,6 +197,23 @@ game.ServerStorage.Debug.Call:Invoke("Shop", "FreeBoost", "<Nom>", 0) -- boost g
 
 ## Problemes connus / a faire
 
+- **Relecture securite du 2026-11-23 (corrige) :**
+  - `Lib/GamePass.OnPurchased` est le seul branchement sur `PromptGamePassPurchaseFinished` : le
+    "purchased" du client n'est plus cru, la possession est redemandee a Roblox (`Owns`) avant
+    l'effet. Utilise par RobuxShop, Customer (Auto Collect), PassPad, Rebirth (Master), Thief.
+  - `GamePass.Owns` : 3 nouveaux essais (1 s, 2 s, 4 s) si Roblox ne repond pas, et un "oui" est
+    garde en memoire pour la session (avant : un seul echec = pass perdu jusqu'au retour).
+  - Keep Cash : un recu d'un palier moins cher que celui du joueur ne donne plus de rebirth
+    (message `KeepCashWrongTier`, avertissement console).
+- **Relecture du 2026-11-23, pas encore corrige :**
+  - Recu d'amelioration (tuile deja achetee avec l'argent du jeu, ou niveau max) accepte sans rien
+    donner (`UpgradeService`, `PlayerUpgradeService`) : Robux perdus pour le joueur.
+  - Keep Cash : le rebirth (code du monde) tourne dans `GrantPurchaseOnce` ; risque de rebirth
+    donne 2 fois si le serveur plante au mauvais moment.
+  - Cadeau : le destinataire choisi n'est garde qu'en memoire ; si le 1er essai du recu echoue et
+    que l'acheteur part, le pass va a l'acheteur.
+  - Pas de garde NaN sur les montants des packs (`RobuxShopService`).
+
 - Produits et passes crees (2026-11-21). Verifie en Studio : les 45 ids existent, sont en vente et
   ont le prix de la Config (`GetProductInfo`) ; boost, pack, offre et Lucky Cash ouvrent la fenetre
   d'achat (Feedback `PurchasePrompt`, plus de "coming soon"). La fenetre Roblox elle-meme n'apparait

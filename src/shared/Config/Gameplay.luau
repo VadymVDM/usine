@@ -35,12 +35,21 @@ local Gameplay = {
 		SpeedBoostOn = "Waiter Speed x10 is active!",
 		BillboardOn = "Billboard is active! 2X sell price!",
 		JuiceTableFull = "Juice table is full!",
-		ThiefOwned = "Thief pass active! Stealing coming soon.",
+		-- Pass Thief (2026-11-23) : {n}, {name}, {seconds} remplaces par ThiefService
+		StealDone = "You stole {n} juices from {name}!",
+		StealVictim = "{name} stole {n} juices from you! Your insurance refunded everything.",
+		StealWait = "You can rob {name} again in {seconds}s!",
+		StealNothing = "No juice to steal here!",
+		StealAtTable = "Steal juices from the juice table!",
 	}),
 
 	-- Pass Thief (ThiefService, 2026-11-20) : marcher sur les pads a jus d'une AUTRE base
 	-- (Production.TakeJuicePad, Counter.JuiceDropPad) ouvre la fenetre d'achat Roblox du pass.
 	ThiefPromptCooldown = 8, -- secondes minimum entre deux fenetres d'achat pour un meme joueur
+	-- Avec le pass : se tenir sur la table a jus d'un autre = prendre ses mains pleines de jus. La
+	-- victime ne perd rien (seul le voleur voit les gobelets disparaitre). Une fois par victime par :
+	StealCooldown = 60, -- secondes
+	StealHideSeconds = 60, -- duree pendant laquelle les gobelets voles restent caches chez le voleur
 
 	-- Pads d'action (2026-11-19 : on marche dessus, pas de touche E). Titres affiches au-dessus.
 	-- Production.FruitDropPad (fruits du plateau -> caisses), Production.TakeJuicePad (table a jus ->

@@ -24,7 +24,6 @@
 --     seulement par les autres), message aux autres joueurs.
 -- Doc : docs/systems/rebirth.md
 
-local MarketplaceService = game:GetService("MarketplaceService")
 local GamePass = require(script.Parent.Parent.Lib.GamePass)
 local PurchasePrompt = require(script.Parent.Parent.Lib.PurchasePrompt)
 local Players = game:GetService("Players")
@@ -232,7 +231,20 @@ local function onKeepCashReceipt(receipt: ReceiptService.Receipt): boolean
 		task.wait(0.25)
 	end
 	local saved = false
+	local cheaper = false
 	local granted = DataService.GrantPurchaseOnce(player, receipt.PurchaseId, function(data: DataService.PlayerData): boolean
+		-- Palier paye moins cher que celui du joueur (fenetre ouverte par un client triche, relecture
+		-- du 2026-11-23) : aucun rebirth. Le recu est garde (pas redonne) et note dans la console.
+		local paid = 0
+		for _, product in Rebirth.KeepCashProducts do
+			if product.productId == receipt.ProductId then
+				paid = product.price
+			end
+		end
+		if paid < Rebirth.KeepCashProduct(data.Rebirths).price then
+			cheaper = true
+			return true
+		end
 		-- Le client peut ouvrir lui-meme la fenetre d'achat (sans les 10 etages) : pas de rebirth
 		-- gratuit des conditions, l'achat devient un jeton garde pour le prochain rebirth.
 		if DataService.FloorsOwned(data) < Rebirth.RequiredFloors then
@@ -245,6 +257,10 @@ local function onKeepCashReceipt(receipt: ReceiptService.Receipt): boolean
 		performRebirth(player, data, true)
 		return true
 	end)
+	if cheaper then
+		warn(`[RebirthService] Keep Cash : palier {receipt.ProductId} trop bas pour {player.UserId}, aucun rebirth`)
+		NotifyService.Notify(player, Rebirth.Messages.KeepCashWrongTier, true)
+	end
 	if saved then
 		syncPlayer(player)
 		NotifyService.Notify(player, string.format(Rebirth.Messages.KeepCashSaved, Rebirth.RequiredFloors))
@@ -319,8 +335,8 @@ end
 
 function RebirthService:Start()
 	FloorService.SetNewFloorLevels(newFloorLevels)
-	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player: Player, id: number, purchased: boolean)
-		if purchased and masterPassId > 0 and id == masterPassId then
+	GamePass.OnPurchased(function(player: Player, id: number) -- possession reverifiee
+		if masterPassId > 0 and id == masterPassId then
 			grantMaster(player)
 		end
 	end)

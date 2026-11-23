@@ -67,6 +67,7 @@ Rebirth.Messages = table.freeze({
 	Done = "Rebirth %d! Cash x%s forever!",
 	Others = "%s reached Rebirth %d!",
 	KeepCashSoon = "Robux purchases: coming soon!",
+	KeepCashWrongTier = "This Keep Cash offer is not for your rebirth level.",
 	-- Achat Keep Cash recu alors que le rebirth n'est pas possible : garde pour le prochain (jeton)
 	KeepCashSaved = "Keep Cash saved! Reach Floor %d, then press Keep Cash for free.",
 })

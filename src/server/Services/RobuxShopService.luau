@@ -19,7 +19,6 @@
 -- ThiefService, RebirthService) : ShopBuy ne fait qu'ouvrir leur fenetre d'achat.
 -- Doc : docs/systems/achats-robux.md
 
-local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -609,10 +608,9 @@ function RobuxShopService:Start()
 			end
 		end
 	end
-	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player: Player, id: number, purchased: boolean)
-		if purchased then
-			onPassGranted(player, id, true)
-		end
+	-- Achat confirme par Roblox (GamePass.OnPurchased reverifie la possession)
+	GamePass.OnPurchased(function(player: Player, id: number)
+		onPassGranted(player, id, true)
 	end)
 	-- Pass offert (GiftService : cadeau recu ou sauvegarde chargee) : meme effet, message par GiftService
 	GamePass.OnGranted(function(player: Player, id: number)

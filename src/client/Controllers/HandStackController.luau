@@ -25,6 +25,7 @@ local Util = Shared:WaitForChild("Util")
 local HandStack = require(Util:WaitForChild("HandStack"))
 local SoundFx = require(Util:WaitForChild("SoundFx")) :: any
 local Remotes = require(Shared:WaitForChild("Network"):WaitForChild("Remotes")) :: any
+local Gameplay = require(Shared:WaitForChild("Config"):WaitForChild("Gameplay")) :: any
 local Jelly = require(script.Parent.Parent:WaitForChild("Fx"):WaitForChild("Jelly"))
 local FloorWatch = require(script.Parent.Parent:WaitForChild("Util"):WaitForChild("FloorWatch"))
 
@@ -221,6 +222,35 @@ local function onTakeJuice(payload: any)
 		pendingFrom = from
 		pendingAt = now
 	end
+end
+
+-- Pass Thief : les gobelets voles disparaissent de la table de la victime CHEZ LE VOLEUR seulement
+-- (sur le serveur et chez la victime ils restent : "assurance"). Revenus apres StealHideSeconds.
+local function hideStolenCups(payload: any)
+	if typeof(payload) ~= "table" or type(payload.cups) ~= "table" then
+		return
+	end
+	local hidden: { [Instance]: number } = {}
+	for i, cup in payload.cups do
+		if i > 40 then
+			break
+		end
+		if typeof(cup) == "Instance" and cup:IsA("Model") then
+			for _, item in cup:GetDescendants() do
+				if item:IsA("BasePart") or item:IsA("Decal") then
+					hidden[item] = item.Transparency
+					item.Transparency = 1
+				end
+			end
+		end
+	end
+	task.delay(Gameplay.StealHideSeconds, function()
+		for item, transparency in hidden do
+			if item.Parent then
+				(item :: any).Transparency = transparency
+			end
+		end
+	end)
 end
 
 local function removeStack(character: Model)
@@ -564,6 +594,8 @@ function HandStackController.Start()
 			event.OnClientEvent:Connect(function(kind, payload)
 				if kind == "TakeJuice" then
 					onTakeJuice(payload)
+				elseif kind == "StolenCups" then
+					hideStolenCups(payload)
 				end
 			end)
 		end

@@ -26,7 +26,6 @@
 -- Rien n'est sauvegarde (comptoir et tas repartent a zero). Seul module qui modifie le comptoir et le tas.
 -- Doc : docs/systems/clients.md
 
-local MarketplaceService = game:GetService("MarketplaceService")
 local GamePass = require(script.Parent.Parent.Lib.GamePass)
 local PurchasePrompt = require(script.Parent.Parent.Lib.PurchasePrompt)
 local Players = game:GetService("Players")
@@ -857,8 +856,8 @@ function CustomerService:Start()
 	Players.PlayerRemoving:Connect(function(player: Player)
 		onJuicePad[player] = nil
 	end)
-	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player: Player, passId: number, purchased: boolean)
-		if purchased and passId == autoCollectPass and autoCollectPass > 0 and player.Parent == Players then
+	GamePass.OnPurchased(function(player: Player, passId: number) -- possession reverifiee
+		if passId == autoCollectPass and autoCollectPass > 0 and player.Parent == Players then
 			player:SetAttribute(AUTO_ATTRIBUTE, true) -- onAutoCollectChanged encaisse les tas
 		end
 	end)

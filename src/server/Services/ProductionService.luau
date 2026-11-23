@@ -1170,6 +1170,66 @@ function ProductionService.TakeJuices(floor: Model, max: number): ({ string }, {
 	return takeFromTable(state, max)
 end
 
+-- Pass Thief (ThiefService) : les `max` gobelets du haut de la table, SANS les retirer (la victime
+-- ne perd rien, "assurance"). Renvoie les ids, leurs positions et les modeles (le client du voleur
+-- les cache chez lui seulement).
+function ProductionService.PeekJuices(floor: Model, max: number): ({ string }, { Vector3 }, { Model })
+	local state = floorStates[floor]
+	local ids: { string } = {}
+	local from: { Vector3 } = {}
+	local models: { Model } = {}
+	if state == nil or max <= 0 then
+		return ids, from, models
+	end
+	local last = #state.juices
+	for index = last, math.max(1, last - max + 1), -1 do
+		table.insert(ids, state.juices[index])
+		local model = state.juiceModels[index]
+		if model and model.Parent then
+			table.insert(from, model:GetPivot().Position)
+			table.insert(models, model)
+		else
+			local cf = juiceCupCFrame(state, index)
+			table.insert(from, if cf then cf.Position else Vector3.zero)
+		end
+	end
+	return ids, from, models
+end
+
+-- Place libre dans les mains du joueur (jus).
+function ProductionService.GetHandRoom(player: Player): number
+	local inventory = inventories[player]
+	local held = if inventory then #inventory.juices else 0
+	return math.max(0, PlayerUpgradeService.GetValue(player, "JuiceCarry") - held)
+end
+
+-- Pass Thief : met des jus voles dans les mains du joueur (place libre verifiee ici). `from` =
+-- positions des gobelets (effet de vol vers les mains), `models` = gobelets a cacher chez lui.
+-- Renvoie le nombre de jus donnes.
+function ProductionService.GiveJuices(player: Player, ids: { string }, from: { Vector3 }, models: { Model }): number
+	if DataService.GetData(player) == nil then
+		return 0
+	end
+	local inventory = getInventory(player)
+	local count = math.min(#ids, ProductionService.GetHandRoom(player))
+	if count <= 0 then
+		return 0
+	end
+	local given: { Vector3 } = {}
+	for k = 1, count do
+		local fruitId = ids[k]
+		if Fruits.ById[fruitId] then
+			table.insert(inventory.juices, fruitId)
+			table.insert(given, from[k] or Vector3.zero)
+		end
+	end
+	rebuildHands(player)
+	syncInventory(player)
+	feedback(player, "TakeJuice", { count = #given, from = given })
+	feedback(player, "StolenCups", { cups = table.move(models, 1, math.min(count, #models), 1, {}) })
+	return #given
+end
+
 -- Le Fruit Picker pose des fruits dans les caisses (effet de vol vu par tous).
 function ProductionService.AddFruitsToBins(floor: Model, ids: { string }, from: Vector3?)
 	local state = floorStates[floor]
