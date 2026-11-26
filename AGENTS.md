@@ -40,7 +40,9 @@ Ces regles s'appliquent a tout agent (Claude Code, Codex, Cursor...). Les suivre
 ## 4. Rojo et Studio
 
 - Projet : `default.project.json`, **port 34850**. Lancer : `start-rojo.bat`. Arreter : `stop-rojo.bat`.
-- Dans Studio : plugin Rojo > Connect > `localhost:34850`.
+- Dans Studio : plugin Rojo > Connect > `localhost:34850`, en mode Edit (jamais pendant un Play).
+- **Deux devs sur le projet** : lire `docs/travailler-a-deux.md`. Chacun code avec Rojo dans sa place
+  perso (`places/<pseudo>.rbxl`), jamais en continu dans la place partagee Team Create. Le code passe par Git.
 - Les fichiers sur disque (`src/`) font reference. Modifier les fichiers d'abord ; ne jamais
   corriger un script uniquement dans Studio. Si une correction passe par MCP, reporter la meme
   source sur disque dans la meme intervention.
