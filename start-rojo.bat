@@ -4,7 +4,9 @@ title Rojo Usine :34850 (auto-restart)
 cd /d "%~dp0"
 set "PORT=34850"
 
-set "ROJO=%LOCALAPPDATA%\Rojo\rojo.exe"
+rem Rojo : d'abord Rokit (installe sur ce PC), sinon l'ancien emplacement, sinon le PATH
+set "ROJO=%USERPROFILE%\.rokit\bin\rojo.exe"
+if not exist "%ROJO%" set "ROJO=%LOCALAPPDATA%\Rojo\rojo.exe"
 if not exist "%ROJO%" (
   where rojo >nul 2>&1
   if errorlevel 1 (
