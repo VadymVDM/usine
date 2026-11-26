@@ -7,7 +7,11 @@
 
 Apres la cinematique (`cinematique.md`), le joueur fait UNE chose a la fois, dans l'ordre demande par
 l'utilisateur, avec un texte court tout en haut de l'ecran (a la hauteur de la barre "< Floors >") et,
-selon la cible, une ligne + fleche 3D dans le monde ou une fleche a l'ecran sur un bouton :
+selon la cible, une ligne + fleche 3D dans le monde ou une fleche a l'ecran sur un bouton.
+Le bouton vise grossit et retrecit doucement en boucle (+8 %, `Tutorial.ButtonPulse` /
+`ButtonPulseSpeed`, 2026-11-23). La pulsation multiplie l'UIScale du bouton par-dessus le survol
+(UI/ButtonFx) et le rebond de l'Index (DiscoveryController) ; attribut `PulseFactor` sur l'UIScale
+pour qu'eux lisent leur taille de repos sans la pulsation. Taille d'origine remise quand la cible change.
 
 1. **Factory** : Plant the tree -> Pick up the fruits -> Build the shelf -> Drop the fruits -> Build
    the blender -> Blend the fruits (E sur le mixeur) -> Take the juices -> Open the shop -> Sell the

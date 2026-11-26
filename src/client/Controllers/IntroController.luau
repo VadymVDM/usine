@@ -113,6 +113,11 @@ local JOINTS = {
 	LeftHip = { "Torso", "Left Hip", "LeftUpperLeg", "LeftHip" },
 	Neck = { "Torso", "Neck", "Head", "Neck" },
 	Waist = { "HumanoidRootPart", "RootJoint", "UpperTorso", "Waist" },
+	-- Genoux et coudes : R15 seulement (un avatar R6 n'en a pas, ils restent droits)
+	RightKnee = { "", "", "RightLowerLeg", "RightKnee" },
+	LeftKnee = { "", "", "LeftLowerLeg", "LeftKnee" },
+	RightElbow = { "", "", "RightLowerArm", "RightElbow" },
+	LeftElbow = { "", "", "LeftLowerArm", "LeftElbow" },
 }
 
 local function jointRotation(joint: Instance): CFrame?
@@ -235,10 +240,30 @@ type Pose = {
 	roll: number, -- tete penchee
 	bend: number, -- buste : + penche en avant
 	twist: number, -- buste tourne : - vers la droite
+	rk: number, -- genou droit plie (R15)
+	lk: number,
+	re: number, -- coude droit plie (R15)
+	le: number,
 }
 
 local function newPose(): Pose
-	return { ra = 0, la = 0, rr = 0, lr = 0, rl = 0, ll = 0, head = 0, yaw = 0, roll = 0, bend = 0, twist = 0 }
+	return {
+		ra = 0,
+		la = 0,
+		rr = 0,
+		lr = 0,
+		rl = 0,
+		ll = 0,
+		head = 0,
+		yaw = 0,
+		roll = 0,
+		bend = 0,
+		twist = 0,
+		rk = 0,
+		lk = 0,
+		re = 0,
+		le = 0,
+	}
 end
 
 local function waistRotation(p: Pose): CFrame
@@ -252,6 +277,10 @@ local function applyPose(rig: Rig, p: Pose)
 	setJoint(rig, "LeftHip", limb(p.ll, 0, -1))
 	setJoint(rig, "Neck", CFrame.Angles(0, p.yaw, 0) * CFrame.Angles(p.head, 0, 0) * CFrame.Angles(0, 0, p.roll))
 	setJoint(rig, "Waist", waistRotation(p))
+	setJoint(rig, "RightKnee", CFrame.Angles(-p.rk, 0, 0)) -- le bas de la jambe part en arriere
+	setJoint(rig, "LeftKnee", CFrame.Angles(-p.lk, 0, 0))
+	setJoint(rig, "RightElbow", CFrame.Angles(p.re, 0, 0)) -- l'avant-bras monte vers l'avant
+	setJoint(rig, "LeftElbow", CFrame.Angles(p.le, 0, 0))
 end
 
 -- Angles (swing, raise) pour qu'un bras pointe dans la direction `dir` (repere de la racine),
@@ -537,6 +566,34 @@ local function playSound(name: string, volumeScale: number?, pitchScale: number?
 		-- plus doux que dans le jeu (demande utilisateur)
 		SoundFx.Play(name, Intro.SoundVolume * (volumeScale or 1), pitchScale)
 	end
+end
+
+-- Voix du personnage (reactions). maxSeconds : coupe le son en douceur (fondu 0.25 s) apres ce temps.
+local function voice(name: string, volumeScale: number?, maxSeconds: number?)
+	local def = Sounds[name]
+	if def == nil or not SoundFx.IsEnabled() then
+		return
+	end
+	if maxSeconds == nil then
+		playSound(name, Intro.VoiceVolume * (volumeScale or 1))
+		return
+	end
+	local sound = Instance.new("Sound")
+	sound.Name = "IntroVoice"
+	sound.SoundId = def.id
+	sound.Volume = def.volume * Intro.SoundVolume * Intro.VoiceVolume * (volumeScale or 1)
+	sound.PlaybackSpeed = def.pitch or 1
+	sound.SoundGroup = SoundFx.Group() -- curseur Sons (menu Settings)
+	sound.Parent = SoundService
+	sound:Play()
+	task.delay(maxSeconds, function()
+		if sound.Parent then
+			local fade = TweenService:Create(sound, TweenInfo.new(0.25), { Volume = 0 })
+			fade:Play()
+			fade.Completed:Wait()
+		end
+		sound:Destroy()
+	end)
 end
 
 ---------------------------------------------------------------------------------------------
@@ -967,29 +1024,45 @@ local function play()
 		local p = newPose()
 		local lift = 0
 		if gait == "walk" then
+			-- Marche (refaite le 2026-11-23) : la jambe qui avance plie le genou, les bras balancent
+			-- coudes un peu plies et legerement ecartes, petit rebond, tete qui compense.
 			local phase = t * math.pi * 2 * Intro.StepsPerSecond
 			local swing = math.sin(phase)
-			p.rl = swing * 0.55
-			p.ll = -swing * 0.55
-			p.ra = -swing * 0.45
-			p.la = swing * 0.45
-			p.twist = swing * 0.07 -- epaules qui balancent avec les pas
-			p.roll = -swing * 0.03
-			lift = math.abs(math.cos(phase)) * 0.15
+			local moving = math.cos(phase) -- > 0 : la jambe droite avance (genou plie)
+			p.rl = swing * 0.6
+			p.ll = -swing * 0.6
+			p.rk = 0.12 + math.max(0, moving) * 0.8
+			p.lk = 0.12 + math.max(0, -moving) * 0.8
+			p.ra = -swing * 0.5
+			p.la = swing * 0.5
+			p.rr = 0.07
+			p.lr = 0.07
+			p.re = 0.25 + math.max(0, -swing) * 0.35 -- le bras qui passe devant plie davantage
+			p.le = 0.25 + math.max(0, swing) * 0.35
+			p.bend = 0.05
+			p.twist = swing * 0.1 -- epaules qui balancent avec les pas
+			p.roll = -swing * 0.04
+			lift = math.abs(moving) * 0.18
+			p.head = -0.03 + (1 - math.abs(moving)) * 0.04 -- la tete reste stable pendant le rebond
 		elseif gait == "run" then
-			-- course : grands pas, buste en avant, bras plies qui pompent
+			-- course : grands pas genoux tres plies, buste en avant, bras plies a angle droit qui pompent
 			local phase = (t - TIMES.run) * math.pi * 2 * Intro.RunStepsPerSecond
 			local swing = math.sin(phase)
+			local moving = math.cos(phase)
 			p.rl = swing * 0.95
 			p.ll = -swing * 0.95
-			p.ra = 0.35 - swing * 0.9
-			p.la = 0.35 + swing * 0.9
+			p.rk = 0.25 + math.max(0, moving) * 1.3
+			p.lk = 0.25 + math.max(0, -moving) * 1.3
+			p.ra = 0.2 - swing * 0.85
+			p.la = 0.2 + swing * 0.85
+			p.re = 1.4
+			p.le = 1.4
 			p.rr = 0.15
 			p.lr = 0.15
 			p.bend = 0.28
 			p.twist = swing * 0.14
 			p.head = 0.15
-			lift = math.abs(math.cos(phase)) * 0.4
+			lift = math.abs(moving) * 0.4
 		else
 			-- respiration (on voit qu'il est vivant)
 			p.bend = math.sin(t * 2.4) * 0.02
@@ -1232,11 +1305,12 @@ local function play()
 			sparkles(setModel, head.Position + Vector3.new(0, 1.5, 0), SPARKLE_GOLD, 30)
 		end
 	end)
-	-- Pas dans l'herbe (2026-11-23) : un son par pas, pied gauche / droit en alternance
-	local stepCount = 0
+	-- Pas dans l'herbe (2026-11-23) : un son par pas, une des 4 variantes au hasard (jamais 2 fois la meme)
+	local lastStep = 0
 	local function footstep(volume: number, pitch: number)
-		stepCount += 1
-		playSound(if stepCount % 2 == 0 then "IntroStepL" else "IntroStepR", Intro.StepVolume * volume, pitch)
+		local pick = math.random(1, 3)
+		lastStep = if pick >= lastStep then pick + 1 else pick
+		playSound(`IntroGrass{lastStep}`, Intro.StepVolume * volume, pitch)
 	end
 	local function walkSteps(from: number, to: number)
 		for stepAt = from, to, 1 / (Intro.StepsPerSecond * 2) do
@@ -1248,6 +1322,46 @@ local function play()
 	walkSteps(0.2, TIMES.notice - 0.1) -- marche tranquille
 	walkSteps(TIMES.toShovel + 0.15, TIMES.pull - 0.1) -- vers la pelle
 	walkSteps(TIMES.carry + 0.15, TIMES.digStart - 0.1) -- vers le pied de l'arbre
+	-- Petits pas en plus (2026-11-23) : il s'arrete net, se tourne, recule, s'avance
+	for _, def in
+		{
+			{ TIMES.notice + 0.05, 0.8, 0.95 }, -- il s'arrete net (pied qui se pose)
+			{ TIMES.notice + 0.3, 0.5, 1 }, -- il se tourne vers l'arbre
+			{ TIMES.notice + 0.45, 0.5, 1.05 },
+			{ TIMES.arrive + 0.6, 0.6, 1 }, -- il se tourne vers l'arbre apres le freinage
+			{ TIMES.toShovel + 0.02, 0.6, 1 }, -- premier pas vers la pelle
+			{ TIMES.pull + 0.32, 0.7, 0.9 }, -- il recule en arrachant la pelle
+			{ TIMES.carry + 0.05, 0.6, 1 }, -- il se tourne, pelle en main
+			{ TIMES.digEnd + 0.4, 0.8, 0.95 }, -- il recule, surpris (l'arbre bascule)
+			{ TIMES.digEnd + 0.6, 0.6, 1 },
+			{ TIMES.item + 0.35, 0.6, 1.05 }, -- il s'avance vers l'arbre niveau 1
+		}
+	do
+		local stepAt, volume, pitch = def[1], def[2], def[3]
+		at(stepAt, function()
+			footstep(volume, pitch)
+		end)
+	end
+
+	-- Reactions du personnage (voix, 2026-11-23)
+	at(TIMES.notice + 0.08, function()
+		voice("IntroGasp", 0.9) -- il a vu quelque chose
+	end)
+	at(TIMES.wow + 0.12, function()
+		voice("IntroWowVoice")
+	end)
+	at(TIMES.arrive + 0.35, function()
+		voice("IntroPant", 0.7) -- essouffle apres la course
+	end)
+	at(TIMES.think + 0.1, function()
+		voice("IntroHmm", 0.9, Intro.HmmSeconds)
+	end)
+	at(TIMES.pull + 0.18, function()
+		voice("IntroGrunt2", Intro.GruntVolume) -- il tire sur la pelle
+	end)
+	at(TIMES.digEnd + 0.35, function()
+		voice("IntroWhoa") -- l'arbre bascule
+	end)
 	-- Wow : saut (whoosh) puis atterrissage
 	at(TIMES.wow + 0.15, function()
 		playSound("IntroJump")
@@ -1290,6 +1404,7 @@ local function play()
 		shake(Intro.PullShake)
 		shovelTwinkle.Enabled = false
 		playSound("Pickup")
+		playSound("CashPop", Intro.ShovelPopVolume, 0.9) -- "pop" bien net (2026-11-23)
 		sparkles(setModel, stuckCf.Position, SPARKLE_GOLD, 25)
 	end)
 	at(TIMES.pull + 0.3, function()
@@ -1300,6 +1415,10 @@ local function play()
 		local hitTime = start + cycle * DIG_HIT
 		at(hitTime - 0.12, function()
 			playSound("IntroDig")
+		end)
+		at(hitTime - 0.05, function()
+			-- petit effort a chaque coup de pelle (un son different a chaque fois)
+			voice(if i == 1 then "IntroGrunt1" elseif i == 2 then "IntroGrunt3" else "IntroGrunt2", Intro.GruntVolume)
 		end)
 		at(hitTime, function()
 			-- La lame entre dans le sol : terre, poussiere, secousse, le trou grandit
@@ -1407,6 +1526,7 @@ local function play()
 	local startedAt = os.clock()
 	local lastFrame = startedAt
 	local smoothed: Pose? = nil
+	local shovelPopping = false
 	local function step()
 		local handsOn = 0
 		local t = os.clock() - startedAt
@@ -1437,6 +1557,15 @@ local function play()
 		if shovel then
 			local shovelCf, hands = shovelAt(t, rootCf)
 			shovel:PivotTo(shovelCf)
+			-- "Pop" quand il l'arrache : la pelle grossit d'un coup puis revient (rebond gelee)
+			local u = (t - TIMES.pull - 0.22) / 0.4
+			if u > 0 and u < 1 then
+				shovelPopping = true
+				shovel:ScaleTo(Intro.ShovelScale * (1 + math.sin(u * math.pi) * (1 - u) * Intro.ShovelPop))
+			elseif shovelPopping then
+				shovelPopping = false
+				shovel:ScaleTo(Intro.ShovelScale)
+			end
 			lastShovel = shovelCf
 			handsOn = hands
 			if hands > 0 then
@@ -1458,6 +1587,10 @@ local function play()
 			reach(actorRig, pose, true, Vector3.new(0.55, y, -0.3), overhead)
 			reach(actorRig, pose, false, Vector3.new(-0.55, y, -0.3), overhead)
 		end
+		-- Bras qui tiennent quelque chose : coudes droits (le calcul des mains suppose un bras tendu)
+		local straight = 1 - math.max(handsOn, overhead)
+		pose.re *= straight
+		pose.le *= straight
 		-- Lissage : chaque angle rejoint sa cible en douceur (pas de saut entre deux poses). Presque
 		-- rien quand les mains tiennent la pelle (sinon elles quittent le manche).
 		local frameAt = os.clock()
@@ -1526,6 +1659,19 @@ local function play()
 		end
 
 		local cf, fov = cameraAt(t)
+		-- Fin : la camera s'approche peu a peu de sa tete pendant le fondu au blanc (2026-11-23)
+		local zoom = Intro.HeadZoom
+		local head = actorRig.head
+		if head and t >= zoom.start then
+			local k = between(t, zoom.start, TIMES.stop)
+			local face = head.Position + Vector3.new(0, 0.15, 0)
+			local away = cf.Position - face
+			away = if away.Magnitude > 1e-3 then away.Unit else -cf.LookVector
+			-- un peu d'en haut : le pot de l'arbre tenu devant lui ne cache pas le visage
+			away = (away + Vector3.new(0, zoom.rise, 0)).Unit
+			cf = cf:Lerp(CFrame.lookAt(face + away * zoom.distance, face), k)
+			fov = lerp(fov, zoom.fov, k)
+		end
 		local now = os.clock()
 		for i, kick in shakes do
 			local u = (now - kick.at) / kick.seconds

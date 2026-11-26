@@ -7,7 +7,7 @@
 --   * Achat : prompt E sur la vitre rouge (Stairs.BuyGate) de l'etage ferme. Verifie : proprietaire,
 --     c'est bien l'etage suivant, distance, delai, argent (MoneyService.TrySpend). Puis l'etage
 --     ouvert remplace la coque (attribut BuildStamp : le client l'anime et montre "NEW FLOOR!").
---   * Etage 2 achete : la terrasse s'ouvre (TerraceGate retiree). Etage 10 : la vitre
+--   * Etage 2 achete : la cabine de l'ascenseur apparait (plus de TerraceGate depuis le 2026-11-23). Etage 10 : la vitre
 --     de la salle "???" s'ouvre, son panneau devient "REBIRTH" ; E sur la machine ouvre le menu
 --     Rebirth cote client (RebirthController). Le rebirth lui-meme : RebirthService, qui appelle
 --     ResetForRebirth (tour remise a 1 etage, ascenseur a 0).
@@ -143,14 +143,14 @@ local function buildClosed(tower: Tower, n: number)
 			if item.Name == "FloorName" then
 				item.Text = floorTitle(n)
 			elseif item.Name == "Status" then
-				item.Text = "$" .. NumberFormat.Abbreviate(price)
+				item.Text = NumberFormat.Price(price)
 			end
 		end
 	end
 	local gate = floor:FindFirstChild("BuyGate", true)
 	local anchor = gate and anchorIn(gate)
 	if anchor then
-		local prompt = Prompt.Create(anchor, string.format(FloorsConfig.PromptBuyObject, n), `{Gameplay.PromptTexts.Buy} ${NumberFormat.Abbreviate(price)}`, {
+		local prompt = Prompt.Create(anchor, string.format(FloorsConfig.PromptBuyObject, n), `{Gameplay.PromptTexts.Buy} {NumberFormat.Price(price)}`, {
 			name = "BuyFloorPrompt",
 			distance = Gameplay.PromptDistance,
 			hold = Gameplay.BuyHoldSeconds,
@@ -235,7 +235,12 @@ local refreshTowerBoard: (tower: Tower) -> () -- panneau Elevator (plus bas)
 local function refreshAnnex(tower: Tower)
 	local owned = if tower.player then ownedCount(tower) else 1
 	local terraceOpen = owned >= 2
-	setShown(tower, gateRef(tower, { "Terrace", "TerraceGate" }), not terraceOpen)
+	-- TerraceGate (vitre rouge "Opens with Floor 2") retiree le 2026-11-23 : sans utilite.
+	-- Detruite si le .rbxl l'a encore.
+	local terraceGate = findAnnex(tower, { "Terrace", "TerraceGate" })
+	if terraceGate then
+		terraceGate:Destroy()
+	end
 	-- (StreetGate et murs invisibles Blocker* de la terrasse retires le 2026-11-20 : terrasse ouverte)
 	-- Cabine de l'ascenseur : visible des l'etage 2 (animee cote client)
 	setShown(tower, gateRef(tower, { "ElevatorBase", "Cabin" }), terraceOpen)
@@ -279,7 +284,7 @@ function refreshTowerBoard(tower: Tower)
 		local bonus = if id == "ElevatorSpeed" then FloorsConfig.ElevatorSpeedBonus else FloorsConfig.ElevatorCabinBonus
 		local atMax = level >= FloorsConfig.TowerUpgradeMaxLevel
 		local price = FloorsConfig.TowerUpgradePrice(id, level) or 0
-		local priceText = if atMax then "MAX" else "$" .. NumberFormat.Abbreviate(price)
+		local priceText = if atMax then "MAX" else NumberFormat.Price(price)
 		for _, item in tile.model:GetDescendants() do
 			if item:IsA("TextLabel") then
 				if item.Name == "Value" then

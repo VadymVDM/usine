@@ -63,7 +63,7 @@ bras tendus) et les pose sur le pad "Drop Juices" du comptoir (voir `clients.md`
   `OnBaseReleased`. Tout ce qui est cree va dans `Base.Dynamic` (`GroundFruits`, `Production`,
   `TreeFullLabel`).
 - Chute : 1 fruit toutes les `Upgrades.TreeDropSeconds(niveau)` secondes (2.5 s au niveau 1, x0.885
-  par niveau, ~0.83 s au niveau 10 ; niveau = Upgrades `Tree`, pad "Upgrade Tree"),
+  par niveau jusqu'au niveau 5, puis x0.8055 : ~0.52 s au niveau 10 depuis le 2026-11-23, avant 0.83 s ; niveau = Upgrades `Tree`, pad "Upgrade Tree"),
   a un point au hasard sous le feuillage du stade actuel (anneau `trunkClear`..`dropRadius` de
   `Config/Tree`, dans `Tree.FruitArea`). Depuis le 2026-11-19 le serveur pose le fruit **a sa place
   finale** et met les attributs `DropStart` (heure serveur), `DropHeight`, `DropTime` (+ `NewFruit`) ;

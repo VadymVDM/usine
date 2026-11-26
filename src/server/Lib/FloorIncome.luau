@@ -47,7 +47,7 @@ end
 -- Valeur moyenne d'un jus de l'etage n (chances de chaque rarete avec la Luck du niveau Tree).
 -- `luckFactor` = multiplicateur de chance en plus (achats Robux : Lib/Perks.LuckMultiplier), 1 par defaut.
 function FloorIncome.AverageValue(n: number, treeLevel: number, luckFactor: number?): number
-	local weights = Fruits.RollWeights(Fruits.LuckMultiplier(treeLevel) * (luckFactor or 1))
+	local weights = Fruits.RollWeights(Fruits.LuckMultiplier(treeLevel) * Fruits.FloorLuckFor(n) * (luckFactor or 1))
 	local total, sum = 0, 0
 	for _, fruit in Fruits.OfFloor(n) do
 		local w = weights[fruit.rarity] or 0

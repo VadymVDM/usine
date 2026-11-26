@@ -289,6 +289,13 @@ function Tree.Tier(floor: number, level: number): number
 	return (clampFloor(floor) - 1) * (Tree.LevelsPerFloor - 1) + clampLevel(level)
 end
 
+-- Niveau AFFICHE ("Golden Tree Lv 17") : il continue d'etage en etage au lieu de repartir a 1
+-- (2026-11-23) : etage 1 = Lv 1..10, etage 2 = Lv 11..20, etage 3 = Lv 21..30, etc.
+-- Texte seul : la sauvegarde garde le niveau 1..10 de l'etage (Floors[n].Upgrades.Tree).
+function Tree.DisplayLevel(floor: number, level: number): number
+	return (math.max(math.floor(floor), 1) - 1) * Tree.LevelsPerFloor + clampLevel(level)
+end
+
 function Tree.MaxTier(): number
 	return Tree.Tier(#Tree.Themes, Tree.LevelsPerFloor)
 end

@@ -56,11 +56,9 @@ Regle d'or : tout ce qu'on achete sert a gagner plus d'argent. Rien ne se revend
   bar a jus, vente.
 
 
-## Nom du jeu [A VALIDER]
+## Nom du jeu
 
-Les jeux qui percent en ce moment ont un nom **"Verbe + a + Nom"** : Steal An Egg (n°1 en
-novembre 2026), Steal a Brainrot, Grow a Garden, 99 Nights in the Forest.
-- **Finalistes : "Sell a Juice" (prefere par l'utilisateur) ou "Make a Juice".** Choix final plus tard.
+**Decide le 2026-11-23 : "My Juice Factory".** (Avant : finalistes "Sell a Juice" / "Make a Juice".)
 - Eviter "Steal a ..." : le vol est un pass payant, pas le coeur du jeu (nom trompeur).
 - Verifier que le nom n'est pas deja pris sur Roblox avant de publier.
 

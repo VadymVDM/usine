@@ -110,13 +110,14 @@ local function anyClaim(): boolean
 	return false
 end
 
--- Chance de base (Luck 1) d'une rarete : "1 in 3,000" ; Common (presque toujours) en pourcentage.
-local function chanceText(rarity: number): string
-	local oneIn = Fruits.OneIn(rarity)
+-- Chance de base (Luck 1 + bonus de l'etage, Fruits.FloorLuck) : "1 in 3,000" ; Common en pourcentage.
+local function chanceText(rarity: number, floor: number): string
+	local luck = Fruits.FloorLuckFor(floor)
+	local oneIn = Fruits.OneIn(rarity, luck)
 	if rarity > 1 and oneIn > 1 then
 		return `1 in {NumberFormat.Commas(oneIn)}`
 	end
-	local weights = Fruits.RollWeights(1)
+	local weights = Fruits.RollWeights(luck)
 	local total = 0
 	for _, w in weights do
 		total += w
@@ -193,7 +194,7 @@ local function makeCard(fruit: Fruits.Fruit, order: number): Card
 	rarityLabel.Name = "Rarity"
 	rarityLabel.TextColor3 = rarity.color
 	local chanceLabel =
-		PackStyle.label(frame, chanceText(fruit.rarity), UDim2.fromScale(0.5, 0.83), UDim2.fromScale(0.86, 0.11), 16)
+		PackStyle.label(frame, chanceText(fruit.rarity, fruit.floor), UDim2.fromScale(0.5, 0.83), UDim2.fromScale(0.86, 0.11), 16)
 	chanceLabel.Name = "Chance"
 
 	-- Bouton CLAIM (a la place de la rarete et de la chance quand une recompense attend)

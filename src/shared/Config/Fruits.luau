@@ -68,6 +68,10 @@ Fruits.CommonLead = 1.05
 -- (avant ~8.2), donc les temps de la simulation ci-dessus bougent peu (~15 % plus lents). A VALIDER.
 Fruits.LuckFromRarity = 3
 Fruits.LuckMax = 1.5
+-- Bonus de chance des premiers etages (Rare+, comme la Luck) : le joueur voit plus vite des fruits
+-- differents au debut. Index = numero d'etage ; absent = x1. Ajoute le 2026-11-23 ("un tout petit
+-- peu plus souvent"). A VALIDER.
+Fruits.FloorLuck = table.freeze({ 2, 1.5 })
 -- Valeur d'un jus = FloorValues[etage] x RarityBonus[rarete]. ~x5 par etage. A VALIDER.
 Fruits.FloorValues = table.freeze({ 5, 25, 125, 625, 3_125, 15_625, 78_125, 390_625, 1_953_125, 9_765_625 })
 Fruits.RarityBonus = table.freeze({ 1, 2, 3, 5, 8, 15, 30, 60, 120, 250 })
@@ -310,6 +314,11 @@ end
 function Fruits.LuckMultiplier(treeLevel: number): number
 	local level = math.clamp(math.floor(treeLevel), 1, Fruits.PerFloor)
 	return 1 + (Fruits.LuckMax - 1) * (level - 1) / (Fruits.PerFloor - 1)
+end
+
+-- Bonus de chance fixe d'un etage (Fruits.FloorLuck), 1 si aucun.
+function Fruits.FloorLuckFor(floor: number?): number
+	return if floor ~= nil then Fruits.FloorLuck[floor] or 1 else 1
 end
 
 -- Poids de tirage par rarete (index = rarete) pour un multiplicateur de chance. Le Common garde

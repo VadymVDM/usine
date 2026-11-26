@@ -1,7 +1,7 @@
 # Systeme : Argent, HUD et classement
 
 **Statut :** en cours (code fait et teste en Studio sans sauvegarde reelle)
-**Derniere mise a jour :** 2026-11-19
+**Derniere mise a jour :** 2026-11-23 (prix affiches arrondis vers le haut)
 
 ## Role
 
@@ -14,7 +14,7 @@ montant en bas a gauche et le classement du serveur (leaderstats) montre l'argen
 |---|---|---|
 | `src/server/Services/MoneyService.luau` | serveur | `Add`, `TrySpend`, `Get` ; leaderstats |
 | `src/client/Controllers/MoneyHudController.luau` | client | Affiche l'argent dans `HUD.Canvas.Money.Cash.Money` ; le montant **compte** au lieu de sauter (2026-11-19 soir) : pendant un encaissement, `CashController` retient le montant (`Hold`) puis le relache billet par billet (`Release`), les billets volent jusqu'au montant ; autre hausse = montee rapide ; baisse = immediate. Detail : `clients.md` |
-| `src/shared/Util/NumberFormat.luau` | partage | Suffixes K/M/B/T... (affichage seulement, arrondi vers le bas) |
+| `src/shared/Util/NumberFormat.luau` | partage | Suffixes K/M/B/T... (affichage seulement). `Money` / `Abbreviate` : arrondi vers le bas (argent, gains). `Price` / `AbbreviateUp` : arrondi vers le haut (**tout prix a payer**) |
 | `src/server/Services/DebugService.luau` | serveur | Studio seulement : `ServerStorage.Debug.Call` pour les tests |
 
 ## Fonctionnement
@@ -28,6 +28,14 @@ montant en bas a gauche et le classement du serveur (leaderstats) montre l'argen
   etages, menu Upgrades.
 - L'argent vit dans la sauvegarde (`Data.Money`) ; MoneyService met a jour aussi
   `leaderstats.Cash` (IntValue) et `leaderstats.Rebirths`.
+- **Regle d'affichage des prix (2026-11-23)** : l'argent est arrondi vers le bas, les prix vers le
+  haut (`NumberFormat.Price`). Ainsi "argent affiche >= prix affiche" veut toujours dire que l'achat
+  passe. Avant, les deux etaient arrondis vers le bas : prix 1 525 et argent 1 520 affichaient tous
+  les deux "$1.52K" et le clic donnait "Not enough money!" (vu sur le panneau Customers). Prix
+  concernes : tuiles et pads (`UpgradeService`), etage a acheter et panneau Elevator
+  (`FloorService`), pop-up de confirmation (`BuyController`), menu Upgrades
+  (`UpgradeMenuController`), Rebirth, tutoriel ("{price}"), "Almost there!" (argent manquant).
+  Tout nouveau prix affiche doit utiliser `NumberFormat.Price`.
 - Le HUD lit `leaderstats.Cash` (replique par Roblox, pas de remote) et affiche "$1.25K" etc.
   Quand l'argent monte, le texte compte jusqu'a la nouvelle valeur (encaissement : au rythme des
   billets qui arrivent en bas a gauche).

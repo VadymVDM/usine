@@ -178,7 +178,7 @@ local function onNeedCash(info: any)
 		end
 		bigIcon("Cash")
 		local parent = content :: Frame
-		PackStyle.label(parent, string.format(texts.NeedLine, info.floor, NumberFormat.Money(info.missing)), UDim2.fromScale(0.68, 0.06), UDim2.fromScale(0.6, 0.14), 60)
+		PackStyle.label(parent, string.format(texts.NeedLine, info.floor, NumberFormat.Price(info.missing)), UDim2.fromScale(0.68, 0.06), UDim2.fromScale(0.6, 0.14), 60)
 		local money = PackStyle.label(parent, "+" .. NumberFormat.Money(amount), UDim2.fromScale(0.68, 0.24), UDim2.fromScale(0.58, 0.26), 110)
 		money.TextColor3 = PackStyle.MONEY_GREEN
 		PackStyle.label(parent, pack.title, UDim2.fromScale(0.68, 0.51), UDim2.fromScale(0.5, 0.1), 40)

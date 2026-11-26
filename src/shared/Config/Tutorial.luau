@@ -65,6 +65,10 @@ Tutorial.SuggestIds = table.freeze({
 Tutorial.PointerSize = 64 -- pixels
 Tutorial.BannerTop = 10 -- pixels depuis le haut de l'ecran (meme hauteur que la barre "< Floors >")
 Tutorial.PointerBounce = 10 -- pixels
+-- Bouton vise : il grossit et retrecit doucement en boucle (2026-11-23, demande : "tu le fais
+-- legerement grandir et retrecir")
+Tutorial.ButtonPulse = 0.08 -- +8 % au plus gros
+Tutorial.ButtonPulseSpeed = 1.4 -- pulsations par seconde
 
 -- Etape "Pick up the fruits" : on vise les fruits au sol jusqu'a en porter ce nombre (ou le plateau
 -- plein), puis on passe a l'etagere.

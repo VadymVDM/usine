@@ -157,8 +157,6 @@ Floors.ClosedOutline = Color3.fromRGB(110, 185, 255)
 
 -- Textes (anglais : vus par le joueur)
 Floors.TitleFormat = "FLOOR %d" -- vitre rouge d'achat (lot 4b : plus de nom de rarete, chaque etage a les 10)
-Floors.TerraceTitle = "???" -- vitre rouge de la terrasse : nom cache comme le Rebirth (utilisateur, 2026-11-20)
-Floors.TerraceLockedText = "Opens with Floor 2"
 Floors.RebirthLockedText = "Reach Floor 10"
 Floors.RebirthRoomTitle = "???" -- salle du Rebirth : nom cache (mystere) tant qu'elle est fermee (utilisateur, 2026-11-20)
 Floors.RebirthRoomOpenTitle = "REBIRTH" -- panneau de la salle une fois ouverte (etage 10, phase 4)

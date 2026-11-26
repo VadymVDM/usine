@@ -211,8 +211,8 @@ end
 path.Parent = terrace
 -- 2026-11-20 (demande : "retire les murs autour qu'on puisse passer") : plus de barriere blanche,
 -- de murs invisibles (Blocker*) ni de portail cote rue. La terrasse est ouverte sur la rue et la cour.
--- Vitre rouge dans la porte de l'usine (z 28 -> 40), retiree a l'achat de l'etage 2
-lockedGate(terrace, "TerraceGate", 28, 40, FloorsConfig.TerraceTitle, FloorsConfig.TerraceLockedText)
+-- 2026-11-23 : plus de vitre rouge "TerraceGate" ("Opens with Floor 2") dans la porte de l'usine,
+-- elle ne servait a rien (demande utilisateur).
 terrace.Parent = annex
 task.wait()
 

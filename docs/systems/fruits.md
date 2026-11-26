@@ -1,7 +1,7 @@
 # Systeme : Fruits, raretes, arbre et index
 
 **Statut :** en cours (Config, arbre construit par code qui change a chaque niveau, 100 fruits voxel + effets, Index avec CLAIM)
-**Derniere mise a jour :** 2026-11-20 soir (arbre : 91 paliers, theme par etage ; avant : Index range par rarete + chance "1 in X")
+**Derniere mise a jour :** 2026-11-23 (bonus de chance etages 1 et 2) ; 2026-11-20 soir (arbre : 91 paliers, theme par etage ; avant : Index range par rarete + chance "1 in X")
 
 ## Role
 
@@ -72,6 +72,12 @@ demandent bien plus de 10 h (sans boost de chance Robux).
   maintenant sur la vitesse, voir "Arbre qui grandit" ; A VALIDER). Les boosts de chance Robux
   multiplient pareil (regle : on vend de la chance, pas des fruits).
 - Garde-fou : le Common reste le plus frequent meme avec tous les bonus.
+- **Bonus des premiers etages** (2026-11-23, `Fruits.FloorLuck`, A VALIDER) : etage 1 = Rare+ x2,
+  etage 2 = Rare+ x1.5 (s'ajoute a la Luck et aux boosts). But : voir plus vite des fruits
+  differents au debut. Etage 1 a Luck 1 : Rare 1 sur 11, Epic 1 sur 40, Legendary 1 sur 160,
+  Mythic 1 sur 534 ; Common ~64 %. Etage 2 : Rare 1 sur 14, Epic 1 sur 52. Le "1 in X" de l'Index
+  et de l'animation de decouverte en tient compte (`Fruits.FloorLuckFor`). Pris aussi dans
+  l'argent calcule des etages automatises (`FloorIncome.AverageValue`).
 
 ### Valeurs (A VALIDER)
 
@@ -252,8 +258,9 @@ Pas d'ombre sur les fruits (`CastShadow = false`).
 Une seule amelioration : **"Upgrade Tree"**, un pad vert devant la jardiniere (avant le 2026-11-19
 soir : deux machines, Sprinkler = vitesse et Lucky Fertilizer = luck, "on comprend pas a quoi ca
 sert"). **Chaque niveau = les fruits tombent nettement plus vite (effet principal, visible) + un peu
-de Luck** (`Upgrades.TreeDropSeconds` : 2.5 s x 0.885^(niveau-1), min 0.6 s : ~0.83 s au niveau 10,
-soit x3 ; Luck x1 -> x1.5). Decision du 2026-11-20 (nuit) : "la vitesse plutot que la chance", on
+de Luck** (`Upgrades.TreeDropSeconds` : 2.5 s x 0.885 par niveau jusqu'au niveau 5, puis x0.8055,
+min 0.5 s : ~0.52 s au niveau 10, soit ~x4.8 ; avant le 2026-11-23 : x0.885 partout, 0.83 s au niveau 10,
+l'arbre limitait l'etage 10 ; Luck x1 -> x1.5). Decision du 2026-11-20 (nuit) : "la vitesse plutot que la chance", on
 la voit tout de suite ; avant : x0.955 (1.65 s au niveau 10) et Luck x4. Plus de fruits = plus de
 tirages : ~7.1 Rare+ / min au niveau 10 (avant ~8.2). Texte du pad : "Faster drops + luck". Depuis la tour d'etages
 (2026-11-20) : l'arbre de l'etage n ne fait tomber que les 10 fruits de la rarete n
@@ -268,6 +275,9 @@ niveau max de l'etage precedent, et apres il s'ameliore"). Avant : 5 modeles (ni
   ServerStorage. Meme etage + meme niveau = exactement le meme arbre (pas de hasard).
 - **Palier = (etage - 1) x 9 + niveau** (1 a 91). L'etage n au niveau 1 a **exactement** l'arbre de
   l'etage n-1 au niveau 10 (verifie dans Studio pour les 9 passages), puis il continue.
+- **Niveau affiche continu (2026-11-23)** : le panneau "Golden Tree Lv X" ne repart plus a 1 a chaque
+  etage. `Tree.DisplayLevel` = (etage - 1) x 10 + niveau : etage 1 = Lv 1..10, etage 2 = Lv 11..20,
+  etage 3 = Lv 21..30... Texte seul : la sauvegarde garde le niveau 1..10 de l'etage.
 - **Etage 1 (Fruit Tree) : l'arbre pousse** (`Tree.Growth[1..10]`) : pousse avec tuteur (~8 de haut)
   -> jeune arbre (branches, racines) -> nichoir (niveau 5) -> anneaux d'ecorce (6) -> 3 etages de
   feuillage (6-7) -> ruche (8) -> balancoire (9) -> grand arbre (10, ~24 de haut).

@@ -163,7 +163,7 @@ function RebirthController.Refresh()
 		local price = Rebirth.Price(r)
 		local money = cash()
 		ratio = if price > 0 then money / price else 1
-		setText(current.progress, `{NumberFormat.Money(math.min(money, price))} / {NumberFormat.Money(price)}`)
+		setText(current.progress, `{if money >= price then NumberFormat.Price(price) else NumberFormat.Money(money)} / {NumberFormat.Price(price)}`)
 	end
 	if current.fill then
 		current.fill.Size = UDim2.new(math.clamp(ratio, 0, 1), 0, current.fill.Size.Y.Scale, current.fill.Size.Y.Offset)

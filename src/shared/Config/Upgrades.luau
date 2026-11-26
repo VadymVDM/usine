@@ -97,9 +97,14 @@ Upgrades.ReceiptWaitSeconds = 20 -- recu : attente max de la sauvegarde du joueu
 -- (Avant le 2026-11-19 soir : deux machines, Sprinkler = vitesse et Lucky Fertilizer = luck.)
 -- 2026-11-20 (nuit) : "la vitesse plutot que la chance" : x0.955 -> x0.885 par niveau, soit x3 au
 -- niveau 10 (2.5 s -> ~0.83 s ; avant ~1.65 s) ; Fruits.LuckMax 4 -> 1.5. A VALIDER en jeu.
+-- 2026-11-23 : a l'etage 10 l'arbre (1.2 fruit/s mesure) limitait toute la chaine, le Fruit Picker
+-- au max suit ~1.94 fruit/s. Niveaux 1-5 inchanges (x0.885), puis x0.8055 par niveau de 6 a 10 :
+-- 1.53 / 1.24 / 0.99 / 0.80 / 0.65 / 0.52 s (niveau 10 = ~1.93 fruit/s, = le Picker au max).
 local TREE_DROP_SECONDS = 2.5 -- niveau 1 : 1 fruit toutes les 2.5 s
-local TREE_DROP_FACTOR = 0.885 -- x0.885 par niveau (niveau 10, le max : ~0.83 s = 3x plus vite)
-local TREE_DROP_MIN = 0.6
+local TREE_DROP_FACTOR = 0.885 -- x0.885 par niveau jusqu'au niveau TREE_DROP_KNEE
+local TREE_DROP_KNEE = 5
+local TREE_DROP_FACTOR_HIGH = 0.8055 -- x0.8055 par niveau au-dela (niveau 10 : ~0.52 s)
+local TREE_DROP_MIN = 0.5
 
 local list: { Upgrade } = {
 	{
@@ -408,7 +413,10 @@ end
 
 -- Secondes entre deux chutes de fruits pour un niveau d'arbre.
 function Upgrades.TreeDropSeconds(level: number): number
-	return math.max(TREE_DROP_MIN, TREE_DROP_SECONDS * TREE_DROP_FACTOR ^ (math.max(level, 1) - 1))
+	local l = math.max(level, 1)
+	local low = math.min(l, TREE_DROP_KNEE) - 1
+	local high = math.max(l - TREE_DROP_KNEE, 0)
+	return math.max(TREE_DROP_MIN, TREE_DROP_SECONDS * TREE_DROP_FACTOR ^ low * TREE_DROP_FACTOR_HIGH ^ high)
 end
 
 -- Prix en argent pour passer du niveau `level` au suivant (entier).

@@ -2,7 +2,7 @@
 
 **Statut :** fonctionne (playtest Studio PC le 2026-11-20 : arbre, mixeur, arbre de la carte, mur ;
 telephone pas teste ; reglage 0.8 pas revu en jeu)
-**Derniere mise a jour :** 2026-11-20
+**Derniere mise a jour :** 2026-11-23
 
 ## Role
 
@@ -19,6 +19,8 @@ Tout est cote client, pour ce joueur seulement : rien n'est envoye au serveur.
 |---|---|---|
 | `src/client/Controllers/CameraFadeController.luau` | client | Detection des objets entre la camera et le joueur, fondu, remise a l'etat d'origine |
 | `src/shared/Config/CameraFade.luau` | partage | Reglages (transparence, durees, epaisseur des lignes) et dossiers qui contiennent des objets |
+| `src/client/Controllers/SpawnCameraController.luau` | client | Camera tournee vers l'usine a l'apparition (connexion, retour, mort) |
+| `src/shared/Config/SpawnCamera.luau` | partage | Reglages de la camera a l'apparition |
 | `src/server/Services/TreeService.luau` | serveur | `prepareBody` : l'arbre pose n'a plus de collision (voir `fruits.md`) |
 
 ## Fonctionnement
@@ -52,6 +54,18 @@ Tout est cote client, pour ce joueur seulement : rien n'est envoye au serveur.
   se construisent, arbre qui grandit). StreamingEnabled : les dossiers peuvent arriver tard
   (`FloorWatch`, `WaitForChild`).
 
+## Camera a l'apparition (2026-11-23)
+
+Demande : "quand on join ou rejoin le serv, la cam doit etre vers l'usine et pas vers l'exterieur".
+Le moteur fait apparaitre le personnage sur la SpawnLocation (camera placee derriere lui la), puis
+le serveur (`BaseService` + `FloorService.spawnCFrame`) le pose dans sa base face a l'interieur de
+l'usine ; la camera de Roblox gardait son ancien angle et regardait dehors.
+`SpawnCameraController` : a chaque apparition, aligne la camera derriere le personnage (dans le sens
+ou il regarde), puis guette pendant `WatchSeconds` (15 s) un saut de position de plus de
+`TeleportDistance` (15 studs) et realigne a ce moment. Camera `Scriptable` (cinematique) : rien
+(la cinematique replace la camera elle-meme a la fin). Les ascenseurs / teleports d'etage apres ces
+15 s ne sont pas touches.
+
 ## Remotes
 
 Aucun.
@@ -80,6 +94,8 @@ est dans le feuillage), `FadeOutSeconds`, `FadeInSeconds`, `HoldSeconds`, `HeadR
   n'y voit rien ; lire `LocalTransparencyModifier` des pieces a la place.
 
 ## Problemes connus / a faire
+
+- Camera a l'apparition : testee en playtest Studio PC (connexion, etage 10) ; pas testee sur mort / respawn, telephone, en ligne.
 
 - Pas teste sur telephone (cout par image : quelques centaines de tests de boites, normalement leger).
 - Une machine qui fait avancer la camera peut la faire "sauter" une seule image avant de s'effacer.

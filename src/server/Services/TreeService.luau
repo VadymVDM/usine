@@ -142,7 +142,7 @@ local function updateStage(state: TreeState)
 	local level = getLevel(state.player, state.index) or 1
 	local levelLabel = state.levelLabel
 	if levelLabel then
-		WorldLabel.SetPlainText(levelLabel, string.format(Gameplay.TreeLevelText, TreeConfig.NameFor(state.index), level))
+		WorldLabel.SetPlainText(levelLabel, string.format(Gameplay.TreeLevelText, TreeConfig.NameFor(state.index), TreeConfig.DisplayLevel(state.index, level)))
 	end
 	if level ~= state.shownLevel then
 		state.shownLevel = level
@@ -226,7 +226,9 @@ local function rollFruit(state: TreeState, level: number): (string?, boolean)
 		return nil, false
 	end
 	-- Achats Robux (Lib/Perks) : pass Drink Master, boost Luck (Rare Rain x5) = rares plus frequents
-	local weights = Fruits.RollWeights(Fruits.LuckMultiplier(level) * Perks.LuckMultiplier(state.player, true))
+	-- + bonus fixe des premiers etages (Fruits.FloorLuck)
+	local luck = Fruits.LuckMultiplier(level) * Fruits.FloorLuckFor(state.index)
+	local weights = Fruits.RollWeights(luck * Perks.LuckMultiplier(state.player, true))
 	local total = 0
 	for _, fruit in pool do
 		total += weights[fruit.rarity] or 0

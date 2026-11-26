@@ -113,13 +113,32 @@ RAISE, PLUNGE, PUSHED, PRY, THROW) en haut d'`IntroController`. Ligne et fleche 
 Sons : `IntroBirds` (oiseaux en boucle), `IntroDig`, `IntroTreeFall` dans `Config/Sounds` (+ `NewFruit`,
 `Notify`, `Pickup`, `TreeBoing`, `TreeChime`, `FruitLand` deja la).
 Bruitages ajoutes le 2026-11-23 (`Config/Sounds`, evenements `at(...)` dans `IntroController`) :
-- `IntroStepL` / `IntroStepR` : un pas dans l'herbe a chaque pas (marche du debut, vers la pelle, vers
+- `IntroGrass1..4` : un pas dans l'herbe a chaque pas (une des 4 variantes au hasard, jamais 2 fois
+  de suite la meme ; pas "craquants" facon jeu de blocs, pas les vrais sons de Minecraft) (marche du debut, vers la pelle, vers
   l'arbre), plus forts et plus aigus en courant ;
 - `IntroJump` + `IntroWhoosh` au saut du "Wow!", `IntroLand` a l'atterrissage et aux 2 petits sauts de joie ;
 - `IntroWhoosh` : depart de la course, pelle arrachee, chaque motte jetee, arbre niveau 1 qui vole dans les mains ;
 - `IntroSkid` (feuillage) au freinage ; `IntroTreeCrack` juste avant la chute de l'arbre ;
   `IntroLeaves` a l'impact ; 5 `FruitLand` decales (fruits qui retombent) ;
 - `IntroRise` (whoosh montant) pendant le fondu au blanc final.
+- 10 petits pas en plus (2026-11-23, liste dans `IntroController`) : il s'arrete net et se tourne,
+  se tourne apres le freinage, recule en arrachant la pelle, recule quand l'arbre bascule, s'avance
+  vers l'arbre niveau 1.
+Reactions du personnage (voix, 2026-11-23, fonction `voice` dans `IntroController`, volume
+`Intro.VoiceVolume`, efforts `Intro.GruntVolume`) :
+- `IntroGasp` (il voit l'arbre), `IntroWowVoice` (Wow!), `IntroPant` (essouffle a l'arrivee),
+  `IntroHmm` (il reflechit, coupe en douceur apres `Intro.HmmSeconds`), `IntroGrunt2` (pelle
+  arrachee), `IntroGrunt1/3/2` (un effort par coup de pelle), `IntroWhoa` (l'arbre bascule),
+  ("got it" et "woo hoo" de la fin retires le 2026-11-23 : trop de sons a la fin).
+Marche refaite le 2026-11-23 : genoux et coudes (R15 seulement, champs `rk lk re le` de la pose),
+la jambe qui avance plie le genou, bras legerement ecartes et coudes plies, petit rebond, tete stable ;
+course genoux tres plies et bras a angle droit. Coudes remis droits quand les mains tiennent la pelle
+ou l'arbre (le calcul des mains suppose un bras tendu).
+Pelle arrachee : "pop" (`CashPop`, `Intro.ShovelPopVolume`) + la pelle grossit puis revient (`Intro.ShovelPop`).
+Fin : pendant le fondu au blanc, la camera s'approche peu a peu de sa tete, un peu d'en haut pour
+passer au-dessus du pot (`Intro.HeadZoom` : start, distance, fov, rise).
+- Voix de createurs differents : pas la meme voix d'un son a l'autre. A ecouter ; changer un id
+  dans `Config/Sounds` suffit.
 Changer le decor (positions de l'arbre, du chemin, fruits) : modifier `Config/Intro`, relancer
 `02m-intro-set.luau` dans Studio, sauvegarder la place. Pelle, trou, tas, depart de la marche et
 points de l'histoire sont places par le client depuis la Config : pas besoin de reconstruire le decor.

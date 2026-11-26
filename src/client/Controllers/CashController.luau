@@ -6,7 +6,8 @@
 --     le montant du HUD monte d'autant en comptant (MoneyHudController Hold / Release) avec un petit
 --     rebond, et le "+$X" juste a droite du montant grimpe. A la fin : gros rebond (plus de "ding" depuis le 2026-11-20), puis
 --     le "+$X" monte et s'efface. Deux encaissements rapproches s'additionnent dans le meme "+$X".
---   * Feedback "AutoCash" { amount, from } (pass Auto Collect) : petit "+$5" a cote du montant.
+--   * Feedback "AutoCash" { amount, from } (pass Auto Collect) : petit "+$5" a cote du montant
+--     (un seul texte : les montants rapproches s'y additionnent).
 --   * Feedback "InstantSell" { amount, count } (pass Instant Sell) : "pop" de vente (les billets
 --     apparaissent sur le tas, ou "+$X" avec Auto Collect).
 -- Doc : docs/systems/clients.md
@@ -306,45 +307,70 @@ local function counterFinish()
 	end)
 end
 
--- Petit texte "+$5" (Auto Collect), a droite du montant du HUD.
-local function floatingText(text: string)
+-- Petit texte "+$5" (Auto Collect), a droite du montant du HUD. Un seul a la fois (2026-11-23) :
+-- les ventes qui arrivent pendant qu'il est affiche s'ajoutent a son montant (avec Auto Collect,
+-- chaque etage automatise verse son argent a part : sinon plusieurs textes se superposaient).
+type AutoText = { label: TextLabel, stroke: UIStroke, scale: UIScale, height: number, sum: number, token: number }
+local autoText: AutoText? = nil
+local AUTO_HOLD = 0.6 -- secondes d'affichage apres le dernier ajout
+local AUTO_POP_GAP = 0.25 -- pas plus d'un "pop" Auto Collect tous les 0.25 s
+local lastAutoPop = 0
+
+local function autoCashText(amount: number)
 	local gui = screen
 	if gui == nil then
 		return
 	end
-	local spot = moneySpot()
-	local height = math.max(spot.height * 0.7, 14)
-	local label = Instance.new("TextLabel")
-	label.AnchorPoint = Vector2.new(0, 0.5)
-	label.Position = UDim2.fromOffset(spot.right + height * 0.3, spot.center.Y)
-	label.Size = UDim2.fromOffset(height * 5, height)
-	label.BackgroundTransparency = 1
-	label.FontFace = FONT
-	label.Text = text
-	label.TextScaled = true
-	label.TextXAlignment = Enum.TextXAlignment.Left
-	label.TextColor3 = CASH_GREEN
-	local stroke = PackStyle.stroke(label, 2.5, CASH_STROKE)
-	local scale = Instance.new("UIScale")
-	scale.Scale = 0.3
-	scale.Parent = label
-	label.Parent = gui
-	TweenService:Create(scale, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
-	task.delay(0.4, function()
+	local current = autoText
+	if current and current.label.Parent then
+		current.sum += amount
+		current.label.Text = "+$" .. NumberFormat.Abbreviate(math.floor(current.sum + 0.5))
+		current.scale.Scale = 1.12
+		TweenService:Create(current.scale, TweenInfo.new(0.15, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+	else
+		local spot = moneySpot()
+		local height = math.max(spot.height * 0.7, 14)
+		local label = Instance.new("TextLabel")
+		label.AnchorPoint = Vector2.new(0, 0.5)
+		label.Position = UDim2.fromOffset(spot.right + height * 0.3, spot.center.Y)
+		label.Size = UDim2.fromOffset(height * 5, height)
+		label.BackgroundTransparency = 1
+		label.FontFace = FONT
+		label.Text = "+$" .. NumberFormat.Abbreviate(math.floor(amount + 0.5))
+		label.TextScaled = true
+		label.TextXAlignment = Enum.TextXAlignment.Left
+		label.TextColor3 = CASH_GREEN
+		local stroke = PackStyle.stroke(label, 2.5, CASH_STROKE)
+		local scale = Instance.new("UIScale")
+		scale.Scale = 0.3
+		scale.Parent = label
+		label.Parent = gui
+		TweenService:Create(scale, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+		current = { label = label, stroke = stroke, scale = scale, height = height, sum = amount, token = 0 }
+		autoText = current
+	end
+	local text = current :: AutoText
+	text.token += 1
+	local myToken = text.token
+	task.delay(AUTO_HOLD, function()
+		if text.token ~= myToken or text.label.Parent == nil then
+			return
+		end
+		if autoText == text then
+			autoText = nil -- le prochain montant ouvre un nouveau texte
+		end
 		local rise = TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-		TweenService:Create(label, rise, {
-			Position = label.Position - UDim2.fromOffset(0, height * 1.2),
+		TweenService:Create(text.label, rise, {
+			Position = text.label.Position - UDim2.fromOffset(0, text.height * 1.2),
 			TextTransparency = 1,
 		}):Play()
-		TweenService:Create(stroke, rise, { Transparency = 1 }):Play()
+		TweenService:Create(text.stroke, rise, { Transparency = 1 }):Play()
 		task.delay(0.65, function()
-			label:Destroy()
+			text.label:Destroy()
 		end)
 	end)
 end
 
----------------------------------------------------------------------------------------------
--- Un billet 2D : rectangle vert arrondi, contour fonce, ovale clair avec "$" au milieu.
 local function makeBill(height: number, color: Color3): (Frame, UIScale)
 	local bill = Instance.new("Frame")
 	bill.Name = "FlyingBill"
@@ -475,8 +501,12 @@ local function onFeedback(kind: any, payload: any)
 		-- Achat paye (pad, tuile, etage, menu Upgrades) : son de paiement
 		SoundFx.Play("Paid")
 	elseif kind == "AutoCash" then
-		SoundFx.Play("CashPop", nil, 1.2)
-		floatingText("+$" .. NumberFormat.Abbreviate(amount))
+		local now = os.clock()
+		if now - lastAutoPop >= AUTO_POP_GAP then
+			lastAutoPop = now
+			SoundFx.Play("CashPop", nil, 1.2)
+		end
+		autoCashText(amount)
 	elseif kind == "InstantSell" then
 		SoundFx.Play("CashPop", nil, 1.05)
 	end

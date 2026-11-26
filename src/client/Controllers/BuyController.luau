@@ -128,7 +128,7 @@ local function confirm(id: string, machine: Model?)
 	local price = machine and machine:GetAttribute("Price")
 	local verb = if upgrade.kind == "Employee" then "Hire" else "Buy"
 	p.title.Text = `{verb} {upgrade.machine}?`
-	p.price.Text = if type(price) == "number" and price >= 0 then NumberFormat.Money(price) else "?"
+	p.price.Text = if type(price) == "number" and price >= 0 then NumberFormat.Price(price) else "?"
 	pendingId = id
 	if menuController().GetActiveMenu() ~= POPUP_MENU then
 		menuController().Open(POPUP_MENU)

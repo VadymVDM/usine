@@ -48,9 +48,11 @@ les appelants verifient) : `TreeService.DebugDrop`, `CustomerService.DebugAction
 
 ## Fonctionnement
 
-- **Qui est admin :** en Studio tout le monde (tests) ; en jeu publie, le createur du jeu
-  (`game.CreatorId`, CreatorId 3050299402) et les UserId de `GameConfig.AdminUserIds` : Himoxil
-  (9061089590), ajoute le 2026-11-19. Le serveur pose `IsAdmin` ; l'attribut ne sert qu'a l'affichage.
+- **Qui est admin :** en Studio tout le monde (tests) ; en jeu publie, le createur du jeu s'il
+  appartient a un compte (`game.CreatorId`) et les UserId de `GameConfig.AdminUserIds` :
+  PROVADNIKE_ROBLOX (3050299402, le createur, ajoute le 2026-11-23 car le jeu appartient
+  maintenant au groupe 444006920 : la regle "createur" ne marche plus) et Himoxil (9061089590,
+  ajoute le 2026-11-19). Le serveur pose `IsAdmin` ; l'attribut ne sert qu'a l'affichage.
 - **Tout ce qui change etages, ameliorations, rebirths, Index ou argent ECRIT LA SAUVEGARDE** de la
   cible. Les passes bascules sont des attributs (perdus au depart, la vraie possession revient au
   prochain chargement).

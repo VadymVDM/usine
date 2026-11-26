@@ -354,7 +354,7 @@ local function refreshUpgrade(state: FloorState, id: string, player: Player?)
 	local priceText = if upgrade.comingSoon
 		then "Soon"
 		elseif price < 0 then "MAX"
-		else "$" .. NumberFormat.Abbreviate(price)
+		else NumberFormat.Price(price) -- arrondi vers le haut (voir NumberFormat.Price)
 	local comingSoon = upgrade.comingSoon == true
 
 	local builtAt = Upgrades.BuiltAt(id)

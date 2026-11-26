@@ -2,7 +2,7 @@
 
 **Statut :** en cours (achats, pad de l'arbre, panneaux, mixeurs a 5 niveaux, decor par niveau,
 3 employes R6 : playtest Studio du 2026-11-19 soir a 1 joueur ; 2 joueurs et telephone non testes)
-**Derniere mise a jour :** 2026-11-23 (bouton violet des tuiles : vrai achat Robux, 5 / 8 / 9 R$)
+**Derniere mise a jour :** 2026-11-23 (prix des tuiles / pads arrondis vers le haut ; bouton violet des tuiles : vrai achat Robux, 5 / 8 / 9 R$)
 
 ## Role
 
@@ -293,6 +293,10 @@ delai, niveau max, argent). Prompt E des machines construites : `Triggered` cote
 `Upgrades` : niveau de chaque id (employes : 0 ou 1 ; mixeurs 2-4 : 0 = pas achete). Proprietaire :
 `UpgradeService`. SchemaVersion 3 (2026-11-19 soir) : `TreeSpeed` + `TreeLuck` -> `Tree`, `BowlSize`
 -> niveau de chaque mixeur (migration dans DataService, voir `sauvegarde.md`).
+
+> **Prix affiches (2026-11-23)** : tuiles, pads, prompts et pop-up affichent le prix arrondi vers le
+> HAUT (`NumberFormat.Price` : 1 525 -> "$1.53K"), l'argent du HUD vers le bas. Avant, les deux
+> vers le bas : "$1.52K" des deux cotes et "Not enough money!" (panneau Customers). Voir `argent.md`.
 
 ## Configuration
 

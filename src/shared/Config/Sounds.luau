@@ -46,8 +46,13 @@ local Sounds: { [string]: SoundDef } = {
 	IntroDig = { id = "rbxassetid://9114083260", volume = 1, pitchJitter = 0.06 }, -- "Dirt Dig Dirt Throws From Shovel 1" (1.0 s)
 	IntroTreeFall = { id = "rbxassetid://9113466920", volume = 1 }, -- "Board Drops Wood Impacts Wobble 3" (2.2 s)
 	-- Ajouts du 2026-11-23 ("plus de bruitages dans la cinematique"), verifies charges dans Studio
-	IntroStepL = { id = "rbxassetid://106672010112184", volume = 1, pitchJitter = 0.08 }, -- "walk_grass_left" (0.52 s)
-	IntroStepR = { id = "rbxassetid://82667401006591", volume = 1, pitchJitter = 0.08 }, -- "walk_grass_right" (0.52 s)
+	-- Pas dans l'herbe : 4 variantes tirees au hasard, pas "craquants" facon jeu de blocs (2026-11-23,
+	-- demande "bruits de pas de Minecraft sur l'herbe" ; pas les vrais sons de Minecraft : droits d'auteur).
+	-- Serie "grass_step_01..04" (StarWithABlox), 0.55-0.64 s. Avant : walk_grass_left/right.
+	IntroGrass1 = { id = "rbxassetid://108357430635661", volume = 1, pitchJitter = 0.1 },
+	IntroGrass2 = { id = "rbxassetid://95318237108953", volume = 1, pitchJitter = 0.1 },
+	IntroGrass3 = { id = "rbxassetid://127407887796066", volume = 1, pitchJitter = 0.1 },
+	IntroGrass4 = { id = "rbxassetid://89758061708390", volume = 1, pitchJitter = 0.1 },
 	IntroJump = { id = "rbxasset://sounds/action_jump.mp3", volume = 1, pitchJitter = 0.05 }, -- saut Roblox (0.34 s)
 	IntroLand = { id = "rbxasset://sounds/action_jump_land.mp3", volume = 1, pitchJitter = 0.08 }, -- atterrissage Roblox (0.26 s)
 	IntroWhoosh = { id = "rbxassetid://9126229267", volume = 1, pitchJitter = 0.08 }, -- "Whoosh By Fast Airy Swooshing" (0.6 s, ProSoundEffects)
@@ -55,7 +60,18 @@ local Sounds: { [string]: SoundDef } = {
 	IntroSkid = { id = "rbxassetid://9114518395", volume = 1 }, -- "Foliage Movement 5" (2.1 s) : il freine dans l'herbe
 	IntroTreeCrack = { id = "rbxassetid://9126240449", volume = 1 }, -- "Wood Crack Thick Splintering Creaking 2" (3.4 s)
 	IntroLeaves = { id = "rbxassetid://9114518260", volume = 1 }, -- "Foliage Movement 2" (2.5 s) : feuillage qui s'ecrase
-	WelcomeBack = { id = "rbxassetid://122766504688172", volume = 1 }, -- ding de recompense (gains hors ligne)
+	-- Reactions du personnage (voix), 2026-11-23 : "plus de sons pour l'intro, les reactions".
+	-- Verifies charges dans Studio ; PAS ecoutes (a valider a l'oreille, faciles a remplacer ici).
+	IntroGasp = { id = "rbxassetid://9125572759", volume = 1, pitch = 1.15 }, -- "Gasps Male... 6" (1.05 s, ProSoundEffects) : il voit l'arbre
+	IntroWowVoice = { id = "rbxassetid://116173584186102", volume = 1 }, -- "\"Wow\" Voice line" (0.72 s)
+	IntroPant = { id = "rbxassetid://9125572450", volume = 1, pitch = 1.1 }, -- "Gasps Male... 8" (1.44 s, ProSoundEffects) : essouffle apres la course
+	IntroHmm = { id = "rbxassetid://128766952075168", volume = 1 }, -- "Mmm.." (3.0 s, coupe a 1.2 s) : il reflechit
+	IntroGrunt1 = { id = "rbxassetid://117404652750890", volume = 1, pitchJitter = 0.05 }, -- "effort grunt 2" (0.26 s)
+	IntroGrunt2 = { id = "rbxassetid://118272408702780", volume = 1, pitchJitter = 0.05 }, -- "effort grunt 3" (0.35 s)
+	IntroGrunt3 = { id = "rbxassetid://85104355106009", volume = 1, pitchJitter = 0.05 }, -- "effort grunt 5" (0.41 s)
+	IntroWhoa = { id = "rbxassetid://130615718980545", volume = 1 }, -- "Haah..!" (1.04 s) : l'arbre tombe
+	-- ("got it" et "woo hoo" de la fin retires le 2026-11-23 : trop de sons a la fin)
+	WelcomeBack ={ id = "rbxassetid://122766504688172", volume = 1 }, -- ding de recompense (gains hors ligne)
 }
 
 return table.freeze(Sounds)

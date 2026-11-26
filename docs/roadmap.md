@@ -152,7 +152,7 @@ Plan technique complet : `systems/tour-etages.md`. Prompt pret pour un nouveau c
 
 ## Decisions encore ouvertes (a trancher par l'utilisateur)
 
-- Nom : **Sell a Juice** ou **Make a Juice**
+- Nom : **My Juice Factory** (decide le 2026-11-23)
 - Prix des etages (remplacent les salles Cocktail Bar 5K / Terrace 50K)
 - Prix des passes (VIP 149, 3x Cash 399, Drink Master 249, Greedy 199, Speed 99, Auto Collect 149,
   Thief 149, Rebirth Master 299) et des packs d'argent (25 / 79 / 199 / 499)

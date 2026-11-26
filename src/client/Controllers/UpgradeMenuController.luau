@@ -139,7 +139,7 @@ local function showRow(row: Row)
 	local free = isCash and row.id == PlayerUpgrades.FreeFirstId and player:GetAttribute("FreeSpeed") == true
 	if row.cashLabel then
 		row.cashLabel.Visible = isCash
-		row.cashLabel.Text = if free then PlayerUpgrades.FreeText elseif cashPrice then NumberFormat.Money(cashPrice) else ""
+		row.cashLabel.Text = if free then PlayerUpgrades.FreeText elseif cashPrice then NumberFormat.Price(cashPrice) else ""
 	end
 	if row.price then
 		row.price.Visible = not isMax and not isCash
@@ -313,7 +313,7 @@ local function celebrate(row: Row, paidCash: number?, isMax: boolean)
 	punchLevel(row)
 	local unit = row.frame.AbsoluteSize.Y
 	if paidCash and row.button then
-		floatText(`-{NumberFormat.Money(paidCash)}`, PAID_COLOR, centerOf(row.button), unit * 0.42, unit * 0.9)
+		floatText(`-{NumberFormat.Price(paidCash)}`, PAID_COLOR, centerOf(row.button), unit * 0.42, unit * 0.9)
 	end
 	floatText(if isMax then "MAXED!" else "LEVEL UP!", LEVEL_UP_COLOR, centerOf(row.frame), unit * 0.5, unit * 1.1)
 	local icon = row.frame:FindFirstChild("ItemIcon", true)

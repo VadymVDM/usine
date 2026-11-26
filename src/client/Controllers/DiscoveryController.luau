@@ -154,7 +154,9 @@ local function bounceButton(button: GuiObject)
 		end
 		local uiScale = scale :: UIScale
 		local spring = Jelly.Spring(380, 10)
-		local base = uiScale.Scale
+		-- Taille de repos sans la pulsation du tutoriel (attribut PulseFactor, TutorialController)
+		local pulseFactor = uiScale:GetAttribute("PulseFactor")
+		local base = uiScale.Scale / (if type(pulseFactor) == "number" and pulseFactor > 0 then pulseFactor else 1)
 		local connection = RunService.RenderStepped:Connect(function(dt: number)
 			local live = bounces[button]
 			if live == nil then
@@ -323,7 +325,7 @@ local function playOne(fruitId: string)
 	rarityLabel.TextColor3 = rarityColor
 	rarityLabel.ZIndex = 7
 	table.insert(labels, rarityLabel)
-	local oneIn = if fruit.rarity > 1 then Fruits.OneIn(fruit.rarity) else 0
+	local oneIn = if fruit.rarity > 1 then Fruits.OneIn(fruit.rarity, Fruits.FloorLuckFor(fruit.floor)) else 0
 	if oneIn > 1 then
 		local chance = PackStyle.label(info, `1 in {withCommas(oneIn)}`, UDim2.fromScale(0.5, 0.72), UDim2.fromScale(0.7, 0.26), 30)
 		chance.ZIndex = 7

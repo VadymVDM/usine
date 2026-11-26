@@ -116,7 +116,9 @@ un jus et laissent son prix sur la table a argent ; le joueur encaisse en se ten
 - **Pad Robux "Auto Collect"** (violet, a cote de la table) : marcher dessus = achat du pass
   `Shop.Passes` "AutoCollect" (`MarketplaceService:PromptGamePassPurchase`). `passId = 0` tant que le
   pass n'est pas cree : message "Robux purchases: coming soon!". Pass possede : l'argent de chaque
-  vente va directement au joueur (`Feedback` "AutoCash" : petit "+$5" a droite du montant du HUD),
+  vente va directement au joueur (`Feedback` "AutoCash" : petit "+$5" a droite du montant du HUD ; depuis le 2026-11-23 un
+  seul texte a la fois, les montants rapproches s'y additionnent, "pop" au plus tous les 0.25 s :
+  avant, chaque etage automatise affichait son propre texte au meme endroit et ils se superposaient),
   le pad affiche "ACTIVE". **Depuis le 2026-11-21** : possession = attribut joueur `AutoCollect`
   (pose par le serveur seulement, comme les autres passes). Avant, c'etait une table interne de
   CustomerService : la boutique ne la voyait pas, et le bouton admin ne marchait que si le joueur

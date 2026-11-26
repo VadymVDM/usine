@@ -88,6 +88,10 @@ Intro.BirdsVolume = 0.3 -- oiseaux en boucle
 Intro.StepVolume = 0.6 -- pas dans l'herbe (discrets, ils se repetent)
 Intro.WhooshVolume = 0.7 -- whoosh (saut, terre jetee, arbre qui vole dans les mains, fondu)
 Intro.CrackVolume = 0.9 -- l'arbre craque avant de tomber
+-- Reactions (voix) et pas en plus, 2026-11-23 (multiplient SoundVolume)
+Intro.VoiceVolume = 1.2 -- voix du personnage (surprise, wow, hmm, efforts, woohoo)
+Intro.GruntVolume = 0.8 -- petits efforts (pelle arrachee, coups de pelle)
+Intro.HmmSeconds = 1.2 -- le "Mmm.." (3 s) est coupe en douceur avant le "!"
 
 -- Effets (degres de secousse de camera, duree en secondes)
 Intro.DigShake = { degrees = 0.8, seconds = 0.2 }
@@ -139,6 +143,14 @@ Intro.Shots = table.freeze({
 	{ t = T.raise, space = "Set", pos = Vector3.new(3, 5.2, 5), look = Vector3.new(-8.5, 5.3, 3.3), fov = 55 },
 	{ t = T.stop, space = "Set", pos = Vector3.new(2.2, 5.2, 4.6), look = Vector3.new(-9, 5.8, 3.4), fov = 55 },
 } :: { Shot })
+
+-- Fin (2026-11-23) : pendant le fondu au blanc, la camera s'approche peu a peu de sa tete
+-- (start : seconde de depart ; distance : studs devant la tete a la fin ; fov : champ de vision final ;
+-- rise : camera un peu au-dessus, pour passer au-dessus du pot tenu devant lui)
+Intro.HeadZoom = table.freeze({ start = T.lower + 0.2, distance = 2.4, fov = 38, rise = 0.45 })
+-- "Pop" de la pelle arrachee : elle grossit (~+30 % au plus fort avec 0.8) puis revient ; volume du pop
+Intro.ShovelPop = 0.8
+Intro.ShovelPopVolume = 1.6
 
 -- Textes (vus par le joueur : anglais)
 Intro.NoticeText = "!"

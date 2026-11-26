@@ -41,7 +41,9 @@ local GameConfig = {
 
 	-- Panneau admin (docs/systems/admin.md). Admins = le createur du jeu (s'il appartient a un
 	-- compte, pas a un groupe) + ces UserId. En Studio, tout le monde est admin (tests).
+	-- Le jeu appartient a un groupe depuis la publication : le createur doit etre dans cette liste.
 	AdminUserIds = table.freeze({
+		3050299402, -- PROVADNIKE_ROBLOX, createur (jeu passe a un groupe, 2026-11-23)
 		9061089590, -- Himoxil (demande du 2026-11-19)
 	} :: { number }),
 	AdminCooldownSeconds = 0.3, -- delai minimum entre deux actions admin (clics rapides pendant les tests)

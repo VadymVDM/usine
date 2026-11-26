@@ -96,6 +96,12 @@ local function isPressInput(input: InputObject): boolean
 		or input.KeyCode == Enum.KeyCode.ButtonA
 end
 
+-- Facteur de pulsation pose par TutorialController sur l'UIScale (1 sans pulsation)
+local function pulseFactorOf(scale: UIScale): number
+	local factor = scale:GetAttribute("PulseFactor")
+	return if type(factor) == "number" and factor > 0 then factor else 1
+end
+
 local function forget(button: GuiButton)
 	local state = states[button]
 	if state then
@@ -139,7 +145,8 @@ function ButtonFx.Bind(button: GuiButton, force: boolean?): boolean
 	button.AutoButtonColor = false
 	local state: State = {
 		scale = scale :: UIScale,
-		base = (scale :: UIScale).Scale,
+		-- (sans la pulsation du tutoriel s'il fait deja pulser ce bouton : attribut PulseFactor)
+		base = (scale :: UIScale).Scale / pulseFactorOf(scale :: UIScale),
 		token = 0,
 		hovered = false,
 		pressed = false,

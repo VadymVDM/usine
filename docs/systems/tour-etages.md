@@ -136,7 +136,7 @@ L'annexe (x -46 -> 0) n'existe qu'au rez-de-chaussee : la tour ne monte que sur 
 
 **Terrasse -> hall de l'ascenseur des clients.**
 - Pas d'achat a part : elle **s'ouvre toute seule a l'achat de l'etage 2** (un etage 2 sans
-  clients ne vendrait rien). Avant : barriere fermee + panneau "Opens with Floor 2", et on voit
+  clients ne vendrait rien). (Le panneau "Opens with Floor 2" a ete retire le 2026-11-23.) On voit
   deja la cage vide de l'ascenseur le long du mur ouest de la tour.
 - A l'achat de l'etage 2, dans la meme animation : l'etage se construit, l'ascenseur vitre
   apparait, la barriere de la terrasse s'ouvre.
@@ -236,8 +236,9 @@ L'annexe (x -46 -> 0) n'existe qu'au rez-de-chaussee : la tour ne monte que sur 
   l'etage ferme. Verifie : proprietaire de la base, `n == #Floors + 1`, distance, delai
   `Floors.BuyCooldown`, argent (`MoneyService.TrySpend`). Puis `table.insert(data.Floors, defaut)`,
   l'etage ouvert remplace la coque, le suivant ferme apparait, message "Floor N unlocked!".
-- **Annexe** : etage 2 -> `Terrace.TerraceGate` retiree (remise au depart du
-  joueur ; la terrasse n'a plus de cloture, de portail cote rue ni de murs invisibles depuis le
+- **Annexe** : etage 2 -> la cabine de l'ascenseur apparait. Plus de vitre rouge
+  `Terrace.TerraceGate` ("Opens with Floor 2") depuis le 2026-11-23 (sans utilite ; FloorService la
+  detruit si le .rbxl l'a encore). La terrasse n'a plus de cloture, de portail cote rue ni de murs invisibles depuis le
   2026-11-20 : on y passe librement depuis la rue et la cour) ; etage 10 -> `RebirthRoom.RebirthGate` retiree, panneau `RebirthRoom.Sign` "REBIRTH",
   prompt "Rebirth / Open" sur `RebirthRoom.PromptAnchor` -> menu Rebirth (2026-11-20, `rebirth.md`).
 - **Niveaux d'un etage neuf** (achat, rebirth, `SetFloorCount`) : `Upgrades.DefaultLevels()`, sauf
@@ -414,8 +415,8 @@ d'argent). Il remet la tour a 1 etage et donne le multiplicateur permanent.
   l'ascenseur, face nord (z 11.35 -> 12.1), cote couloir. Depuis le 2026-11-20 (fin de journee) :
   **vertical**, de la largeur de la cage (x -8.8 -> -1.2, y 1.5 -> 13.7) : titre en haut, Speed au
   milieu, Cabin en bas (avant horizontal x -13.5 -> 0.5, il depassait de la cage).
-- **Vitre rouge de la terrasse** : titre "???" (`Config/Floors.TerraceTitle`, nom cache comme la salle
-  du Rebirth) + "Opens with Floor 2". Avant : "TERRACE".
+- **Vitre rouge de la terrasse** : retiree le 2026-11-23 (avant : "???" + "Opens with Floor 2",
+  `TerraceTitle` / `TerraceLockedText` supprimes de `Config/Floors`).
 - **"Objet en haut de l'ascenseur qui cache les avatars"** : cause pas reproduite avec certitude.
   Corrige : la cage teintee presque opaque de l'etage ferme (juste au-dessus du dernier etage) n'existe
   plus, et la cage / la cabine ne sont plus en materiau Glass (SmoothPlastic, transparence 0.7 /

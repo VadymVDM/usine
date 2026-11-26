@@ -374,6 +374,53 @@ function TutorialController.Start()
 		end
 	end)
 
+	-- Pulsation du bouton vise. Son UIScale sert deja au survol / appui (UI/ButtonFx) et au rebond
+	-- de l'Index (DiscoveryController) : on multiplie par-dessus leur valeur, sans la remplacer.
+	-- Si personne n'a ecrit depuis notre derniere ecriture, la valeur "a eux" = ecrite / facteur ;
+	-- sinon c'est la valeur qu'ils viennent de mettre. Attribut PulseFactor sur l'UIScale : ils le
+	-- retirent quand ils lisent leur taille de repos.
+	local pulse: { gui: GuiObject?, scale: UIScale?, written: number, factor: number } =
+		{ gui = nil, scale = nil, written = 1, factor = 1 }
+	local function ownValue(scale: UIScale): number
+		return if math.abs(scale.Scale - pulse.written) < 1e-4 then pulse.written / pulse.factor else scale.Scale
+	end
+	local function stopPulse()
+		local scale = pulse.scale
+		if scale and scale.Parent then
+			scale.Scale = ownValue(scale)
+			scale:SetAttribute("PulseFactor", nil)
+		end
+		pulse.gui, pulse.scale, pulse.written, pulse.factor = nil, nil, 1, 1
+	end
+	local function stepPulse(gui: GuiObject)
+		if pulse.gui ~= gui then
+			stopPulse()
+			-- Objet qui change de taille : comme ButtonFx (attribut FxTarget = enfant a agrandir)
+			local fxTarget: GuiObject = gui
+			local childName = gui:GetAttribute("FxTarget")
+			local child = if type(childName) == "string" then gui:FindFirstChild(childName) else nil
+			if child and child:IsA("GuiObject") then
+				fxTarget = child
+			end
+			local scale = fxTarget:FindFirstChildOfClass("UIScale")
+			if scale == nil then
+				local created = Instance.new("UIScale")
+				created.Name = "UIScale" -- nom que ButtonFx sait reprendre
+				created.Parent = fxTarget
+				scale = created
+			end
+			pulse.gui, pulse.scale = gui, scale
+			pulse.written, pulse.factor = (scale :: UIScale).Scale, 1
+		end
+		local scale = pulse.scale :: UIScale
+		local own = ownValue(scale)
+		local factor = 1 + Tutorial.ButtonPulse * (0.5 - 0.5 * math.cos(clock * Tutorial.ButtonPulseSpeed * 2 * math.pi))
+		pulse.factor = factor
+		pulse.written = own * factor
+		scale.Scale = pulse.written
+		scale:SetAttribute("PulseFactor", factor)
+	end
+
 	local function show(newTarget: Target?)
 		target = newTarget
 		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
@@ -399,6 +446,9 @@ function TutorialController.Start()
 		end
 		local gui = newTarget and newTarget.gui
 		local holder = gui and gui:FindFirstAncestorOfClass("ScreenGui")
+		if pulse.gui ~= gui then
+			stopPulse()
+		end
 		if gui and holder then
 			if pointer.Parent ~= holder then
 				pointer.Parent = holder
@@ -670,7 +720,7 @@ function TutorialController.Start()
 				return at(machinePad(floor, Tutorial.PickerId), steps.HirePicker)
 			end
 			local sub = string.gsub(steps.EarnPicker, "{cash}", NumberFormat.Money(cash))
-			sub = string.gsub(sub, "{price}", NumberFormat.Money(price))
+			sub = string.gsub(sub, "{price}", NumberFormat.Price(price))
 			return withGoal(sellStep(), sub)
 		elseif phase == "OpenIndex" then
 			if activeMenu() == "Index" then
@@ -712,7 +762,7 @@ function TutorialController.Start()
 						return at(treePad, steps.UpgradeTree)
 					end
 					local sub = string.gsub(steps.EarnTree, "{cash}", NumberFormat.Money(cash))
-					sub = string.gsub(sub, "{price}", NumberFormat.Money(price))
+					sub = string.gsub(sub, "{price}", NumberFormat.Price(price))
 					return withGoal(sellStep(), sub)
 				end
 			end
@@ -811,6 +861,7 @@ function TutorialController.Start()
 				show(nil)
 				return
 			end
+			stepPulse(gui)
 			local bounce = math.abs(math.sin(clock * 4)) * Tutorial.PointerBounce
 			-- Repere du ScreenGui de la fleche (barre du haut et zones sures comprises)
 			local holder = pointer.Parent
