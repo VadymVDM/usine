@@ -12,6 +12,7 @@
 | `src/gui/` | `StarterGui` |
 | `src/first/` | `ReplicatedFirst` (prechargement invisible, voir `systems/chargement.md`) |
 | `tools/build-map/preview-factory.luau` | `ServerScriptService.DevTools.PreviewFactory` (outil de Studio, jamais charge par le jeu ; lu par le bouton Factory Preview, voir `systems/apercu-edit.md`) |
+| `tools/build-map/` (le dossier entier) | `ServerScriptService.DevTools.BuildMap` : les scripts de carte en ModuleScripts (2026-11-27). Jamais charges par le jeu, pas envoyes aux joueurs. On les lance en mode Edit avec `require(...BuildMap["<nom>"]:Clone())`, voir `systems/carte-bases.md`. `preview-factory` y est donc en double (sans effet : le bouton lit `DevTools.PreviewFactory`) |
 
 Workspace et ServerStorage ne sont pas geres par Rojo (`$ignoreUnknownInstances`) : la carte et
 les modeles restent dans le fichier .rbxl. Ils sont construits par les scripts de

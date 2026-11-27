@@ -56,9 +56,14 @@ l'ordre : `01`, `02a` ... `02h`, `02i` (coin des dons, `docs/systems/dons.md`), 
 partie ; `02a` recree les deux modeles, donc relancer ensuite `02b` a `02j` puis `05`). Les scripts
 02a, 02e, 02f, 02g et 02h chargent une copie fraiche de la Config. Verifier avec `preview-tower` +
 `check-zfighting` (0 ligne), retirer l'apercu, puis `save_place`.
-Astuce (2026-11-19) : copier les scripts dans un dossier temporaire `src/shared/_BuildMap/` ; Rojo
-les envoie dans Studio comme ModuleScripts, qu'on lance avec un `require` d'une copie
-(`m:Clone()`). Supprimer le dossier a la fin (il ne doit pas rester dans le jeu).
+**Lancer un script de carte (depuis le 2026-11-27)** : Rojo synchronise tout `tools/build-map/` dans
+`ServerScriptService.DevTools.BuildMap` (un ModuleScript par fichier, meme nom sans `.luau`). En
+mode Edit, avec Rojo connecte, dans `execute_luau` (MCP) ou la barre de commande :
+`require(game.ServerScriptService.DevTools.BuildMap["03-decor"]:Clone())` (la copie force une
+lecture fraiche : `require` garde sinon l'ancienne version en memoire). Modifier le fichier sur le
+disque, attendre 1 a 2 s, relancer.
+Ne plus utiliser l'ancienne astuce (dossier temporaire `src/shared/_BuildMap/`) : voir "Problemes
+connus".
 
 ## Fonctionnement
 
@@ -335,12 +340,12 @@ Positions des machines, pads et panneaux : dans `02e` et `02g`.
 
 ## Problemes connus / a faire
 
-- **Dossier temporaire `src/shared/_BuildMap/` et Rojo (2026-11-27)** : apres la suppression du
-  dossier sur le disque, le plugin Rojo de Studio n'a pas retire le dossier et a arrete de
-  synchroniser, 2 fois sur 3 (sa fenetre affiche une page avec un bouton "Okay" ; cause pas
-  trouvee). Il faut alors retirer `Shared._BuildMap` dans Studio et refaire Connect (port 34850).
-  Piste pour ne plus avoir le probleme : ranger les scripts de carte dans
-  `ServerScriptService.DevTools` par `default.project.json`, comme `PreviewFactory`.
+- **Ancien dossier temporaire `src/shared/_BuildMap/` (regle le 2026-11-27)** : apres la suppression
+  du dossier sur le disque, le plugin Rojo de Studio laissait le dossier et arretait de
+  synchroniser, 2 fois sur 3 (page avec un bouton "Okay" ; cause exacte pas trouvee). Regle en
+  supprimant le besoin : les scripts de carte sont dans `DevTools.BuildMap` par
+  `default.project.json`, plus aucun dossier a creer ni a supprimer. Si un `Shared._BuildMap`
+  traine dans une place : le supprimer dans Studio.
 - Le detecteur `check-zfighting` ne voit ni les montagnes (Wedge / CornerWedge) ni les fruits geants
   (Union) : regardes a l'oeil sur les captures seulement.
 - Fond de carte pas vu sur telephone ni dans l'appli Roblox (brume, fumee du volcan, poids :

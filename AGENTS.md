@@ -53,6 +53,10 @@ Ces regles s'appliquent a tout agent (Claude Code, Codex, Cursor...). Les suivre
   - `src/gui/`     -> `StarterGui`
   - `tools/build-map/preview-factory.luau` -> `ServerScriptService.DevTools.PreviewFactory` (outil de
     Studio pour le bouton Factory Preview, jamais charge par le jeu)
+  - `tools/build-map/` -> `ServerScriptService.DevTools.BuildMap` (tous les scripts de carte, jamais
+    charges par le jeu). Pour en lancer un en mode Edit :
+    `require(game.ServerScriptService.DevTools.BuildMap["03-decor"]:Clone())`. Ne plus copier
+    ces scripts dans un dossier temporaire de `src/` (le supprimer coupait la synchro Rojo).
 - Workspace (carte, machines placees a la main) et ServerStorage ne sont pas geres par Rojo :
   ils vivent dans le fichier .rbxl. Ne pas ajouter de mapping pour eux sans en discuter.
 - Ne jamais activer Script Sync de Studio et Rojo sur les memes scripts.
