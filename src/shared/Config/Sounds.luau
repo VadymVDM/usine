@@ -26,8 +26,8 @@ local Sounds: { [string]: SoundDef } = {
 	-- rapporte les jus"). Creator Store sous licence (ProSoundEffects, APM), verifies charges dans
 	-- Studio ; PAS ecoutes (a valider a l'oreille, faciles a remplacer ici). CustomerController.
 	CustomerHappy = { id = "rbxassetid://9126073001", volume = 1, pitchJitter = 0.03 }, -- "Synth Sparkle Tone High Pitch Bell Tone Ding 4" (1.2 s) : client servi (la note monte si les ventes s'enchainent)
-	CustomerSip = { id = "rbxassetid://9113861348", volume = 1, pitchJitter = 0.1 }, -- "Comic Slurp 1" (1.4 s) : il goute son jus en repartant
-	CustomersCheer = { id = "rbxassetid://1841221347", volume = 1 }, -- "Yeah" (voix d'enfants, APM, 2.9 s) : des jus arrivent sur le comptoir vide alors qu'ils attendaient
+	CustomerSip = { id = "rbxassetid://9113861348", volume = 0.9, pitchJitter = 0.1 }, -- "Comic Slurp 1" (1.4 s) : il goute son jus en repartant (-10 %, demande du 2026-11-27)
+	-- (CustomersCheer, "Yeah" d'enfants quand les jus arrivaient au comptoir vide, retire le 2026-11-27 a la demande d'Adam)
 	-- Paid : le joueur paie un achat (pad de machine, tuile de panneau, etage, menu Upgrades).
 	-- Envoye par MoneyService.TrySpend (remote Feedback "Paid"), joue par CashController (2026-11-20).
 	Paid = { id = "rbxassetid://100813529228543", volume = 1, pitchJitter = 0.04 }, -- "coins / purchasing" (Creator Store, blocky_53)

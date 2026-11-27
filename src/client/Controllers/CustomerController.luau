@@ -64,15 +64,14 @@ local FIDGET_EVERY = { 3, 9 }
 local FIDGET_SECONDS = { 1, 2.6 }
 local FIDGET_ANGLE = 0.75 -- radians au plus
 local FIDGET_TURN_RATE = 3.5
--- Sons contents (Config/Sounds : CustomerHappy, CustomerSip, CustomersCheer)
+-- Sons contents (Config/Sounds : CustomerHappy, CustomerSip)
 local HAPPY_SOUND_GAP = 0.1 -- ding au plus toutes les 0.1 s par etage
 local HAPPY_COMBO_SECONDS = 1.5 -- ventes rapprochees : le ding monte d'une note
 local HAPPY_COMBO_STEP = 0.05 -- +5 % de hauteur par vente enchainee
 local HAPPY_COMBO_MAX = 8
 local SIP_DELAY = 0.55 -- le slurp arrive apres le ding (gobelet dans les mains)
 local SIP_SOUND_GAP = 0.3
-local CHEER_MIN_WAIT = 1 -- les clients au comptoir attendaient depuis au moins 1 s
-local CHEER_GAP = 8 -- "Yeah" au plus toutes les 8 s par etage
+local HAPPY_MIN_WAIT = 1 -- jus qui arrivent : bulle contente si le client attendait depuis 1 s
 
 -- Rue : voies paralleles a la route, mesurees depuis CustomerEntry du rez-de-chaussee (trottoir) :
 -- + vers la route, - vers les bases. Les lampadaires sont cote bases du trottoir.
@@ -210,11 +209,10 @@ type BaseState = {
 	nextSpawnAt: number,
 	count: number,
 	bubbles: number, -- bulles emoji affichees
-	lastJuices: number, -- CounterJuices au dernier changement (0 -> plus : "Yeah")
+	lastJuices: number, -- CounterJuices au dernier changement (0 -> plus : bulles contentes)
 	happyAt: number, -- dernier ding de client servi
 	happyCombo: number,
 	sipAt: number,
-	cheerAt: number,
 	front: { [number]: Customer }, -- etages 2+ : au comptoir du balcon
 	waiting: { [number]: Customer }, -- etages 2+ : juste derriere
 	pending: { [number]: { Sale } }, -- etages 2+ : ventes en attente par place
@@ -1315,7 +1313,7 @@ local function playHappySounds(c: Customer)
 end
 
 -- Des jus arrivent sur le comptoir vide alors que des clients attendaient au comptoir : ils se
--- rejouissent (bulle contente) et, sur la base du joueur, "Yeah !".
+-- rejouissent (bulle contente, sans son : le "Yeah !" a ete retire le 2026-11-27).
 local function onJuicesChanged(state: BaseState)
 	local value = state.base:GetAttribute("CounterJuices")
 	local juices = if type(value) == "number" then value else 0
@@ -1323,21 +1321,10 @@ local function onJuicesChanged(state: BaseState)
 	state.lastJuices = juices
 	if state.rendered and before == 0 and juices > 0 then
 		local now = os.clock()
-		local waited: { Customer } = {}
 		for c in state.customers do
-			if c.wantOn and not c.destroyed and now - c.wantSince >= CHEER_MIN_WAIT then
-				table.insert(waited, c)
-			end
-		end
-		if #waited > 0 then
-			for _, c in waited do
+			if c.wantOn and not c.destroyed and now - c.wantSince >= HAPPY_MIN_WAIT then
 				c.wantOn = false
 				showEmoji(c, pick(Npcs.CustomerEmojis.Happy), Npcs.CustomerHappySeconds, false)
-			end
-			local isMine = state.ownerId == Players.LocalPlayer.UserId
-			if isMine and now - state.cheerAt >= CHEER_GAP then
-				state.cheerAt = now
-				SoundFx.PlayAt("CustomersCheer", waited[1].hrp.Position)
 			end
 		end
 	end
@@ -2657,7 +2644,6 @@ local function newState(floor: Model, base: Model): BaseState
 		happyAt = 0,
 		happyCombo = 0,
 		sipAt = 0,
-		cheerAt = 0,
 		front = {},
 		waiting = {},
 		pending = {},
