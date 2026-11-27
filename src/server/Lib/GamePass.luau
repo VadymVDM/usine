@@ -91,8 +91,13 @@ function GamePass.OnPurchased(callback: GrantedCallback)
 	table.insert(purchasedCallbacks, callback)
 end
 
-MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player: Player, passId: number, purchased: boolean)
-	if not purchased or typeof(passId) ~= "number" or passId <= 0 then
+-- `purchased` est ignore : quand le joueur possede DEJA le pass, Roblox affiche "Vous possedez deja
+-- cet objet" et renvoie purchased = false (verifie dans Studio le 2026-11-27). Si le serveur avait
+-- rate la possession (pass achete sur le site ou dans un autre serveur, Roblox injoignable a
+-- l'arrivee), le joueur restait bloque : chaque appui rouvrait la fenetre. On redemande donc a
+-- Roblox dans tous les cas ; une annulation sans possession ne donne rien (Owns = faux).
+MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player: Player, passId: number, _purchased: boolean)
+	if typeof(passId) ~= "number" or passId <= 0 then
 		return
 	end
 	task.spawn(function()

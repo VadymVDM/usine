@@ -236,6 +236,11 @@ game.ServerStorage.Debug.Call:Invoke("Shop", "FreeBoost", "<Nom>", 0) -- boost g
   - `Lib/GamePass.OnPurchased` est le seul branchement sur `PromptGamePassPurchaseFinished` : le
     "purchased" du client n'est plus cru, la possession est redemandee a Roblox (`Owns`) avant
     l'effet. Utilise par RobuxShop, Customer (Auto Collect), PassPad, Rebirth (Master), Thief.
+  - **2026-11-27 (corrige) : "Vous possedez deja cet objet"** a chaque appui, pass jamais actif.
+    Pour un pass deja possede, Roblox renvoie purchased = FAUX (verifie dans Studio). L'ancien code
+    s'arretait la : si le serveur avait rate la possession (achat sur le site / un autre serveur,
+    Roblox injoignable a l'arrivee), le joueur restait bloque. Maintenant `Owns` est redemande a
+    chaque fermeture de la fenetre, achete ou non (les effets des services sont tous idempotents).
   - `GamePass.Owns` : 3 nouveaux essais (1 s, 2 s, 4 s) si Roblox ne repond pas, et un "oui" est
     garde en memoire pour la session (avant : un seul echec = pass perdu jusqu'au retour).
   - Keep Cash : un recu d'un palier moins cher que celui du joueur ne donne plus de rebirth

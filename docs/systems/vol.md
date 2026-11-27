@@ -58,7 +58,9 @@ et les boissons visees sont gardees de cote ("photo") pendant qu'il paie.
   `HandStackController` les rend transparents chez lui pendant `StealHideSeconds` (60 s) ; il voit
   aussi les gobelets sauter dans ses mains (Feedback `TakeJuice`). Il va les vendre a son comptoir.
 - Possession : attribut joueur `Thief = true`, pose par le serveur seulement (arrivee si deja achete,
-  achat, cadeau `GamePass.OnGranted`, panneau admin).
+  achat, cadeau `GamePass.OnGranted`, panneau admin). Si le serveur l'a rate alors que Roblox dit
+  "deja possede", l'appui sur E rouvre la fenetre ; a sa fermeture (meme "Vous possedez deja cet
+  objet"), `Lib/GamePass` revoit la possession et active le pass (corrige le 2026-11-27).
 - Avant le 2026-11-27 : le vol / la fenetre se declenchaient en MARCHANT sur les pads a jus d'une
   autre base (table seulement). Remplace par la touche E.
 
