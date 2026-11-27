@@ -1,5 +1,6 @@
 --!strict
--- Reglages du joueur (menu Settings) : musique, sons, mode basse qualite. Sauvegardes dans
+-- Reglages du joueur (menu Settings) : musique, sons, mode basse qualite, touches de deplacement
+-- (Key*, PC, 2026-11-27 : nom de KeyCode de GameConfig.RebindableKeys). Sauvegardes dans
 -- Data.Settings (seul module qui ecrit ce champ). Le serveur recopie chaque reglage dans un
 -- attribut du joueur "Setting<Cle>" (ex. SettingMusic = true) ; le client (SettingsController)
 -- lit ces attributs et applique. Remote SetSetting (client -> serveur) : cle connue
@@ -23,7 +24,7 @@ local SettingsService = {}
 
 local ATTRIBUTE_PREFIX = "Setting"
 
-type Value = boolean | number
+type Value = boolean | number | string
 
 -- Valeur acceptee pour `key`, ou nil (cle inconnue, mauvais type, nombre non fini).
 local function clean(key: any, value: any): Value?
@@ -38,6 +39,9 @@ local function clean(key: any, value: any): Value?
 			return nil
 		end
 		return math.round(math.clamp(value, 0, 1) * 100) / 100
+	elseif type(default) == "string" then
+		-- Touche de deplacement : seulement un nom de la liste GameConfig.RebindableKeys
+		return if typeof(value) == "string" and GameConfig.RebindableKeys[value] == true then value else nil
 	end
 	return nil
 end

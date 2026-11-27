@@ -35,7 +35,23 @@ local GameConfig = {
 		Music = 1, -- volume de la musique de fond (0 = coupee)
 		Effects = 1, -- volume des sons du jeu et de l'interface (0 = coupes)
 		LowQuality = false, -- sans ombres ni effets (telephones lents)
-	} :: { [string]: boolean | number }),
+		-- Touches de deplacement (PC seulement, 2026-11-27) : nom d'un Enum.KeyCode de RebindableKeys.
+		-- KeyCode = position physique de la touche (W = Z sur un clavier AZERTY). MovementKeysController.
+		KeyForward = "W",
+		KeyBack = "S",
+		KeyLeft = "A",
+		KeyRight = "D",
+		KeyJump = "Space",
+	} :: { [string]: boolean | number | string }),
+	-- Touches acceptees pour les reglages Key* (le reste est pris par Roblox ou par le jeu :
+	-- E = prompts, I / O = zoom camera, Echap, Tab, /, chiffres = barre d'objets...).
+	RebindableKeys = table.freeze({
+		A = true, B = true, C = true, D = true, F = true, G = true, H = true, J = true, K = true,
+		L = true, M = true, N = true, P = true, Q = true, R = true, S = true, T = true, U = true,
+		V = true, W = true, X = true, Y = true, Z = true,
+		Up = true, Down = true, Left = true, Right = true,
+		Space = true, LeftShift = true, RightShift = true, LeftControl = true, RightControl = true,
+	} :: { [string]: boolean }),
 	SettingCooldownSeconds = 0.25, -- delai minimum entre deux changements de reglage
 	IndexClaimCooldown = 0.15, -- delai minimum entre deux CLAIM de l'Index (IndexService)
 

@@ -19,7 +19,8 @@ sont encore ceux du pack (textes "[Name]", "Item Name", "$123,456,789"), pas bra
 | `src/client/Controllers/MenuController.luau` | client | Ouvre/ferme les menus, animations, flou, sons, bouton Settings en haut |
 | `src/client/Controllers/MusicController.luau` | client | Musique de fond : morceaux de `Config/Music` en alternance (1, 2, 1...), volume = curseur Music (pause a 0) ; ne demarre qu'apres la cinematique d'ouverture |
 | `src/shared/Config/Music.luau` | partage | Liste des musiques (id, volume de base) : BGMusic, NYOBORA (2026-11-23) |
-| `src/client/Controllers/SettingsController.luau` | client | Menu Settings : curseurs de volume Music et Sounds (0-100 %), interrupteur Low Quality |
+| `src/client/Controllers/SettingsController.luau` | client | Menu Settings : curseurs de volume Music et Sounds (0-100 %), interrupteur Low Quality, touches de deplacement (PC) |
+| `src/client/Controllers/MovementKeysController.luau` | client | Applique les touches de deplacement choisies (PC) : remplace W A S D Espace seulement si une touche a change |
 | `src/server/Services/SettingsService.luau` | serveur | Sauvegarde des reglages (`Data.Settings`), remote `SetSetting` |
 | `src/client/Controllers/InventoryController.luau` | client | Effets de ramassage / depot ; cache la barre Roblox (l'inventaire = plateau sur la tete) |
 | `src/client/Controllers/TrayController.luau` | client | Plateau sur la tete et fruits empiles, compteur "12/20" / "FULL!" (voir `chaine-production.md`) |
@@ -202,6 +203,26 @@ Regle : une seule apparence. Toute interface nouvelle prend police, couleurs et 
   valeur finale au relachement. Le son passe par des SoundGroup locaux (`SoundFx.Group("Effects")`
   / `SoundFx.Group("Music")`, dans SoundService) : tous les sons du jeu y sont ranges (SoundFx,
   MenuController, BlenderFx, MachineFx, oiseaux de l'intro), meme les boucles deja lancees suivent.
+- **Touches de deplacement Settings** (2026-11-27, PC seulement) : 6 lignes apres Low Quality,
+  copies de la ligne Effects du pack : Forward, Back, Left, Right, Jump (bouton violet = touche
+  actuelle) et Reset Keys (bouton rouge RESET, "Back to Z S Q D Space" sur AZERTY). Clic sur une
+  touche -> bouton vert "..." -> appui sur la nouvelle touche. Echap, un clic ailleurs ou la
+  fermeture du menu annulent. Touche hors de `GameConfig.RebindableKeys` (E des prompts, I / O du
+  zoom, Tab, chiffres...) -> "NO" rouge 0.8 s. Touche deja prise par une autre action -> echange.
+  Lignes visibles seulement si `UserInputService.PreferredInput` = KeyboardAndMouse (cachees sur
+  telephone et manette, mises a jour si le joueur change d'appareil).
+  - Sauvegarde : reglages `KeyForward` / `KeyBack` / `KeyLeft` / `KeyRight` / `KeyJump` de
+    `Data.Settings` (nom d'un `Enum.KeyCode`), meme remote `SetSetting` ; le serveur refuse tout nom
+    hors de `RebindableKeys`.
+  - KeyCode = position physique : la touche Z d'un AZERTY est `KeyCode.W`. Roblox gere donc deja
+    Z Q S D sur AZERTY ; l'affichage passe par `GetStringForKeyCode` (le joueur voit Z, pas W).
+  - En jeu (`MovementKeysController`) : touches par defaut -> rien n'est remplace. Sinon les 5 touches
+    choisies + W A S D Espace sont prises par ContextActionService (priorite High, Sink) et, chaque
+    image apres le module de controle Roblox, `LocalPlayer:Move(direction, true)` + `Humanoid.Jump`
+    si une touche choisie est tenue. Fleches, manette et clic restent geres par Roblox.
+- **Liste Settings** : hauteur du defilement calee a la main sur `UIListLayout.AbsoluteContentSize`
+  + marges (2026-11-27). `AutomaticCanvasSize` comptait mal les lignes du pack (hauteur fixee par un
+  `UIAspectRatioConstraint`) et coupait les 2 dernieres lignes des que la liste depasse la fenetre.
 - **Index** (2026-11-20) : filtres de rarete du pack retires ; contenu refait par
   `IndexController` (grille des 100 fruits, bouton CLAIM). Voir `systems/fruits.md` (section Index).
 - Icones ICONSPACK mises en ligne (17, type Image) : ids dans `Config/Icons.luau`. HUD : panier et

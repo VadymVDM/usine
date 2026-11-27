@@ -37,7 +37,7 @@ export type PlayerData = {
 	ClaimedFruits: { [string]: boolean }, -- recompenses de l'Index deja prises (IndexService)
 	LastLogout: number,
 	IntroSeen: boolean,
-	Settings: { [string]: boolean | number }, -- reglages (Music, Effects = volumes 0..1 ; LowQuality), SettingsService
+	Settings: { [string]: boolean | number | string }, -- reglages (Music, Effects = volumes 0..1 ; LowQuality ; Key* = touches), SettingsService
 	JuicesSold: number, -- jus vendus depuis toujours (LeaderboardService)
 	TimePlayed: number, -- secondes de jeu depuis toujours (LeaderboardService)
 	KeptTrees: { number }, -- niveau d'arbre le plus haut de chaque etage avant un rebirth (pass Rebirth Master, RebirthService)
@@ -339,7 +339,7 @@ local function sanitize(player: Player, data: PlayerData)
 	-- Reglages : seulement les cles connues, du type de la valeur par defaut (sinon la defaut).
 	-- Volumes (nombre 0..1) : un ancien interrupteur (booleen, avant le 2026-11-23) devient 0 ou la defaut.
 	local settings: any = data.Settings
-	local cleanSettings: { [string]: boolean | number } = {}
+	local cleanSettings: { [string]: boolean | number | string } = {}
 	for key, default in GameConfig.DefaultSettings do
 		local value = if type(settings) == "table" then settings[key] else nil
 		if type(default) == "number" then
@@ -350,6 +350,9 @@ local function sanitize(player: Player, data: PlayerData)
 			else
 				cleanSettings[key] = default
 			end
+		elseif type(default) == "string" then
+			-- Touche (Key*) : nom d'un KeyCode autorise (GameConfig.RebindableKeys), sinon la defaut
+			cleanSettings[key] = if type(value) == "string" and GameConfig.RebindableKeys[value] == true then value else default
 		else
 			cleanSettings[key] = if type(value) == "boolean" then value else default
 		end

@@ -2,7 +2,11 @@
 -- Menu Settings (menu "Settings" du pack, ouvert par l'engrenage en haut) :
 --   Music       : curseur de volume de la musique de fond (MusicController), 0-100 % ;
 --   Sounds      : curseur de volume des sons du jeu et de l'interface (SoundFx.Group) ;
---   Low Quality : interrupteur, sans ombres, effets d'eclairage, particules ni decor lointain.
+--   Low Quality : interrupteur, sans ombres, effets d'eclairage, particules ni decor lointain ;
+--   Forward / Back / Left / Right / Jump + Reset Keys (PC seulement, 2026-11-27) : clic sur la
+--     touche, puis appui sur la nouvelle touche (Echap annule). Une touche deja prise par une autre
+--     action est echangee. Lignes visibles seulement si le joueur joue clavier + souris
+--     (UserInputService.PreferredInput). Le deplacement lui-meme : MovementKeysController.
 -- (Music et Sounds etaient des interrupteurs ON / OFF jusqu'au 2026-11-23.)
 -- Le curseur / le clic change l'attribut joueur "Setting<Cle>" tout de suite (le son suit en direct)
 -- et envoie SetSetting au serveur (SettingsService), qui sauvegarde et repose l'attribut.
@@ -17,6 +21,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared:WaitForChild("Config"):WaitForChild("GameConfig"))
 local Remotes = require(Shared:WaitForChild("Network"):WaitForChild("Remotes"))
 local PackStyle = require(script.Parent.Parent:WaitForChild("UI"):WaitForChild("PackStyle"))
+local MovementKeys = require(script.Parent:WaitForChild("MovementKeysController"))
 
 local SettingsController = {}
 
@@ -36,6 +41,11 @@ local started = false
 local setEvent: RemoteEvent? = nil
 local toggles: { [string]: Toggle } = {}
 local sliders: { [string]: Slider } = {}
+-- Boutons des touches de deplacement (reglage Key* -> bouton) et lignes PC seulement
+local keyButtons: { [string]: Toggle } = {}
+local keyRows: { GuiObject } = {}
+local capturing: string? = nil -- reglage Key* qui attend une touche
+local captureConnection: RBXScriptConnection? = nil
 local SEND_INTERVAL = 0.3 -- pendant le glissement : une demande au serveur au plus toutes les 0.3 s
 local lowQualityOn = false
 
@@ -209,7 +219,13 @@ local function paintSlider(key: string, value: number)
 	slider.label.Text = `{math.round(value * 100)}%`
 end
 
+local paintKey: (setting: string) -> ()
+
 local function apply(key: string)
+	if type(GameConfig.DefaultSettings[key]) == "string" then
+		paintKey(key)
+		return
+	end
 	if isVolume(key) then
 		local value = getVolume(key)
 		if key == "Music" then
@@ -396,13 +412,264 @@ local function setText(row: Instance, name: string, text: string)
 	end
 end
 
+---------------------------------------------------------------------------------------------
+-- Touches de deplacement (PC)
+
+-- Noms lisibles des touches sans caractere ; les lettres passent par GetStringForKeyCode, qui
+-- donne la lettre du clavier du joueur (KeyCode.W -> "Z" sur AZERTY).
+local KEY_NAMES: { [string]: string } = {
+	Space = "Space",
+	LeftShift = "L-Shift",
+	RightShift = "R-Shift",
+	LeftControl = "L-Ctrl",
+	RightControl = "R-Ctrl",
+	Up = "Up",
+	Down = "Down",
+	Left = "Left",
+	Right = "Right",
+}
+
+local function keyText(keyCode: Enum.KeyCode): string
+	local friendly = KEY_NAMES[keyCode.Name]
+	if friendly then
+		return friendly
+	end
+	local ok, text = pcall(function()
+		return UserInputService:GetStringForKeyCode(keyCode)
+	end)
+	if ok and type(text) == "string" and string.match(text, "%S") then
+		return string.upper(text)
+	end
+	return keyCode.Name
+end
+
+local function colorButton(entry: Toggle, colors: { Color3 })
+	if entry.gradient then
+		entry.gradient.Color = ColorSequence.new(colors[1], colors[2])
+	end
+	if entry.stroke then
+		entry.stroke.Color = colors[3]
+	end
+end
+
+function paintKey(setting: string)
+	local entry = keyButtons[setting]
+	if entry == nil then
+		return
+	end
+	if capturing == setting then
+		entry.label.Text = "..."
+		colorButton(entry, PackStyle.GREEN)
+		return
+	end
+	entry.label.Text = keyText(MovementKeys.GetKey(setting))
+	colorButton(entry, PackStyle.PURPLE)
+end
+
+local function sendSetting(key: string, value: string)
+	player:SetAttribute("Setting" .. key, value) -- tout de suite ; le serveur confirme
+	if setEvent then
+		setEvent:FireServer(key, value)
+	end
+end
+
+local function stopCapture()
+	local was = capturing
+	capturing = nil
+	if captureConnection then
+		captureConnection:Disconnect()
+		captureConnection = nil
+	end
+	if was then
+		paintKey(was)
+	end
+end
+
+-- Nouvelle touche pour `setting`. Deja prise par une autre action : l'autre recoit l'ancienne.
+local function assignKey(setting: string, keyCode: Enum.KeyCode)
+	local old = MovementKeys.GetKey(setting)
+	if keyCode == old then
+		return
+	end
+	for _, action in MovementKeys.Actions do
+		if action.setting ~= setting and MovementKeys.GetKey(action.setting) == keyCode then
+			sendSetting(action.setting, old.Name)
+		end
+	end
+	sendSetting(setting, keyCode.Name)
+end
+
+local function refuse(setting: string)
+	local entry = keyButtons[setting]
+	if entry == nil then
+		return
+	end
+	entry.label.Text = "NO"
+	colorButton(entry, PackStyle.RED)
+	task.delay(0.8, function()
+		if capturing ~= setting then
+			paintKey(setting)
+		end
+	end)
+end
+
+local function startCapture(setting: string)
+	stopCapture()
+	capturing = setting
+	paintKey(setting)
+	captureConnection = UserInputService.InputBegan:Connect(function(input: InputObject)
+		local kind = input.UserInputType
+		if kind == Enum.UserInputType.Keyboard then
+			local keyCode = input.KeyCode
+			stopCapture()
+			if keyCode == Enum.KeyCode.Escape then
+				return -- annule
+			end
+			if GameConfig.RebindableKeys[keyCode.Name] ~= true then
+				refuse(setting) -- touche de Roblox ou du jeu (E, I, O, Tab, chiffres...)
+				return
+			end
+			assignKey(setting, keyCode)
+		elseif
+			kind == Enum.UserInputType.MouseButton1
+			or kind == Enum.UserInputType.MouseButton2
+			or kind == Enum.UserInputType.Touch
+		then
+			stopCapture() -- clic ailleurs : annule
+		end
+	end)
+end
+
+local function resetKeys()
+	stopCapture()
+	for _, action in MovementKeys.Actions do
+		local default = GameConfig.DefaultSettings[action.setting]
+		if type(default) == "string" and MovementKeys.GetKey(action.setting).Name ~= default then
+			sendSetting(action.setting, default)
+		end
+	end
+end
+
+-- Joueur clavier + souris ? (PreferredInput change en cours de partie : manette, ecran tactile...)
+local function isKeyboardPlayer(): boolean
+	local ok, preferred = pcall(function()
+		return (UserInputService :: any).PreferredInput
+	end)
+	if ok and preferred ~= nil then
+		return preferred == (Enum :: any).PreferredInput.KeyboardAndMouse
+	end
+	return UserInputService.KeyboardEnabled and not UserInputService.TouchEnabled
+end
+
+local function updateKeyRows()
+	local pc = isKeyboardPlayer()
+	for _, row in keyRows do
+		row.Visible = pc
+	end
+	if not pc then
+		stopCapture()
+	end
+end
+
+-- Bouton commun PackStyle dans la case du bouton du pack (comme les interrupteurs).
+local function makeRowButton(row: Instance, colors: { Color3 }, text: string): Toggle?
+	local toggleFrame = row:FindFirstChild("Toggle", true)
+	local packButton = toggleFrame and toggleFrame:FindFirstChildWhichIsA("GuiButton", true)
+	if packButton == nil or packButton:FindFirstChild("Switch") then
+		return nil
+	end
+	packButton.Name = "KeyButton"
+	for _, child in packButton:GetChildren() do
+		if child:IsA("GuiObject") then
+			child.Visible = false
+		end
+	end
+	local button = PackStyle.button(packButton, "Switch", colors, UDim2.fromScale(0.5, 0), UDim2.fromScale(1, 1))
+	local label = PackStyle.label(button, text, UDim2.fromScale(0.5, 0.12), UDim2.fromScale(0.86, 0.76), 40)
+	return {
+		button = button,
+		label = label,
+		gradient = button:FindFirstChildOfClass("UIGradient"),
+		stroke = button:FindFirstChildOfClass("UIStroke"),
+	}
+end
+
+-- Lignes des touches : copies de la ligne "Effects" du pack, apres les 3 reglages.
+local function buildKeyRows(list: Instance, template: Instance)
+	local entries: { { name: string, title: string, description: string } } = {}
+	local defaults: { string } = {}
+	for _, action in MovementKeys.Actions do
+		table.insert(entries, { name = action.setting, title = action.title, description = action.description })
+		local keyCode = (Enum.KeyCode :: any)[GameConfig.DefaultSettings[action.setting]] :: Enum.KeyCode
+		table.insert(defaults, keyText(keyCode))
+	end
+	table.insert(entries, { name = "ResetKeys", title = "Reset Keys", description = "Back to " .. table.concat(defaults, " ") })
+
+	for index, entry in entries do
+		if list:FindFirstChild(entry.name) then
+			continue
+		end
+		local row = template:Clone()
+		row.Name = entry.name
+		if row:IsA("GuiObject") then
+			row.LayoutOrder = #ROWS + index
+			table.insert(keyRows, row)
+		end
+		row.Parent = list
+		setText(row, "SettingName", entry.title)
+		setText(row, "Description", entry.description)
+		if entry.name == "ResetKeys" then
+			local made = makeRowButton(row, PackStyle.RED, "RESET")
+			if made then
+				made.button.Activated:Connect(resetKeys)
+			end
+		else
+			local made = makeRowButton(row, PackStyle.PURPLE, "")
+			if made then
+				local setting = entry.name
+				keyButtons[setting] = made
+				made.button.Activated:Connect(function()
+					if capturing == setting then
+						stopCapture()
+					else
+						startCapture(setting)
+					end
+				end)
+				paintKey(setting)
+			end
+		end
+	end
+	updateKeyRows()
+	pcall(function()
+		UserInputService:GetPropertyChangedSignal("PreferredInput" :: any):Connect(updateKeyRows)
+	end)
+end
+
 local function buildRows(list: Instance)
 	-- Le pack donne une zone de defilement de 5.5 ecrans pour 2 lignes : on la cale sur le contenu
 	if list:IsA("ScrollingFrame") then
-		list.CanvasSize = UDim2.new()
-		list.AutomaticCanvasSize = Enum.AutomaticSize.Y
+		-- Hauteur calee a la main sur le contenu de la liste : AutomaticCanvasSize se trompe avec
+		-- les lignes du pack (hauteur fixee par un UIAspectRatioConstraint) et coupait les 2
+		-- dernieres lignes des que la liste depasse la fenetre (vu le 2026-11-27 avec les touches).
+		list.AutomaticCanvasSize = Enum.AutomaticSize.None
 		-- Lignes du pack collees entre elles et a l'en-tete : un vrai espace partout
 		PackStyle.spaceList(list, 0.045)
+		local layout = list:FindFirstChildOfClass("UIListLayout")
+		local padding = list:FindFirstChildOfClass("UIPadding")
+		local function fitCanvas()
+			local height = if layout then layout.AbsoluteContentSize.Y else 0
+			if padding then
+				height += padding.PaddingTop.Offset + padding.PaddingBottom.Offset
+			end
+			list.CanvasSize = UDim2.fromOffset(0, math.ceil(height))
+		end
+		if layout then
+			layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(fitCanvas)
+		end
+		if padding then
+			padding.Changed:Connect(fitCanvas)
+		end
+		fitCanvas()
 	end
 	local template = list:FindFirstChild("Effects")
 	if template and list:FindFirstChild("LowQuality") == nil then
@@ -412,6 +679,10 @@ local function buildRows(list: Instance)
 			copy.LayoutOrder = template.LayoutOrder + 1
 		end
 		copy.Parent = list
+	end
+	-- Lignes des touches (PC) : copiees ici, avant que la ligne Effects recoive son curseur
+	if template then
+		buildKeyRows(list, template)
 	end
 	for index, info in ROWS do
 		local row = list:FindFirstChild(info.row)
@@ -474,6 +745,13 @@ function SettingsController:Start()
 	local frames = shopGui and shopGui:WaitForChild("MenuFrames", 10)
 	local menu = frames and frames:WaitForChild("Settings", 10)
 	local list = menu and menu:FindFirstChild("ScrollingFrame", true)
+	if menu and menu:IsA("GuiObject") then
+		menu:GetPropertyChangedSignal("Visible"):Connect(function()
+			if not menu.Visible then
+				stopCapture() -- menu ferme : la prochaine touche ne doit rien changer
+			end
+		end)
+	end
 	if list then
 		buildRows(list)
 	else
