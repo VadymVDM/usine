@@ -148,6 +148,11 @@ local Gameplay = {
 	PickerBaseSpeed = 0.7,
 	EmployeeWalkSpeed = 15,
 	EmployeePauseSeconds = 0.35, -- petite pause quand un employe prend / pose quelque chose
+	-- Fruit Picker (2026-11-27) : il s'arrete a PickerReach studs du fruit (pas dessus), puis geste de
+	-- ramassage de PickerPickSeconds (divise par sa vitesse) : accroupi, main au sol, fruit au plateau.
+	PickerReach = 2.1,
+	PickerPickSeconds = 0.65,
+	PickerDumpSeconds = 0.8, -- geste de depot a l'etagere (plateau bascule vers les caisses), / vitesse
 	NpcMoveTimeout = 7, -- secondes max pour atteindre un point (sinon il y est replace)
 
 	-- Waiter (WorkerService, 2026-11-20 : employe paye en argent du jeu, volontairement LENT ; le

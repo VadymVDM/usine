@@ -111,6 +111,23 @@ local function treePoint(floor: Model): Vector3?
 	return if anchor and anchor:IsA("BasePart") then anchor.Position else nil
 end
 
+-- Centre des caisses a fruits de l'etage (Production.Bins) : le Fruit Picker s'y tourne pour deposer.
+local function binsPoint(floor: Model): Vector3?
+	local production = floor:FindFirstChild("Production")
+	local bins = production and production:FindFirstChild("Bins")
+	if bins == nil then
+		return nil
+	end
+	local sum, count = Vector3.zero, 0
+	for _, part in bins:GetChildren() do
+		if part:IsA("BasePart") then
+			sum += part.Position
+			count += 1
+		end
+	end
+	return if count > 0 then sum / count else nil
+end
+
 -- Mixeur N de l'etage (Production.Blenders.BlenderN).
 local function blenderModel(floor: Model, index: number): Model?
 	local production = floor:FindFirstChild("Production")
@@ -157,26 +174,43 @@ local function runCollector(state: FloorWorkers, worker: Worker)
 		if target then
 			state.reserved[target] = true
 			local pos = target:GetPivot().Position
-			NpcRig.MoveTo(npc, pos, isActive)
-			NpcRig.Face(npc, pos)
-			pause(worker)
-			local item = TreeService.TakeFruit(state.floor, target)
-			state.reserved[target] = nil
-			if item then
-				-- Jamais de fruit pas encore decouvert (FindNearest knownOnly) : c'est au joueur de
-				-- le ramasser et de voir l'animation NEW FRUIT!
-				table.insert(held, item.id)
-				setTray(npc, held)
+			-- 2026-11-27 : il s'arrete DEVANT le fruit (pas dessus), se tourne en douceur et se baisse
+			-- pour le prendre (NpcRig.Pick) au lieu de pivoter d'un coup sur place
+			local stand = NpcRig.ReachPoint(npc, pos, Gameplay.PickerReach)
+			if stand then
+				NpcRig.MoveTo(npc, stand, isActive)
 			end
+			if worker.active then
+				NpcRig.Pick(npc, pos, Gameplay.PickerPickSeconds / worker.speed, function(): string?
+					-- Jamais de fruit pas encore decouvert (FindNearest knownOnly) : c'est au joueur de
+					-- le ramasser et de voir l'animation NEW FRUIT!
+					local item = if target.Parent then TreeService.TakeFruit(state.floor, target) else nil
+					return if item then item.id else nil
+				end, function(id: string)
+					table.insert(held, id)
+					setTray(npc, held)
+				end)
+			end
+			state.reserved[target] = nil
 		elseif #held > 0 and shelf then
 			NpcRig.MoveTo(npc, shelf, isActive)
-			pause(worker)
 			if not worker.active then
 				break
 			end
-			ProductionService.AddFruitsToBins(state.floor, held, npc.root.Position + Vector3.new(0, 1, 0))
-			held = {}
-			setTray(npc, held)
+			-- 2026-11-27 : il se tourne vers les caisses et bascule son plateau ; les fruits s'envolent
+			-- du plateau au moment ou il penche (NpcRig.Dump)
+			local carried = held
+			NpcRig.Dump(npc, binsPoint(state.floor), Gameplay.PickerDumpSeconds / worker.speed, Gameplay.TrayAboveHead, function(from: Vector3)
+				ProductionService.AddFruitsToBins(state.floor, carried, from)
+				held = {}
+				setTray(npc, held)
+			end)
+			if #held > 0 then
+				-- Geste coupe (etage retire) : les fruits sont quand meme poses
+				ProductionService.AddFruitsToBins(state.floor, held, nil)
+				held = {}
+				setTray(npc, held)
+			end
 		else
 			waitAtHome(worker, home, treePoint(state.floor), 1)
 		end

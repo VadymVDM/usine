@@ -5,6 +5,14 @@
 --   * objets devant le torse (attribut CarryPose = true, employes / clients) : bras tendus devant ;
 --   * arbre niveau 1 dans les mains (attribut JOUEUR HoldingSapling, SaplingController, 2026-11-22) :
 --     bras tendus devant, un peu plus bas (Config/Intro.HoldArmDegrees).
+--   * ramassage d'un fruit (Fruit Picker R15, 2026-11-27 : attributs PickStart / PickTime poses par
+--     NpcRig.Pick) : il plie les genoux, penche le buste, tend le bras droit jusqu'au sol, puis se
+--     releve en montant le fruit vers le plateau. Les pieds restent au sol (hanches baissees de
+--     la longueur de jambe x (1 - cos angle)) ; avec un plateau garni la tete reste droite.
+--   * depot a l'etagere (Fruit Picker R15, 2026-11-27 : DumpStart / DumpTime, NpcRig.Dump) : il
+--     pousse le plateau vers l'avant, penche la tete (le plateau, soude a la tete, bascule vers les
+--     caisses) en pliant un peu les genoux ; les fruits partent a Npcs.DumpReleaseAt, puis il
+--     baisse les bras.
 -- Le serveur (ou CustomerController en local) pose le tag "CarryPoseRig" sur le modele. Ici on
 -- ecrase seulement l'angle des epaules apres les animations de Roblox (RunService.Stepped), pour
 -- tous les personnages proches. Passage d'une pose a l'autre en douceur.
@@ -15,6 +23,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local Npcs = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"):WaitForChild("Npcs"))
 local Intro = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"):WaitForChild("Intro"))
 
 local CarryPoseController = {}
@@ -29,7 +38,38 @@ local MAX_DISTANCE = 160
 -- Epaule : Motor6D (anciens rigs) ou AnimationConstraint (Avatar Joint Upgrade de Roblox, 2026) ;
 -- les deux ont une propriete Transform ecrasee par les animations.
 type Joint = Motor6D | AnimationConstraint
-type Rig = { model: Model, right: Joint?, left: Joint?, r15: boolean, angle: number }
+type Body = {
+	root: Joint?,
+	waist: Joint?,
+	neck: Joint?,
+	rightElbow: Joint?,
+	hips: { Joint },
+	knees: { Joint },
+	ankles: { Joint },
+	legLength: number, -- hanche -> cheville (studs)
+}
+type Rig = {
+	model: Model,
+	right: Joint?,
+	left: Joint?,
+	r15: boolean,
+	angle: number,
+	body: Body?, -- articulations R15 du geste de ramassage (cherchees au premier geste)
+	picking: boolean,
+}
+
+-- Geste de ramassage (R15) : angles au plus bas
+local PICK_SQUAT = math.rad(58) -- cuisses vers l'avant (genoux plies de 2x)
+local PICK_LEAN = math.rad(18) -- bassin penche en avant
+local PICK_WAIST = math.rad(22) -- buste penche en plus
+local PICK_REACH = math.rad(62) -- bras droit vers l'avant (par rapport au buste)
+local PICK_ELBOW = math.rad(12)
+local PICK_LOOK = math.rad(12) -- tete qui regarde le fruit (sans plateau garni)
+-- Depot a l'etagere (R15) : au moment ou les fruits partent
+local DUMP_ARMS = math.rad(100) -- bras qui poussent le plateau vers l'avant
+local DUMP_NECK = math.rad(30) -- tete (et plateau) penchee vers les caisses
+local DUMP_WAIST = math.rad(10)
+local DUMP_SQUAT = math.rad(14) -- petite flexion des genoux
 
 local rigs: { [Model]: Rig } = {}
 local started = false
@@ -65,7 +105,7 @@ local function add(instance: Instance)
 	if not instance:IsA("Model") or rigs[instance] then
 		return
 	end
-	local rig: Rig = { model = instance, right = nil, left = nil, r15 = false, angle = 0 }
+	local rig: Rig = { model = instance, right = nil, left = nil, r15 = false, angle = 0, body = nil, picking = false }
 	rigs[instance] = rig
 	resolve(rig)
 end
@@ -95,6 +135,151 @@ local function targetAngle(model: Model): number
 	return 0
 end
 
+-- Distance entre deux articulations d'un meme membre (C1 de celle du haut -> C0 de celle du bas).
+local function segment(upper: Joint?, lower: Joint?): number
+	if upper == nil or lower == nil then
+		return 0
+	end
+	local a: any, b: any = upper, lower
+	local ok, length = pcall(function(): number
+		if a:IsA("Motor6D") and b:IsA("Motor6D") then
+			return (a.C1.Position - b.C0.Position).Magnitude
+		end
+		return (a.Attachment1.Position - b.Attachment0.Position).Magnitude
+	end)
+	return if ok then length else 0
+end
+
+local function findBody(model: Model): Body?
+	local lowerTorso = model:FindFirstChild("LowerTorso")
+	if lowerTorso == nil then
+		return nil
+	end
+	local body: Body = {
+		root = findMotor(lowerTorso, "Root"),
+		waist = findMotor(model:FindFirstChild("UpperTorso"), "Waist"),
+		neck = findMotor(model:FindFirstChild("Head"), "Neck"),
+		rightElbow = findMotor(model:FindFirstChild("RightLowerArm"), "RightElbow"),
+		hips = {},
+		knees = {},
+		ankles = {},
+		legLength = 0,
+	}
+	for _, side in { "Left", "Right" } do
+		local hip = findMotor(model:FindFirstChild(side .. "UpperLeg"), side .. "Hip")
+		local knee = findMotor(model:FindFirstChild(side .. "LowerLeg"), side .. "Knee")
+		local ankle = findMotor(model:FindFirstChild(side .. "Foot"), side .. "Ankle")
+		if hip and knee and ankle then
+			table.insert(body.hips, hip)
+			table.insert(body.knees, knee)
+			table.insert(body.ankles, ankle)
+			body.legLength = segment(hip, knee) + segment(knee, ankle)
+		end
+	end
+	if body.legLength < 0.5 then
+		body.legLength = 2.2 -- R15 classique
+	end
+	return body
+end
+
+local function smooth(x: number): number
+	x = math.clamp(x, 0, 1)
+	return x * x * (3 - 2 * x)
+end
+
+-- Progression d'un geste (0..1) : attributs <name>Start / <name>Time, nil s'il n'y en a pas en cours.
+local function gestureProgress(model: Model, name: string): number?
+	local start, length = model:GetAttribute(name .. "Start"), model:GetAttribute(name .. "Time")
+	if type(start) ~= "number" or type(length) ~= "number" or length <= 0 then
+		return nil
+	end
+	local p = (workspace:GetServerTimeNow() - start) / length
+	return if p >= 0 and p < 1 then p else nil
+end
+
+-- Pose R15 du ramassage a la progression p. `trayHeld` : plateau deja garni (tete gardee droite).
+-- Renvoie l'angle du bras droit (le gauche suit rig.angle comme d'habitude).
+local function applyPick(body: Body, p: number, trayHeld: boolean, carryAngle: number): number
+	local grab, tray = Npcs.PickGrabAt, Npcs.PickTrayAt
+	-- Accroupi : descend jusqu'a la prise, tient un instant, remonte avant que le fruit arrive au plateau
+	local hold = 0.04
+	local crouch = if p < grab then smooth(p / grab) else 1 - smooth((p - grab - hold) / (tray - grab - hold))
+	local squat, lean, waist = PICK_SQUAT * crouch, PICK_LEAN * crouch, PICK_WAIST * crouch
+	if body.root then
+		local drop = body.legLength * (1 - math.cos(squat))
+		setTransform(body.root, CFrame.new(0, -drop, 0) * CFrame.Angles(-lean, 0, 0))
+	end
+	if body.waist then
+		setTransform(body.waist, CFrame.Angles(-waist, 0, 0))
+	end
+	if body.neck then
+		local head = if trayHeld then lean + waist else -PICK_LOOK * crouch
+		setTransform(body.neck, CFrame.Angles(head, 0, 0))
+	end
+	for _, hip in body.hips do
+		setTransform(hip, CFrame.Angles(squat + lean, 0, 0))
+	end
+	for _, knee in body.knees do
+		setTransform(knee, CFrame.Angles(-2 * squat, 0, 0))
+	end
+	for _, ankle in body.ankles do
+		setTransform(ankle, CFrame.Angles(squat, 0, 0))
+	end
+	if body.rightElbow then
+		setTransform(body.rightElbow, CFrame.Angles(PICK_ELBOW * crouch, 0, 0))
+	end
+	-- Bras droit : vers le fruit (compense le buste penche), puis monte vers le plateau
+	local reach = PICK_REACH + lean + waist
+	if p < grab then
+		return carryAngle + (reach - carryAngle) * smooth(p / grab)
+	end
+	return reach + (TRAY_ANGLE - reach) * smooth((p - grab) / (tray - grab))
+end
+
+-- Pose R15 du depot a l'etagere a la progression p. Renvoie l'angle des deux bras.
+local function applyDump(body: Body, p: number): number
+	local release = Npcs.DumpReleaseAt
+	local tilt = if p < release then smooth(p / release) else 1 - smooth((p - release) / (1 - release))
+	local squat = DUMP_SQUAT * tilt
+	if body.root then
+		setTransform(body.root, CFrame.new(0, -body.legLength * (1 - math.cos(squat)), 0))
+	end
+	if body.waist then
+		setTransform(body.waist, CFrame.Angles(-DUMP_WAIST * tilt, 0, 0))
+	end
+	if body.neck then
+		setTransform(body.neck, CFrame.Angles(-DUMP_NECK * tilt, 0, 0))
+	end
+	for _, hip in body.hips do
+		setTransform(hip, CFrame.Angles(squat, 0, 0))
+	end
+	for _, knee in body.knees do
+		setTransform(knee, CFrame.Angles(-2 * squat, 0, 0))
+	end
+	for _, ankle in body.ankles do
+		setTransform(ankle, CFrame.Angles(squat, 0, 0))
+	end
+	-- Bras : du plateau (en haut) vers l'avant, puis ils redescendent le long du corps
+	if p < release then
+		return TRAY_ANGLE + (DUMP_ARMS - TRAY_ANGLE) * smooth(p / release)
+	end
+	return DUMP_ARMS * (1 - smooth((p - release) / (1 - release)))
+end
+
+-- Fin du geste : articulations remises a zero (l'animation d'attente reprend la main).
+local function resetPick(body: Body)
+	for _, joint in { body.root, body.waist, body.neck, body.rightElbow } do
+		if joint then
+			setTransform(joint, CFrame.identity)
+		end
+	end
+	for _, list in { body.hips, body.knees, body.ankles } do
+		for _, joint in list do
+			setTransform(joint, CFrame.identity)
+		end
+	end
+end
+
 function CarryPoseController.Init() end
 
 function CarryPoseController.Start()
@@ -114,7 +299,16 @@ function CarryPoseController.Start()
 		local blend = math.min(1, dt * BLEND_SPEED)
 		for model, rig in rigs do
 			local target = targetAngle(model)
-			if target == 0 and rig.angle < 0.01 then
+			local pick = if rig.r15 then gestureProgress(model, "Pick") else nil
+			local dump = if rig.r15 and pick == nil then gestureProgress(model, "Dump") else nil
+			if pick == nil and dump == nil and rig.picking then
+				rig.picking = false
+				if rig.body then
+					resetPick(rig.body)
+				end
+				rig.angle = math.max(rig.angle, target) -- le bras droit est deja en haut : pas de saut
+			end
+			if target == 0 and rig.angle < 0.01 and pick == nil and dump == nil then
 				rig.angle = 0
 				continue -- rien a porter : animations normales
 			end
@@ -132,10 +326,31 @@ function CarryPoseController.Start()
 			end
 			local angle = rig.angle
 			if rig.r15 then
-				local both = CFrame.Angles(angle, 0, 0)
-				setTransform(right, both)
+				local rightAngle = angle
+				if pick then
+					if rig.body == nil then
+						rig.body = findBody(model)
+					end
+					local body = rig.body
+					if body then
+						rig.picking = true
+						rightAngle = applyPick(body, pick, target ~= 0, angle)
+					end
+				elseif dump then
+					if rig.body == nil then
+						rig.body = findBody(model)
+					end
+					local body = rig.body
+					if body then
+						rig.picking = true
+						angle = applyDump(body, dump)
+						rig.angle = angle -- apres le geste, les bras repartent de la (pas de saut)
+						rightAngle = angle
+					end
+				end
+				setTransform(right, CFrame.Angles(rightAngle, 0, 0))
 				if left then
-					setTransform(left, both)
+					setTransform(left, CFrame.Angles(angle, 0, 0))
 				end
 			else
 				setTransform(right, CFrame.Angles(0, 0, angle))

@@ -4,7 +4,10 @@
 --   * ReplicatedStorage.NpcTemplates.Customer<n> : copies par les clients (CustomerController) ;
 --   * employes (Collector, Server, Operator = operateurs des mixeurs) : gardes ici, copies par Spawn().
 -- Spawn() cree un employe qui marche (Humanoid:MoveTo + PathfindingService pour contourner les
--- meubles) avec les animations R6 de base de Roblox (Animator du serveur : repliquees a tous).
+-- meubles) avec les animations de base de Roblox (Animator du serveur : repliquees a tous).
+-- Fruit Picker en R15 depuis le 2026-11-27 (Npcs.Employees.Collector.r15) : animations R15 des
+-- joueurs, marche + course melangees selon la vitesse (comme le script Animate), et geste de
+-- ramassage Pick() (accroupi, main au sol, fruit monte au plateau).
 -- La marche ne joue que pendant MoveTo, l'attente le reste du temps. Les PNJ ne bloquent pas les
 -- joueurs (groupes de collision "Npc" / "Players").
 -- Doc : docs/systems/ameliorations-employes.md
@@ -32,7 +35,9 @@ export type Npc = {
 	held: Model?,
 	connections: { RBXScriptConnection },
 	walkTrack: AnimationTrack?,
+	runTrack: AnimationTrack?, -- R15 seulement (melangee a la marche selon la vitesse)
 	idleTrack: AnimationTrack?,
+	r15: boolean,
 	walking: boolean,
 	path: Path?,
 }
@@ -90,12 +95,13 @@ local function setGroup(model: Model)
 end
 
 -- Construit un rig R6 (avec les vetements ; sans eux si le chargement echoue).
-local function buildRig(name: string, outfit: Npcs.Outfit, shirtColor: Color3): Model?
+local function buildRig(name: string, outfit: Npcs.Outfit, shirtColor: Color3, r15: boolean?): Model?
 	local model: Model? = nil
+	local rigType = if r15 then Enum.HumanoidRigType.R15 else Enum.HumanoidRigType.R6
 	for _, withAssets in { true, false } do
 		local desc = buildDescription(outfit, shirtColor, withAssets)
 		local ok, result = pcall(function()
-			return Players:CreateHumanoidModelFromDescription(desc, Enum.HumanoidRigType.R6)
+			return Players:CreateHumanoidModelFromDescription(desc, rigType)
 		end)
 		desc:Destroy()
 		if ok and result then
@@ -125,9 +131,9 @@ local function buildRig(name: string, outfit: Npcs.Outfit, shirtColor: Color3): 
 	return model
 end
 
--- Tablier et casquette de la couleur du poste + nom au-dessus de la tete.
+-- Tablier et casquette de la couleur du poste + nom au-dessus de la tete (R6 : Torso, R15 : UpperTorso).
 local function dressEmployee(model: Model, title: string, color: Color3)
-	local torso = model:FindFirstChild("Torso")
+	local torso = model:FindFirstChild("Torso") or model:FindFirstChild("UpperTorso")
 	local head = model:FindFirstChild("Head")
 	local function weldPart(name: string, size: Vector3, offset: CFrame, to: BasePart, partColor: Color3)
 		local p = Instance.new("Part")
@@ -147,8 +153,17 @@ local function dressEmployee(model: Model, title: string, color: Color3)
 		p.Parent = model
 	end
 	if torso and torso:IsA("BasePart") then
-		weldPart("Apron", Vector3.new(1.6, 1.7, 0.1), CFrame.new(0, -0.1, -0.55), torso, color)
-		weldPart("ApronStrap", Vector3.new(1.6, 0.18, 0.12), CFrame.new(0, 0.75, -0.56), torso, Color3.new(1, 1, 1))
+		-- Haut du tablier 0.2 sous le haut du torse (R6 : torse de 2 de haut -> memes valeurs qu'avant)
+		local top, front = torso.Size.Y / 2, torso.Size.Z / 2
+		local apronHeight = if torso.Name == "UpperTorso" then 1.35 else 1.7
+		weldPart(
+			"Apron",
+			Vector3.new(1.6, apronHeight, 0.1),
+			CFrame.new(0, top - 0.2 - apronHeight / 2, -(front + 0.05)),
+			torso,
+			color
+		)
+		weldPart("ApronStrap", Vector3.new(1.6, 0.18, 0.12), CFrame.new(0, top - 0.25, -(front + 0.06)), torso, Color3.new(1, 1, 1))
 	end
 	if head and head:IsA("BasePart") then
 		weldPart("Cap", Vector3.new(1.25, 0.4, 1.25), CFrame.new(0, 0.62, 0), head, color)
@@ -193,7 +208,7 @@ function NpcRig.Prepare()
 	PhysicsService:CollisionGroupSetCollidable(NPC_GROUP, PLAYER_GROUP, false)
 
 	for role, info in Npcs.Employees do
-		local rig = buildRig(role, Npcs.EmployeeOutfit, info.color)
+		local rig = buildRig(role, Npcs.EmployeeOutfit, info.color, (info :: any).r15 == true)
 		if rig then
 			dressEmployee(rig, info.title, info.color)
 			employeeTemplates[role] = rig
@@ -247,11 +262,36 @@ local function loadAnimations(npc: Npc)
 		track.Priority = priority
 		return track
 	end
-	npc.idleTrack = load(Npcs.Animations.Idle, Enum.AnimationPriority.Idle)
-	npc.walkTrack = load(Npcs.Animations.Walk, Enum.AnimationPriority.Movement)
+	local ids = if npc.r15 then Npcs.AnimationsR15 else Npcs.Animations
+	npc.idleTrack = load(ids.Idle, Enum.AnimationPriority.Idle)
+	npc.walkTrack = load(ids.Walk, Enum.AnimationPriority.Movement)
+	if npc.r15 then
+		npc.runTrack = load(Npcs.AnimationsR15.Run, Enum.AnimationPriority.Movement)
+	end
 	local idle = npc.idleTrack
 	if idle then
 		idle:Play()
+	end
+end
+
+-- R15 : meme melange marche / course que le script Animate de Roblox (setRunSpeed) : on joue les
+-- deux pistes, la course prend le dessus au-dessus de ~4 studs/s, vitesse = WalkSpeed / 16 x 1.25.
+local SMALL_WEIGHT = 0.0001
+local function startR15Walk(npc: Npc)
+	local walk, run = npc.walkTrack, npc.runTrack
+	local speed = npc.humanoid.WalkSpeed / 16 * 1.25
+	local walkWeight, runWeight = 1, SMALL_WEIGHT
+	if speed >= 0.66 then
+		walkWeight, runWeight = SMALL_WEIGHT, 1
+	elseif speed >= 0.33 then
+		local w = (speed - 0.33) / 0.33
+		walkWeight, runWeight = 1 - w + SMALL_WEIGHT, w + SMALL_WEIGHT
+	end
+	if walk then
+		walk:Play(0.2, walkWeight, speed)
+	end
+	if run then
+		run:Play(0.2, runWeight, speed)
 	end
 end
 
@@ -260,9 +300,11 @@ local function setWalking(npc: Npc, walking: boolean)
 		return
 	end
 	npc.walking = walking
-	local walk, idle = npc.walkTrack, npc.idleTrack
+	local walk, run, idle = npc.walkTrack, npc.runTrack, npc.idleTrack
 	if walking then
-		if walk then
+		if npc.r15 then
+			startR15Walk(npc)
+		elseif walk then
 			walk:Play(0.15)
 			walk:AdjustSpeed(npc.humanoid.WalkSpeed / Npcs.WalkAnimSpeed)
 		end
@@ -272,6 +314,9 @@ local function setWalking(npc: Npc, walking: boolean)
 	else
 		if walk then
 			walk:Stop(0.2)
+		end
+		if run then
+			run:Stop(0.2)
 		end
 		if idle then
 			idle:Play(0.2)
@@ -312,7 +357,9 @@ function NpcRig.Spawn(role: string, cframe: CFrame, parent: Instance): Npc?
 		held = nil,
 		connections = {},
 		walkTrack = nil,
+		runTrack = nil,
 		idleTrack = nil,
+		r15 = humanoid.RigType == Enum.HumanoidRigType.R15,
 		walking = false,
 		path = nil,
 	}
@@ -595,6 +642,105 @@ function NpcRig.Deposit(npc: Npc, toward: Vector3, backTo: Vector3?, throwSecond
 		turnTo(npc, backTo, turn)
 	end
 	claim(npc)
+end
+
+-- Fruit Picker R15 (2026-11-27) : geste de ramassage d'un fruit au sol, en `seconds`. Le serveur
+-- pose seulement l'heure de depart (attributs PickStart / PickTime, horloge GetServerTimeNow) :
+-- chaque client dessine la pose (accroupi, buste penche, bras droit au sol puis vers le plateau,
+-- CarryPoseController). Ici : il se tourne en douceur vers le fruit, a Npcs.PickGrabAt la main
+-- touche le fruit -> `grab()` le retire du sol et renvoie son id ; une copie suit la main droite
+-- jusqu'a Npcs.PickTrayAt, puis `toTray()` le pose sur le plateau. Bloque pendant le geste.
+function NpcRig.Pick(npc: Npc, fruitPos: Vector3, seconds: number, grab: () -> string?, toTray: (string) -> ())
+	turnTo(npc, fruitPos, 0.15)
+	if npc.model.Parent == nil then
+		return
+	end
+	npc.model:SetAttribute("PickTime", seconds)
+	npc.model:SetAttribute("PickStart", workspace:GetServerTimeNow())
+	task.wait(seconds * Npcs.PickGrabAt)
+	if npc.model.Parent == nil then
+		return
+	end
+	local id = grab()
+	local inHand: Model? = nil
+	local hand = npc.model:FindFirstChild("RightHand") or npc.model:FindFirstChild("Right Arm")
+	if id and hand and hand:IsA("BasePart") then
+		local fruit = FruitModels.CreateFruit(id, false)
+		fruit:PivotTo(hand.CFrame * CFrame.new(0, -hand.Size.Y / 2 - FruitModels.FruitSize * 0.35, 0))
+		for _, part in fruit:GetDescendants() do
+			if part:IsA("BasePart") then
+				part.Anchored = false
+				part.CanCollide = false
+				part.CanTouch = false
+				part.CanQuery = false
+				part.Massless = true
+				part.CastShadow = false
+				part.CollisionGroup = NPC_GROUP
+			end
+		end
+		local primary = fruit.PrimaryPart
+		if primary then
+			local weld = Instance.new("WeldConstraint")
+			weld.Part0 = primary
+			weld.Part1 = hand
+			weld.Parent = primary
+		end
+		fruit.Name = "PickedFruit"
+		fruit.Parent = npc.model
+		inHand = fruit
+		claim(npc) -- les objets soudes remettent la propriete reseau en automatique
+	end
+	task.wait(seconds * (Npcs.PickTrayAt - Npcs.PickGrabAt))
+	if inHand then
+		inHand:Destroy()
+	end
+	if id and npc.model.Parent ~= nil then
+		toTray(id)
+	end
+	task.wait(seconds * (1 - Npcs.PickTrayAt))
+	claim(npc)
+end
+
+-- Fruit Picker R15 (2026-11-27) : depot a l'etagere. Il se tourne vers `toward` (les caisses), pousse
+-- son plateau vers l'avant en penchant la tete (pose dessinee par CarryPoseController, attributs
+-- DumpStart / DumpTime) ; a Npcs.DumpReleaseAt, `release(from)` vide le plateau (`from` = point
+-- au-dessus de sa tete, d'ou les fruits s'envolent). Bloque pendant le geste.
+function NpcRig.Dump(npc: Npc, toward: Vector3?, seconds: number, trayAbove: number, release: (Vector3) -> ())
+	if toward then
+		turnTo(npc, toward, 0.2)
+	end
+	if npc.model.Parent == nil then
+		return
+	end
+	npc.model:SetAttribute("DumpTime", seconds)
+	npc.model:SetAttribute("DumpStart", workspace:GetServerTimeNow())
+	task.wait(seconds * Npcs.DumpReleaseAt)
+	if npc.model.Parent == nil then
+		return
+	end
+	local head = npc.model:FindFirstChild("Head")
+	local top = if head and head:IsA("BasePart")
+		then head.Position + Vector3.new(0, head.Size.Y / 2 + trayAbove + 0.3, 0)
+		else npc.root.Position + Vector3.new(0, 3, 0)
+	release(top + npc.root.CFrame.LookVector * 1.2)
+	task.wait(seconds * (1 - Npcs.DumpReleaseAt))
+	claim(npc)
+end
+
+-- Point ou le PNJ se place pour ramasser un objet au sol : a `reach` studs de lui, du cote d'ou il
+-- arrive (au sol, a la hauteur de ses pieds). Pas besoin de bouger s'il est deja a bonne distance.
+function NpcRig.ReachPoint(npc: Npc, target: Vector3, reach: number): Vector3?
+	local from = npc.root.Position
+	local flat = Vector3.new(from.X - target.X, 0, from.Z - target.Z)
+	local feetY = from.Y - npc.hipOffset
+	if flat.Magnitude < 0.05 then
+		flat = Vector3.new(0, 0, 1)
+	end
+	if math.abs(flat.Magnitude - reach) < 0.6 then
+		return nil
+	end
+	local point = target + flat.Unit * reach
+	return Vector3.new(point.X, feetY, point.Z)
 end
 
 function NpcRig.Destroy(npc: Npc)

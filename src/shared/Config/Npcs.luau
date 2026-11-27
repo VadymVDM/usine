@@ -29,7 +29,20 @@ local Npcs = {
 		Idle = "rbxassetid://180435571",
 		Walk = "rbxassetid://180426354",
 	}),
-	WalkAnimSpeed = 14, -- vitesse (studs/s) pour laquelle l'animation de marche est a vitesse 1
+	-- Animations R15 par defaut de Roblox (script Animate des joueurs, lues en Play le 2026-11-27) :
+	-- employes R15 (Employees.<role>.r15). Marche et course melangees selon la vitesse, comme Animate.
+	AnimationsR15 = table.freeze({
+		Idle = "rbxassetid://507766388",
+		Walk = "rbxassetid://913402848",
+		Run = "rbxassetid://913376220",
+	}),
+	WalkAnimSpeed = 14, -- vitesse (studs/s) pour laquelle l'animation de marche R6 est a vitesse 1
+	-- Ramassage d'un fruit par le Fruit Picker R15 (NpcRig.Pick, pose dessinee par CarryPoseController).
+	-- Fractions de la duree du geste : la main touche le fruit, puis le fruit arrive sur le plateau.
+	PickGrabAt = 0.42,
+	PickTrayAt = 0.78,
+	-- Depot a l'etagere (NpcRig.Dump) : fraction du geste ou les fruits quittent le plateau
+	DumpReleaseAt = 0.45,
 	WaypointLookAhead = 2.5, -- distance (studs) a laquelle l'employe vise deja le point de passage suivant
 	StuckSeconds = 1.2, -- employe qui n'avance plus depuis X s : il est pose a l'arrivee (NpcRig)
 
@@ -40,7 +53,9 @@ local Npcs = {
 
 	-- Employes : nom affiche au-dessus (anglais), couleur du tablier / de la casquette
 	Employees = table.freeze({
-		Collector = table.freeze({ title = "Fruit Picker", color = Color3.fromRGB(80, 190, 80) }),
+		-- r15 = vrai perso Roblox actuel (comme les joueurs) ; les autres restent R6 (gestes NpcRig.Press /
+		-- Deposit ecrits pour les epaules R6). Fruit Picker passe en R15 le 2026-11-27.
+		Collector = table.freeze({ title = "Fruit Picker", color = Color3.fromRGB(80, 190, 80), r15 = true }),
 		Operator = table.freeze({ title = "Blender Operator", color = Color3.fromRGB(255, 150, 40) }), -- Operator1..4
 		Waiter = table.freeze({ title = "Waiter", color = Color3.fromRGB(70, 160, 255) }), -- 2026-11-20 (WorkerService)
 	}),

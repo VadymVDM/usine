@@ -2,7 +2,7 @@
 
 **Statut :** en cours (achats, pad de l'arbre, panneaux, mixeurs a 5 niveaux, decor par niveau,
 3 employes R6 : playtest Studio du 2026-11-19 soir a 1 joueur ; 2 joueurs et telephone non testes)
-**Derniere mise a jour :** 2026-11-23 (prix des tuiles / pads arrondis vers le haut ; bouton violet des tuiles : vrai achat Robux, 5 / 8 / 9 R$)
+**Derniere mise a jour :** 2026-11-27 (Fruit Picker en R15 : marche Roblox actuelle, geste de ramassage et de depot)
 
 ## Role
 
@@ -82,7 +82,8 @@ Register, on comprend pas a quoi ca sert" ; "quand on ameliore, on ne voit pas d
 | `src/server/Services/UpgradeService.luau` | serveur | Seul a modifier `Data.Floors[n].Upgrades` (niveaux par etage ; prix x `Floors.UpgradePriceFactor`^(n-1), A VALIDER). Fantomes, prompt E + etiquette des machines, pads des employes, tuiles, achats, verifications |
 | `src/server/Services/WorkerService.luau` | serveur | Employes R6 : apparition a l'embauche, boucles de travail |
 | `src/server/Services/PassPadService.luau` | serveur | Pad violet `Machines.SpeedBoost` (a la place du Waiter embauche) et pad `Billboard` de la cour : voir `pads-robux.md` |
-| `src/server/Lib/NpcRig.luau` | serveur | Rigs R6 (HumanoidDescription), animations R6 de base, marche (`MoveTo` + Pathfinding), objets portes, groupes de collision |
+| `src/server/Lib/NpcRig.luau` | serveur | Rigs R6 / R15 (HumanoidDescription), animations de base de Roblox, marche (`MoveTo` + Pathfinding), objets portes, gestes (`Press`, `Deposit`, `Pick`, `Dump`), groupes de collision |
+| `src/client/Controllers/CarryPoseController.luau` | client | Bras sous le plateau / objets portes, et pose R15 du Fruit Picker pendant le ramassage et le depot |
 | `src/server/Services/ProductionService.luau` | serveur | Mixeurs possedes, taille du bol ; API caisses / table a jus / bols (`GetBowl`, `OperatorBlend`) pour les employes |
 | `src/shared/Util/MachineModels.luau` | partage | Liste des modeles achetables d'une base : `Machines.<id>` + `Production.Blenders.BlenderN` et `BlenderN.Operator` |
 | `src/client/Controllers/BuyController.luau` | client | Appui long sur tuiles / pads (jauge "HOLD"), pop-up "Buy X?" YES / NO au premier achat d'une machine ou d'un employe, remote `BuyUpgrade` |
@@ -227,6 +228,25 @@ Register, on comprend pas a quoi ca sert" ; "quand on ameliore, on ne voit pas d
   ne bloquent pas les joueurs. N'avance plus depuis `Npcs.StuckSeconds` (1.2 s) ou trajet plus long
   que `NpcMoveTimeout` (7 s) : pose a l'arrivee. Sans travail, l'employe retourne a son poste et
   regarde son travail (arbre, boite du tapis, comptoir) au lieu de marcher sur place.
+- **Fruit Picker en R15 depuis le 2026-11-27** (demande : "animation de marche et de recolte plus
+  naturelle, comme un vrai perso Roblox"). `Npcs.Employees.Collector.r15 = true` : rig R15 (comme
+  les joueurs), tablier sur `UpperTorso`. Animations R15 par defaut de Roblox (`Npcs.AnimationsR15` :
+  attente, marche, course) ; marche et course jouees ensemble et melangees selon `WalkSpeed`, avec
+  la meme formule que le script Animate (`NpcRig.startR15Walk`). Les autres employes restent R6
+  (gestes `Press` / `Deposit` ecrits pour les epaules R6).
+  - **Ramassage** (`NpcRig.Pick`) : il s'arrete a `Gameplay.PickerReach` (2.1) studs du fruit, du
+    cote d'ou il arrive (`NpcRig.ReachPoint` ; avant : il marchait SUR le fruit puis pivotait d'un
+    coup), se tourne en douceur, puis geste de `PickerPickSeconds` (0.65 s) / vitesse : genoux plies,
+    buste penche, bras droit au sol. A `Npcs.PickGrabAt` le fruit quitte le sol (`TakeFruit`) et une
+    copie est soudee a sa main droite ; a `Npcs.PickTrayAt` elle arrive sur le plateau (`TrayFruits`).
+  - **Depot** (`NpcRig.Dump`) : a l'etagere il se tourne vers les caisses (centre de
+    `Production.Bins`), pousse le plateau vers l'avant en penchant la tete (le plateau, soude a la
+    tete, bascule) avec une petite flexion ; a `Npcs.DumpReleaseAt` les fruits s'envolent du
+    plateau vers leurs caisses (`AddFruitsToBins`, point de depart = au-dessus de sa tete), puis il
+    baisse les bras. Duree `PickerDumpSeconds` (0.8 s) / vitesse (remplace la pause).
+  - La pose est dessinee par chaque client (`CarryPoseController`, Transform des articulations R15
+    apres les animations) a partir de l'heure de depart (attributs `PickStart`/`PickTime`,
+    `DumpStart`/`DumpTime`, horloge `GetServerTimeNow`) : rien n'est replique image par image.
 - **Fruit Picker** (vitesse : `EmployeeWalkSpeed` x `PickerBaseSpeed` (0.7 : 30 % plus lent depuis
   le 2026-11-20) x PickerSpeed, pauses `EmployeePauseSeconds` / meme facteur, changee tout de suite a
   l'achat) : va au fruit au sol le plus proche (`TreeService.FindNearest`, fruits reserves),
