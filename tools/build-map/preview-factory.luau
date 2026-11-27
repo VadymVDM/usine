@@ -66,6 +66,7 @@ local LuckyCash = freshRequire(Config.LuckyCash)
 local FruitModels = freshRequire(Shared.FruitModels)
 local MachineModels = freshRequire(Util.MachineModels)
 local WorldLabel = freshRequire(Util.WorldLabel)
+local TutorialArrow = freshRequire(Util.TutorialArrow)
 local NumberFormat = freshRequire(Util.NumberFormat)
 local PackStyle = freshRequire(Client.UI.PackStyle)
 
@@ -462,52 +463,11 @@ local function worldUi(floor: Model, n: number, folder: Folder)
 end
 
 ---------------------------------------------------------------------------------------------
--- Fleche jaune du tutoriel, anneau et ligne de chevrons (copie de TutorialController :
--- buildArrow, buildRing, buildGuide ; immobiles ici)
+-- Fleche jaune du tutoriel (Util/TutorialArrow, le meme module que le jeu), anneau et ligne de
+-- chevrons (copie de TutorialController : buildRing, buildGuide) ; immobiles ici
 
 local ARROW_COLOR = Color3.fromRGB(255, 214, 40)
-local TEXT_STROKE = Color3.fromRGB(20, 16, 28)
 
-local function buildArrow(): Model
-	local model = Instance.new("Model")
-	model.Name = "TutorialArrow"
-	local s = Tutorial.ArrowSize
-	local headW, headH, thick = 3 * s, 1.9 * s, 0.9 * s
-	local tip = -0.5
-	local headY = tip + headH / 2
-	local shaftH = 2.2 * s
-	local shaft = Instance.new("Part")
-	shaft.Name = "Shaft"
-	decor(shaft, ARROW_COLOR)
-	shaft.Size = Vector3.new(1.1 * s, shaftH, 1.1 * s)
-	shaft.CFrame = CFrame.new(0, tip + headH + shaftH / 2 - 0.05, 0)
-	shaft.Parent = model
-	for _, turn in { 0, math.pi / 2 } do
-		local base = CFrame.Angles(0, turn, 0)
-		local halves = {
-			CFrame.new(0, headY, -headW / 4) * CFrame.Angles(0, 0, math.pi),
-			CFrame.new(0, headY, headW / 4) * CFrame.Angles(0, math.pi, 0) * CFrame.Angles(0, 0, math.pi),
-		}
-		for i, cf in halves do
-			local wedge = Instance.new("WedgePart")
-			wedge.Name = `Head{turn == 0 and "A" or "B"}{i}`
-			decor(wedge, ARROW_COLOR)
-			wedge.Size = Vector3.new(thick, headH, headW / 2)
-			wedge.CFrame = base * cf
-			wedge.Parent = model
-		end
-	end
-	local outline = Instance.new("Highlight")
-	outline.Name = "Outline"
-	outline.FillTransparency = 1
-	outline.OutlineColor = TEXT_STROKE
-	outline.OutlineTransparency = 0
-	outline.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-	outline.Adornee = model
-	outline.Parent = model
-	model.WorldPivot = CFrame.identity
-	return model
-end
 
 local function tutorialGuide(floor: Model, folder: Folder)
 	local cashPad = floor:FindFirstChild("CashPad", true)
@@ -516,8 +476,23 @@ local function tutorialGuide(floor: Model, folder: Folder)
 		return
 	end
 	local topPos = target.Position + Vector3.new(0, target.Size.Y / 2, 0)
-	local arrow = buildArrow()
-	arrow:PivotTo(CFrame.new(topPos + Vector3.new(0, Tutorial.ArrowHeight, 0)))
+	-- Comme en jeu : face tournee vers le joueur (ici le point d'apparition), penchee en arriere
+	local arrow = TutorialArrow.Build(Tutorial.ArrowSize)
+	local spot = topPos + Vector3.new(0, Tutorial.ArrowHeight, 0)
+	local spawn = findPart(floor:FindFirstChild("Markers"), "SpawnPoint")
+	local flat = if spawn then (spawn.Position - spot) * Vector3.new(1, 0, 1) else Vector3.zAxis
+	if flat.Magnitude < 0.01 then
+		flat = Vector3.zAxis
+	end
+	local tip = TutorialArrow.Tip
+	TutorialArrow.Pose(
+		arrow,
+		CFrame.lookAt(spot, spot + flat)
+			* CFrame.Angles(0, math.pi / 2, 0)
+			* CFrame.new(tip)
+			* CFrame.Angles(0, 0, math.rad(Tutorial.ArrowTilt))
+			* CFrame.new(-tip)
+	)
 	arrow.Parent = folder
 	local ring = Instance.new("Part")
 	ring.Name = "TutorialRing"

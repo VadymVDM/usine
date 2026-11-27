@@ -10,6 +10,11 @@ l'utilisateur, avec un texte court tout en haut de l'ecran (a la hauteur de la b
 selon la cible, une ligne + fleche 3D dans le monde ou une fleche a l'ecran sur un bouton.
 La ligne (Beam `TutorialLine`) porte l'attribut `KeepInLowQuality` : le mode Low Quality ne l'eteint
 pas (2026-11-27).
+Fleche 3D (`Util/TutorialArrow`, refaite le 2026-11-27, style simulateur Roblox) : une fleche plate
+epaisse, contour noir, tranches orange, face jaune en biseau, bout du manche arrondi, reflet blanc.
+Toujours face a la camera (a l'horizontale), penchee de 15 deg vers le ciel autour de la pointe
+(sinon la face verticale reste a l'ombre sous le soleil de midi et le jaune vire au kaki), leger
+balancement, rebond avec ecrasement a l'impact et etirement en vitesse.
 Le bouton vise grossit et retrecit doucement en boucle (+8 %, `Tutorial.ButtonPulse` /
 `ButtonPulseSpeed`, 2026-11-23). La pulsation multiplie l'UIScale du bouton par-dessus le survol
 (UI/ButtonFx) et le rebond de l'Index (DiscoveryController) ; attribut `PulseFactor` sur l'UIScale
@@ -64,6 +69,7 @@ this menu"). Cible dans le monde avec un menu ouvert : fleche aussi sur le X.
 | Fichier | Cote | Role |
 |---|---|---|
 | `src/client/Controllers/TutorialController.luau` | client | Calcule la cible 5 fois / s d'apres l'etape sauvegardee et l'etat du jeu, dessine ligne, fleche 3D, fleche a l'ecran, objectif (`TutorialGui`), demande l'etape suivante |
+| `src/shared/Util/TutorialArrow.luau` | partage | Fleche 3D : `Build(size)` (contour sombre en pieces, corps orange, face jaune en biseau, bout arrondi, reflet, Highlight a travers les murs) et `Pose(model, cframe, scale)` (ecrasement / etirement depuis la pointe). Aussi utilisee par `tools/build-map/preview-factory.luau` |
 | `src/server/Services/TutorialService.luau` | serveur | Seul a ecrire `Data.TutorialStep` ; attribut joueur `TutorialStep` ; remote `TutorialProgress` |
 | `src/server/Services/PlayerUpgradeService.luau` | serveur | Vitesse gratuite une fois (`Data.FreeSpeedUsed`, attribut `FreeSpeed`) |
 | `src/client/Controllers/UpgradeMenuController.luau` | client | "FREE" sur la ligne vitesse ; `GetBuyButton(id)` pour la fleche |
@@ -114,7 +120,8 @@ ex. "jus deja poses", repart de zero).
 ## Configuration
 
 `Config/Tutorial.luau` : `Steps` (textes anglais, 5 mots max), `StopAtFloor`, `ElevatorHintDelaySeconds`, `ElevatorHintId`, `PickFruits`, `TransitGraceSeconds`, `Targets`, `Guide*`,
-`ArrowHeight*`, `ArrowBounce`, `ArrowBounceSpeed`, `ArrowPop`, `ArrowSize`, `RefreshSeconds`. `Config/Setup.luau` : `PadGates`.
+`ArrowHeight*`, `ArrowBounce`, `ArrowBounceSpeed`, `ArrowSquash`, `ArrowStretch`, `ArrowTilt` (15 deg), `ArrowSway`,
+`ArrowSwaySpeed`, `ArrowSize`, `RefreshSeconds`. `Config/Setup.luau` : `PadGates`.
 
 ## Problemes connus / a faire
 

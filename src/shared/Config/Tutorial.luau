@@ -101,8 +101,15 @@ Tutorial.ArrowHeightFruit = 3.5 -- studs au-dessus d'un fruit
 Tutorial.ArrowHeightPanel = 4 -- studs au-dessus du panneau du mixeur
 Tutorial.ArrowBounce = 1.2 -- studs (hauteur du rebond)
 Tutorial.ArrowBounceSpeed = 1.1 -- rebonds par seconde
-Tutorial.ArrowPop = 0.12 -- la fleche grossit de 12 % quand elle touche le bas du rebond
-Tutorial.ArrowSize = 1 -- taille de la fleche 3D (1 = 3 studs de large)
+-- Fleche 3D (Util/TutorialArrow, 2026-11-27) : face tournee vers la camera, penchee en arriere
+-- (sinon, soleil de midi, la face verticale reste a l'ombre et le jaune vire au kaki), balancement
+-- leger, ecrasee a l'impact du rebond et etiree pendant la descente (volume garde)
+Tutorial.ArrowSquash = 0.22 -- la fleche s'ecrase de 22 % en hauteur au bas du rebond
+Tutorial.ArrowStretch = 0.1 -- et s'etire de 10 % quand elle va le plus vite
+Tutorial.ArrowTilt = 15 -- degres, face penchee vers le ciel (30 trop penche, demande du 2026-11-27)
+Tutorial.ArrowSway = 0.25 -- radians, balancement gauche / droite autour de la direction camera
+Tutorial.ArrowSwaySpeed = 0.45 -- balancements par seconde
+Tutorial.ArrowSize = 1 -- taille de la fleche 3D (1 = ~3.2 studs de large)
 -- Etage 2 debloque (2026-11-23) : tutoriel fini pour de bon (serveur : TutorialStep = Done), puis
 -- UN conseil : ElevatorHintDelaySeconds apres l'arrivee a l'etage 2, des qu'il a le prix, fleche sur
 -- l'amelioration Elevator Speed de la terrasse, jusqu'a l'achat d'une amelioration de l'ascenseur.

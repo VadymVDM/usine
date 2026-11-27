@@ -85,7 +85,8 @@ En tete du script : `FLOORS` (10), `SLOT` (1), `REMOVE`. Le reste vient de la Co
   Play). `snapAccessories` pose chaque poignee sur son point d'accroche du corps AVANT l'ancrage
   (corrige le 2026-11-27 : cheveux a ~30 studs de la tete, par terre). A garder si on touche `buildRig`.
 - Copies a garder en phase avec le jeu (les builders sont locaux dans leur module) : PNJ
-  (`Lib/NpcRig`), fleche / anneau / ligne (`TutorialController`), liasse (`LuckyCashController`),
+  (`Lib/NpcRig`), anneau / ligne (`TutorialController` ; la fleche vient du module partage
+  `Util/TutorialArrow`, plus de copie), liasse (`LuckyCashController`),
   billets (`CustomerService.addBill`). Mieux plus tard : sortir ces builders dans des modules partages.
 - Apres des captures MCP : remettre `workspace.CurrentCamera.CameraType = Fixed` (sinon la camera
   de Studio reste bloquee).

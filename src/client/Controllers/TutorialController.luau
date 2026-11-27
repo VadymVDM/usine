@@ -2,7 +2,8 @@
 -- Tutoriel etape par etape (profil neuf, 2026-11-22, demande : "d'abord tu plantes, apres tu prends
 -- les fruits, ensuite tu construis l'etagere et tu mets...").
 -- Ne decide rien : lit l'etat publie par le serveur et montre UNE chose a faire a la fois :
---   * ligne de chevrons lumineux du joueur a la cible (Beam), fleche 3D qui rebondit au-dessus ;
+--   * ligne de chevrons lumineux du joueur a la cible (Beam), fleche 3D (Util/TutorialArrow) qui
+--     rebondit au-dessus, face a la camera ;
 --   * objectif court en haut de l'ecran (Config/Tutorial.Steps, anglais).
 -- Etapes sauvegardees (attribut joueur TutorialStep, TutorialService ; Config/Tutorial.Phases) :
 --   Factory : Plant the tree -> Pick up the fruits -> Build the shelf -> Drop the fruits -> Build the
@@ -32,6 +33,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Remotes = require(Shared:WaitForChild("Network"):WaitForChild("Remotes"))
 local NumberFormat = require(Shared:WaitForChild("Util"):WaitForChild("NumberFormat"))
 local MachineModels = require(Shared:WaitForChild("Util"):WaitForChild("MachineModels"))
+local TutorialArrow = require(Shared:WaitForChild("Util"):WaitForChild("TutorialArrow"))
 local FloorWatch = require(script.Parent.Parent:WaitForChild("Util"):WaitForChild("FloorWatch"))
 
 local TutorialController = {}
@@ -165,50 +167,7 @@ local function decor(p: BasePart, color: Color3)
 	p.Material = Enum.Material.SmoothPlastic
 end
 
--- Fleche 3D en croix qui pointe vers le bas : deux fleches plates croisees a 90 deg (lisible de
--- tous les cotes quand elle tourne), pointe triangulaire (2 WedgeParts par fleche), tige carree.
--- Contour sombre (Highlight) visible a travers les murs. Pointe en y = -0.5 (pivot en 0).
-local function buildArrow(): Model
-	local model = Instance.new("Model")
-	model.Name = "TutorialArrow"
-	local s = Tutorial.ArrowSize
-	local headW, headH, thick = 3 * s, 1.9 * s, 0.9 * s
-	local tip = -0.5
-	local headY = tip + headH / 2
-	local shaftH = 2.2 * s
-	local shaft = Instance.new("Part")
-	shaft.Name = "Shaft"
-	decor(shaft, ARROW_COLOR)
-	shaft.Size = Vector3.new(1.1 * s, shaftH, 1.1 * s)
-	shaft.CFrame = CFrame.new(0, tip + headH + shaftH / 2 - 0.05, 0)
-	shaft.Parent = model
-	for _, turn in { 0, math.pi / 2 } do
-		local base = CFrame.Angles(0, turn, 0)
-		-- Coin retourne (haut plein, pointe en bas au bord +Z local) : deux moities en miroir
-		local halves = {
-			CFrame.new(0, headY, -headW / 4) * CFrame.Angles(0, 0, math.pi),
-			CFrame.new(0, headY, headW / 4) * CFrame.Angles(0, math.pi, 0) * CFrame.Angles(0, 0, math.pi),
-		}
-		for i, cf in halves do
-			local wedge = Instance.new("WedgePart")
-			wedge.Name = `Head{turn == 0 and "A" or "B"}{i}`
-			decor(wedge, ARROW_COLOR)
-			wedge.Size = Vector3.new(thick, headH, headW / 2)
-			wedge.CFrame = base * cf
-			wedge.Parent = model
-		end
-	end
-	local outline = Instance.new("Highlight")
-	outline.Name = "Outline"
-	outline.FillTransparency = 1
-	outline.OutlineColor = TEXT_STROKE
-	outline.OutlineTransparency = 0
-	outline.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-	outline.Adornee = model
-	outline.Parent = model
-	model.WorldPivot = CFrame.identity
-	return model
-end
+-- Fleche 3D : Util/TutorialArrow (contour, biseau, reflet ; posee chaque image dans PreRender)
 
 -- Anneau au sol sous un pad vise : disque jaune qui grandit et s'efface en boucle
 local function buildRing(): Part
@@ -332,7 +291,10 @@ function TutorialController.Start()
 		return
 	end
 	started = true
-	local arrow = buildArrow()
+	local arrow = TutorialArrow.Build(Tutorial.ArrowSize)
+	-- Penche en arriere autour de la pointe (la face prend le soleil, la pointe ne bouge pas)
+	local tip = TutorialArrow.Tip
+	local tilt = CFrame.new(tip) * CFrame.Angles(0, 0, math.rad(Tutorial.ArrowTilt)) * CFrame.new(-tip)
 	local ring = buildRing()
 	local beams, from, to = buildGuide()
 	to.Parent = workspace.Terrain
@@ -894,12 +856,24 @@ function TutorialController.Start()
 		end
 		local position = part.Position
 		to.WorldPosition = position + Vector3.new(0, 0.6, 0)
-		-- Rebond : arc de balle (rapide en bas, lent en haut) + petit "pop" de taille a l'impact
+		-- Rebond : arc de balle (rapide en bas, lent en haut), ecrasee a l'impact, etiree en vitesse
 		local phase = (clock * Tutorial.ArrowBounceSpeed) % 1
 		local y = current.arrowHeight + 4 * phase * (1 - phase) * Tutorial.ArrowBounce
 		local impact = math.max(0, 1 - math.min(phase, 1 - phase) * 8) -- 1 au point bas, 0 a 1/8 de cycle
-		arrow:ScaleTo(1 + impact * Tutorial.ArrowPop)
-		arrow:PivotTo(CFrame.new(position + Vector3.new(0, y, 0)) * CFrame.Angles(0, clock * 1.2, 0))
+		local speed = math.abs(1 - 2 * phase) -- 1 en bas, 0 en haut
+		local tall = 1 + Tutorial.ArrowStretch * speed - Tutorial.ArrowSquash * impact
+		local wide = 1 / math.sqrt(tall) -- volume garde
+		-- Face vers la camera (sur l'horizontale), petit balancement
+		local spot = position + Vector3.new(0, y, 0)
+		local camera = workspace.CurrentCamera
+		local toCamera = if camera then camera.CFrame.Position - spot else Vector3.zAxis
+		local flat = Vector3.new(toCamera.X, 0, toCamera.Z)
+		if flat.Magnitude < 0.01 then
+			flat = Vector3.zAxis
+		end
+		local sway = math.sin(clock * Tutorial.ArrowSwaySpeed * 2 * math.pi) * Tutorial.ArrowSway
+		local facing = CFrame.lookAt(spot, spot + flat) * CFrame.Angles(0, math.pi / 2 + sway, 0)
+		TutorialArrow.Pose(arrow, facing * tilt, Vector3.new(wide, tall, wide))
 		if current.ring then
 			if ring.Parent ~= workspace then
 				ring.Parent = workspace

@@ -55,7 +55,8 @@ return MoneyService
   `NOTICE-ProfileStore.md`). Pas charge par `Main` (seuls les ModuleScripts de `Services/` le sont).
 - `src/shared/Util/` : petites fonctions partagees (`NumberFormat`, `TextUtil`, `WorldLabel` = textes 3D "n/max",
   `Prompt` = prompts E, `SoundFx` = sons de jeu cote client, `MachineModels` = modeles achetables
-  d'une base : `Machines.<id>` + mixeurs `Production.Blenders.BlenderN` et leurs operateurs).
+  d'une base : `Machines.<id>` + mixeurs `Production.Blenders.BlenderN` et leurs operateurs). `TutorialArrow` = fleche 3D jaune
+  du tutoriel (jeu + apercu Edit).
 - `src/server/Lib/` : aides serveur pas chargees par `Main` : `PlayerCheck` (personnage vivant,
   distance, zone, delai), `NpcRig` (rigs R6 des employes et clients, marche avec PathfindingService,
   animations, objets portes).
