@@ -91,6 +91,24 @@ function GamePass.OnPurchased(callback: GrantedCallback)
 	table.insert(purchasedCallbacks, callback)
 end
 
+local function firePurchased(player: Player, passId: number)
+	for _, callback in purchasedCallbacks do
+		task.spawn(callback, player, passId)
+	end
+end
+
+-- Lib/PurchasePrompt, AVANT d'ouvrir la fenetre d'achat : si Roblox dit que le joueur possede deja
+-- le pass (achete hors de ce serveur, verification ratee a l'arrivee...), on l'active tout de suite
+-- (memes effets qu'un achat) et on renvoie vrai : pas de fenetre "Vous possedez deja cet objet"
+-- (signale le 2026-11-27). Peut attendre (appel Roblox).
+function GamePass.ActivateIfOwned(player: Player, passId: number): boolean
+	if not GamePass.Owns(player, passId) or player.Parent ~= Players then
+		return false
+	end
+	firePurchased(player, passId)
+	return true
+end
+
 -- `purchased` est ignore : quand le joueur possede DEJA le pass, Roblox affiche "Vous possedez deja
 -- cet objet" et renvoie purchased = false (verifie dans Studio le 2026-11-27). Si le serveur avait
 -- rate la possession (pass achete sur le site ou dans un autre serveur, Roblox injoignable a
@@ -104,9 +122,7 @@ MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player: Playe
 		if not GamePass.Owns(player, passId) or player.Parent ~= Players then
 			return
 		end
-		for _, callback in purchasedCallbacks do
-			task.spawn(callback, player, passId)
-		end
+		firePurchased(player, passId)
 	end)
 end)
 

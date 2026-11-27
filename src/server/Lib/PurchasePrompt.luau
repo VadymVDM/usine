@@ -9,6 +9,7 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Remotes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Network"):WaitForChild("Remotes"))
+local GamePass = require(script.Parent.GamePass)
 
 local PurchasePrompt = {}
 
@@ -16,7 +17,12 @@ local function notifyClient(player: Player)
 	Remotes.GetServerEvent("Feedback"):FireClient(player, "PurchasePrompt")
 end
 
+-- Pass deja possede chez Roblox mais pas encore actif ici : active sans ouvrir la fenetre (sinon
+-- Roblox affiche "Vous possedez deja cet objet"). Peut attendre (Lib/GamePass.Owns).
 function PurchasePrompt.GamePass(player: Player, passId: number)
+	if GamePass.ActivateIfOwned(player, passId) then
+		return
+	end
 	MarketplaceService:PromptGamePassPurchase(player, passId)
 	notifyClient(player)
 end
