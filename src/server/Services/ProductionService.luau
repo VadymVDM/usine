@@ -23,8 +23,9 @@
 -- (un fruit part sur le tapis vers ce bol), BowlFruits ("Apple;Orange"), BowlCount, BowlMax, Owned,
 -- Blending, BlendFruits, BlendStamp (+1 au demarrage), PopStamp (+1 quand les jus sortent),
 -- HeldJuices (jus encore dans le mixeur, faute de place sur la table).
--- Les gobelets qui sortent ont l'attribut PopFrom (bec du mixeur) et PopIndex : le client les fait
--- sauter du bec jusqu'a leur place. Le contenu des bols n'est pas sauvegarde.
+-- Les gobelets qui sortent ont l'attribut PopFrom (bec du mixeur, ou mains de l'operateur embauche)
+-- et PopIndex (+ PopDelay pour l'operateur) : le client les fait sauter jusqu'a leur place. Le
+-- contenu des bols n'est pas sauvegarde.
 -- API pour le comptoir (CustomerService) et les employes (WorkerService) en bas du fichier.
 -- Seul module qui modifie l'inventaire, les mains, les caisses et la table a jus (rien n'est sauvegarde).
 -- Doc : docs/systems/chaine-production.md
@@ -553,10 +554,26 @@ local function tableRoom(state: FloorState): number
 	return if limit then math.max(0, limit - #state.juices) else 0
 end
 
--- Pose des jus sur la table, depuis le bec du mixeur (le client les fait sauter un par un).
+-- Operateur du mixeur (WorkerService.SetPourHandler) : s'il est la, il se tourne vers la table et
+-- lance les gobelets depuis ses mains. Renvoie (point de depart, attente avant le 1er saut) ou nil.
+type PourHandler = (floor: Model, index: number, count: number, tableCenter: Vector3?) -> (Vector3?, number?)
+local pourHandler: PourHandler? = nil
+
+-- Pose des jus sur la table, depuis le bec du mixeur (le client les fait sauter un par un) ou
+-- depuis les mains de l'operateur s'il est embauche (2026-11-27, attribut PopDelay = le temps
+-- qu'il se tourne vers la table).
 local function pourToTable(state: FloorState, bowl: Bowl, ids: { string })
 	local spout = bowl.spout
 	local from = if spout then spout.Position - Vector3.new(0, spout.Size.Y / 2, 0) else nil
+	local delay = 0
+	if pourHandler and #ids > 0 then
+		local tableCenter = juiceCupCFrame(state, #state.juices + 1) -- place du 1er gobelet
+		local ok, hands, wait = pcall(pourHandler, state.floor, bowl.index, #ids, if tableCenter then tableCenter.Position else nil)
+		if ok and hands then
+			from = hands
+			delay = wait or 0
+		end
+	end
 	for k, fruitId in ids do
 		table.insert(state.juices, fruitId)
 		local cf = juiceCupCFrame(state, #state.juices)
@@ -567,6 +584,9 @@ local function pourToTable(state: FloorState, bowl: Bowl, ids: { string })
 				cup:SetAttribute("PopFrom", from)
 				cup:SetAttribute("PopIndex", k)
 				cup:SetAttribute("PopAt", workspace:GetServerTimeNow())
+				if delay > 0 then
+					cup:SetAttribute("PopDelay", delay)
+				end
 			end
 			cup.Parent = state.folder
 			state.juiceModels[#state.juices] = cup
@@ -1289,6 +1309,11 @@ function ProductionService.GetBowl(floor: Model, index: number): BowlInfo?
 		held = #bowl.held,
 		idleSeconds = os.clock() - bowl.lastChange,
 	}
+end
+
+-- WorkerService : l'operateur du mixeur pose les jus sur la table (voir pourToTable).
+function ProductionService.SetPourHandler(handler: PourHandler?)
+	pourHandler = handler
 end
 
 -- L'operateur appuie sur le bouton du mixeur (memes regles que le joueur, sans la distance).

@@ -244,6 +244,16 @@ Register, on comprend pas a quoi ca sert" ; "quand on ameliore, on ne voit pas d
   compris), leve le bras droit vers le bouton (`NpcRig.Press` : C0 de l'epaule R6, replique) et
   lance le mixage (`ProductionService.OperatorBlend`, memes regles que le joueur). Table pleine :
   il reessaie 1.5 s plus tard. Le joueur peut toujours appuyer lui-meme.
+- **Depot des jus par l'operateur** (2026-11-27, demande "petite animation pour le blender operator
+  qui depose les jus sur la table") : quand les jus de SON mixeur sortent (fin de mixage ou jus en
+  attente qui coulent), `ProductionService.pourToTable` appelle `WorkerService.onPour` (branche par
+  `ProductionService.SetPourHandler`). Si l'operateur est a sa place et libre : `NpcRig.Deposit` le
+  tourne en douceur vers la table (0.3 s, `DepositTurnSeconds`) en tendant les deux bras, petit lancer
+  (bras qui montent, easing Back) pendant que les gobelets sautent DE SES MAINS (`PopFrom` =
+  `NpcRig.HandsPoint`, `PopDelay` = 0.3 s : le client les garde invisibles jusque-la), puis il baisse
+  les bras et se retourne vers son bouton. `busyUntil` empeche sa boucle de le retourner ou d'appuyer
+  pendant le geste. Pas d'operateur (ou pas a sa place, ou deja occupe) : les gobelets sortent du bec
+  comme avant. Les gobelets sont deja sur la table cote serveur : le geste ne ralentit rien.
 - **Embauche d'un operateur** : pad vert 5 x 5 devant le panneau (`BlenderN.Operator`) :
   **marcher dessus = embaucher**, comme les autres pads (2026-11-19, demande utilisateur : "un pad,
   on se met dessus, pas de E"). Plus de prompt E sur aucun pad ; l'ancien attribut `HirePrompt`

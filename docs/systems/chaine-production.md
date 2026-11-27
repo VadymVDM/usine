@@ -214,7 +214,9 @@ Tout est dessine par le client ; le serveur ne voit rien et ne decide rien. Au-d
     lame, moteur. Le jus (`Juice`) est cache au repos (`LocalTransparencyModifier`, client).
   - `PopStamp` : "pop" (la machine s'etire vers le haut), le jus redescend ; les gobelets crees
     avec `PopFrom` / `PopIndex` / `PopAt` sautent tous du bec (`SpoutTip`) jusqu'a leur place sur
-    la table, un par un tres vite (0.06 s d'ecart). Gobelets sortis il y a plus de 1.5 s (arrivee
+    la table, un par un tres vite (0.06 s d'ecart). Operateur embauche et a sa place (2026-11-27) :
+    ils partent de ses mains (`PopFrom`) apres `PopDelay` (0.3 s, invisibles en attendant), voir
+    ameliorations-employes.md "Depot des jus par l'operateur". Gobelets sortis il y a plus de 1.5 s (arrivee
     dans la partie) : pas d'animation.
   - Pendant la construction d'un mixeur achete (`BuildStamp`, MachineFx), pas de deformation 4 s.
   L'utilisateur veut que l'animation porte sur la machine elle-meme (valide le 2026-11-19).
@@ -234,7 +236,7 @@ Tout est dessine par le client ; le serveur ne voit rien et ne decide rien. Au-d
 | Nom | Sens | Contenu |
 |---|---|---|
 | `Feedback` | serveur -> le joueur | "Pickup" { items = { {id, pos} } }, "Deposit" { floor, ids }, "TakeJuice" { count } |
-| (attributs) | serveur -> tous | `BlenderN` : `Pulse`, `PulseFruit`, `BowlFruits`, `BowlCount`, `BowlMax`, `Owned`, `Blending`, `BlendFruits`, `BlendStamp`, `PopStamp`, `HeldJuices` ; gobelets : `PopFrom`, `PopIndex`, `PopAt` |
+| (attributs) | serveur -> tous | `BlenderN` : `Pulse`, `PulseFruit`, `BowlFruits`, `BowlCount`, `BowlMax`, `Owned`, `Blending`, `BlendFruits`, `BlendStamp`, `PopStamp`, `HeldJuices` ; gobelets : `PopFrom`, `PopIndex`, `PopAt`, `PopDelay` (operateur) |
 | `WorldFx` | serveur -> tous | (etage, "FruitsToBins", { from, ids }) : fruits du Fruit Picker qui volent vers les caisses |
 
 Actions : prompts E (`Triggered` serveur), dont "Blend" sur chaque mixeur. Verifications serveur :

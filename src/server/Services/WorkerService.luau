@@ -8,6 +8,8 @@
 --     (marqueur Production.Blenders.BlenderN.BlenderNOperator) ; quand le bol est plein (ou ne
 --     bouge plus depuis OperatorIdleBlendSeconds), il attend OperatorReactSeconds puis appuie sur
 --     le bouton vert (petit geste du bras, NpcRig.Press) -> ProductionService.OperatorBlend ;
+--     quand les jus sortent (2026-11-27, onPour), il se tourne vers la table, tend les bras et les
+--     gobelets sautent de ses mains (NpcRig.Deposit), puis il se retourne vers son bouton ;
 --   * Waiter (2026-11-20, de retour, argent du jeu) : volontairement LENT (Gameplay.WaiterBaseSpeed).
 --     Il attend pres de la table a jus (Markers.ServerHome) ; des qu'il y a Gameplay.WaiterCarry jus
 --     (ou des jus qui attendent depuis WaiterWaitSeconds), il va devant la table (ServerPallet), les
@@ -48,6 +50,7 @@ type Worker = {
 	active: boolean,
 	speed: number, -- multiplicateur de vitesse (Fruit Picker : PickerBaseSpeed x PickerSpeed, sinon 1)
 	carry: number, -- fruits portes au maximum (Fruit Picker : PickerCarry, sinon 0)
+	busyUntil: number, -- operateur : en train de poser les jus sur la table jusqu'a cette heure (os.clock)
 }
 
 type FloorWorkers = {
@@ -187,6 +190,11 @@ local function runOperator(state: FloorWorkers, worker: Worker, index: number)
 		return worker.active
 	end
 	while worker.active do
+		-- En train de poser les jus sur la table (NpcRig.Deposit) : on ne le retourne pas
+		if os.clock() < worker.busyUntil then
+			task.wait(0.1)
+			continue
+		end
 		-- Toujours a sa place, face au panneau
 		if home and (Vector3.new(npc.root.Position.X, home.Y, npc.root.Position.Z) - home).Magnitude > 1.5 then
 			NpcRig.MoveTo(npc, home, isActive)
@@ -209,6 +217,9 @@ local function runOperator(state: FloorWorkers, worker: Worker, index: number)
 		task.wait(math.max(0, Gameplay.OperatorReactSeconds - NpcRig.PressReachSeconds))
 		if not worker.active then
 			break
+		end
+		if os.clock() < worker.busyUntil then
+			continue -- les jus sortent pendant qu'il allait appuyer : il les pose d'abord
 		end
 		task.spawn(NpcRig.Press, npc)
 		task.wait(NpcRig.PressReachSeconds) -- le doigt touche le bouton
@@ -305,6 +316,31 @@ local function runWaiter(state: FloorWorkers, worker: Worker)
 	end
 end
 
+-- Les jus sortent du mixeur N (ProductionService.pourToTable) : si son operateur est a son poste et
+-- libre, il se tourne vers la table et les gobelets sautent de ses mains (sinon : du bec, comme avant).
+-- Renvoie (point de depart des gobelets, attente avant le 1er saut).
+local function onPour(floor: Model, index: number, count: number, tableCenter: Vector3?): (Vector3?, number?)
+	local state = floors[floor]
+	local worker = if state then state.workers["Operator" .. index] else nil
+	if worker == nil or not worker.active or worker.npc.model.Parent == nil or os.clock() < worker.busyUntil then
+		return nil, nil
+	end
+	local npc = worker.npc
+	local home, button = operatorPoints(floor, index)
+	local target = tableCenter or markerPoint(floor, "ServerPallet")
+	if target == nil then
+		return nil, nil
+	end
+	if home and (Vector3.new(npc.root.Position.X, home.Y, npc.root.Position.Z) - home).Magnitude > 3 then
+		return nil, nil -- pas a sa place (il y retourne) : les jus sortent du bec
+	end
+	local throw = (count - 1) * NpcRig.CupPopStagger
+	worker.busyUntil = os.clock() + NpcRig.DepositTurnSeconds * 2 + throw + 0.8
+	local hands = NpcRig.HandsPoint(npc, target)
+	task.spawn(NpcRig.Deposit, npc, target, button, throw)
+	return hands, NpcRig.DepositTurnSeconds
+end
+
 local RUNNERS: { [string]: (FloorWorkers, Worker) -> () } = {
 	Collector = runCollector,
 	Waiter = runWaiter,
@@ -374,7 +410,7 @@ local function spawnWorker(state: FloorWorkers, role: string)
 	if npc == nil then
 		return
 	end
-	local worker: Worker = { role = role, npc = npc, thread = nil, active = true, speed = 1, carry = 0 }
+	local worker: Worker = { role = role, npc = npc, thread = nil, active = true, speed = 1, carry = 0, busyUntil = 0 }
 	applyStats(state, worker)
 	state.workers[role] = worker
 	worker.thread = task.spawn(function()
@@ -458,6 +494,7 @@ end
 function WorkerService:Init() end
 
 function WorkerService:Start()
+	ProductionService.SetPourHandler(onPour)
 	FloorService.OnFloorStarted(startFloor)
 	FloorService.OnFloorStopped(function(_player: Player, floor: Model)
 		stopFloor(floor)

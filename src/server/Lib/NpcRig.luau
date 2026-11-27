@@ -492,22 +492,32 @@ function NpcRig.SetHeld(npc: Npc, kind: "Fruit" | "Juice" | nil, ids: { string }
 end
 
 NpcRig.PressReachSeconds = 0.3 -- temps entre le debut du geste et l'appui sur le bouton
+NpcRig.DepositTurnSeconds = 0.3 -- l'operateur se tourne vers la table avant de lancer les gobelets
+NpcRig.CupPopStagger = 0.06 -- ecart entre deux gobelets (meme valeur que CUP_POP_STAGGER, BlenderFxController)
 
--- Petit geste du bras droit (appuyer sur un bouton devant soi) : le bras se leve vers l'avant,
--- appuie, puis redescend (~0.6 s). On tourne le C0 de l'epaule (R6) : l'Animator du serveur joue
--- l'attente par-dessus, et la valeur est repliquee a tous les joueurs. Bloque pendant le geste.
-function NpcRig.Press(npc: Npc)
+-- Epaule R6 (Motor6D) et sa position de repos (gardee en attribut : un geste coupe ne la decale pas).
+local function shoulderRest(npc: Npc, name: string): (Motor6D?, CFrame)
 	local torso = npc.model:FindFirstChild("Torso")
-	local shoulder = torso and torso:FindFirstChild("Right Shoulder")
+	local shoulder = torso and torso:FindFirstChild(name)
 	if shoulder == nil or not shoulder:IsA("Motor6D") then
-		return
+		return nil, CFrame.identity
 	end
 	local rest = shoulder:GetAttribute("RestC0")
 	if typeof(rest) ~= "CFrame" then
 		rest = shoulder.C0
 		shoulder:SetAttribute("RestC0", rest)
 	end
-	local restC0 = rest :: CFrame
+	return shoulder, rest :: CFrame
+end
+
+-- Petit geste du bras droit (appuyer sur un bouton devant soi) : le bras se leve vers l'avant,
+-- appuie, puis redescend (~0.6 s). On tourne le C0 de l'epaule (R6) : l'Animator du serveur joue
+-- l'attente par-dessus, et la valeur est repliquee a tous les joueurs. Bloque pendant le geste.
+function NpcRig.Press(npc: Npc)
+	local shoulder, restC0 = shoulderRest(npc, "Right Shoulder")
+	if shoulder == nil then
+		return
+	end
 	-- R6 : l'axe Z de l'epaule = l'axe "droite" du torse ; un angle positif leve le bras devant soi
 	local up = TweenService:Create(shoulder, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 		C0 = restC0 * CFrame.Angles(0, 0, math.rad(80)),
@@ -524,6 +534,67 @@ function NpcRig.Press(npc: Npc)
 	task.wait(0.15)
 	down:Play()
 	task.wait(0.3)
+end
+
+-- Tourne le PNJ en douceur vers un point (sur place, `seconds`). Bloque pendant la rotation.
+local function turnTo(npc: Npc, position: Vector3, seconds: number)
+	local start = npc.root.CFrame.Rotation
+	local from = npc.root.Position
+	local flat = Vector3.new(position.X, from.Y, position.Z)
+	if (flat - from).Magnitude < 0.1 then
+		return
+	end
+	local goal = CFrame.lookAt(from, flat).Rotation
+	local t = 0
+	while t < seconds do
+		t += task.wait()
+		if npc.model.Parent == nil then
+			return
+		end
+		local a = math.clamp(t / seconds, 0, 1)
+		a = a * a * (3 - 2 * a)
+		npc.root.CFrame = CFrame.new(npc.root.Position) * start:Lerp(goal, a)
+	end
+end
+
+-- Point devant les mains quand le PNJ regarde `toward` et tend les bras (d'ou partent les gobelets).
+function NpcRig.HandsPoint(npc: Npc, toward: Vector3): Vector3
+	local from = npc.root.Position
+	local flat = Vector3.new(toward.X, from.Y, toward.Z)
+	local facing = if (flat - from).Magnitude > 0.1 then CFrame.lookAt(from, flat) else npc.root.CFrame
+	return (facing * CFrame.new(0, 0.4, -2)).Position
+end
+
+-- Operateur qui pose les jus sur la table (2026-11-27) : il se tourne vers la table en tendant les
+-- deux bras (DepositTurnSeconds), donne un petit coup de bras vers le haut pendant que les gobelets
+-- sautent de ses mains (`throwSeconds`), baisse les bras et se retourne vers `backTo` (son bouton).
+-- Bloque pendant le geste (~1.2 s + throwSeconds).
+function NpcRig.Deposit(npc: Npc, toward: Vector3, backTo: Vector3?, throwSeconds: number)
+	local right, rightRest = shoulderRest(npc, "Right Shoulder")
+	local left, leftRest = shoulderRest(npc, "Left Shoulder")
+	-- R6 : un angle Z positif leve le bras droit devant soi, negatif pour le gauche (epaules en miroir)
+	local function arms(angle: number, seconds: number, style: Enum.EasingStyle, direction: Enum.EasingDirection)
+		local info = TweenInfo.new(seconds, style, direction)
+		if right then
+			TweenService:Create(right, info, { C0 = rightRest * CFrame.Angles(0, 0, math.rad(angle)) }):Play()
+		end
+		if left then
+			TweenService:Create(left, info, { C0 = leftRest * CFrame.Angles(0, 0, math.rad(-angle)) }):Play()
+		end
+	end
+	local turn = NpcRig.DepositTurnSeconds
+	arms(85, turn, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	turnTo(npc, toward, turn)
+	-- Petit lancer : les bras montent pendant que les gobelets partent, puis reviennent
+	local toss = math.max(0.15, throwSeconds)
+	arms(110, toss, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+	task.wait(toss + 0.15)
+	arms(0, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
+	task.wait(0.25)
+	if backTo and npc.model.Parent ~= nil then
+		turnTo(npc, backTo, turn)
+	end
+	claim(npc)
 end
 
 function NpcRig.Destroy(npc: Npc)

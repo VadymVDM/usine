@@ -8,7 +8,8 @@
 -- 3. BlendStamp : gros demarrage en "gelee" (Fx/Jelly), le jus monte avec la couleur melangee des
 --    fruits, la lame tourne, moteur ; la machine se plie / se deplie pendant BlendSeconds.
 -- 4. PopStamp : "pop" (la machine s'etire vers le haut), le jus redescend ; les gobelets (attributs
---    PopFrom / PopIndex / PopAt) sautent tous du bec jusqu'a leur place sur la table a jus.
+--    PopFrom / PopIndex / PopAt) sautent tous du bec jusqu'a leur place sur la table a jus ; avec
+--    un operateur embauche, ils partent de ses mains apres PopDelay (caches en attendant).
 -- Une seule animation par mixeur ; rien au-dela de FX_DISTANCE ; sons coupes si le reglage est off.
 -- Doc : docs/systems/chaine-production.md (section Animations)
 
@@ -786,8 +787,15 @@ end
 ---------------------------------------------------------------------------------------------
 -- Gobelets qui sautent du bec jusqu'a la table (attributs poses par ProductionService)
 
-type CupHop = { model: Model, from: Vector3, to: CFrame, t: number, delay: number }
+type CupHop = { model: Model, from: Vector3, to: CFrame, t: number, delay: number, hidden: { BasePart }? }
 local cupHops: { CupHop } = {}
+
+-- Gobelet cache tant qu'il attend son saut (PopDelay : l'operateur se tourne vers la table).
+local function setHidden(parts: { BasePart }, hidden: boolean)
+	for _, part in parts do
+		part.LocalTransparencyModifier = if hidden then 1 else 0
+	end
+end
 
 local function onCupAdded(item: Instance)
 	if not item:IsA("Model") then
@@ -804,11 +812,29 @@ local function onCupAdded(item: Instance)
 		return
 	end
 	local k = if type(index) == "number" then index else 1
-	-- Cache dans le bec jusqu'a son saut
+	-- Operateur embauche (2026-11-27) : les gobelets partent de ses mains une fois tourne vers la table
+	local popDelay = item:GetAttribute("PopDelay")
+	local wait = if type(popDelay) == "number" then math.clamp(popDelay, 0, 1) else 0
+	-- Cache dans le bec (ou invisible dans les mains) jusqu'a son saut
 	item:PivotTo(CFrame.new(from) * to.Rotation)
-	table.insert(cupHops, { model = item, from = from, to = to, t = 0, delay = (k - 1) * CUP_POP_STAGGER })
+	local hidden: { BasePart }? = nil
+	if wait > 0 then
+		local parts: { BasePart } = {}
+		for _, part in item:GetDescendants() do
+			if part:IsA("BasePart") then
+				table.insert(parts, part)
+			end
+		end
+		setHidden(parts, true)
+		hidden = parts
+	end
+	table.insert(cupHops, { model = item, from = from, to = to, t = 0, delay = wait + (k - 1) * CUP_POP_STAGGER, hidden = hidden })
 	if k == 1 then
-		SoundFx.PlayAt("CupPop", from)
+		if wait > 0 then
+			task.delay(wait, SoundFx.PlayAt, "CupPop", from)
+		else
+			SoundFx.PlayAt("CupPop", from)
+		end
 	end
 end
 
@@ -820,6 +846,11 @@ local function updateCups(dt: number)
 			continue
 		end
 		hop.t += dt
+		local hidden = hop.hidden
+		if hidden and hop.t >= hop.delay then
+			setHidden(hidden, false)
+			hop.hidden = nil
+		end
 		local u = math.clamp((hop.t - hop.delay) / CUP_POP_SECONDS, 0, 1)
 		local pos = hop.from:Lerp(hop.to.Position, u) + Vector3.new(0, CUP_POP_HEIGHT * 4 * u * (1 - u), 0)
 		local tumble = (1 - u) * math.pi * 2
