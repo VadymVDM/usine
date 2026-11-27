@@ -51,7 +51,10 @@ local TRUNK = Color3.fromRGB(112, 78, 52)
 local LEAVES = { Color3.fromRGB(46, 160, 52), Color3.fromRGB(58, 176, 58), Color3.fromRGB(74, 190, 64) }
 local PINE = { Color3.fromRGB(36, 140, 70), Color3.fromRGB(44, 154, 76), Color3.fromRGB(54, 166, 80) }
 local FOOT = { Color3.fromRGB(62, 140, 60), Color3.fromRGB(74, 150, 64) }
-local ROCK = { Color3.fromRGB(112, 116, 134), Color3.fromRGB(96, 100, 120), Color3.fromRGB(128, 128, 142) }
+-- Base verte des pics (2026-11-27, "rends les montagnes un peu plus vertes, en base verte et grise")
+local SLOPE = { Color3.fromRGB(58, 136, 64), Color3.fromRGB(68, 146, 62), Color3.fromRGB(50, 126, 62) }
+-- Roche : gris plus neutre (avant gris-bleu 112,116,134 / 96,100,120 / 128,128,142)
+local ROCK = { Color3.fromRGB(122, 124, 130), Color3.fromRGB(106, 108, 116), Color3.fromRGB(136, 136, 142) }
 local SNOW = Color3.fromRGB(246, 249, 255)
 local VOLCANO = { Color3.fromRGB(58, 44, 44), Color3.fromRGB(44, 34, 36) }
 local LAVA = Color3.fromRGB(255, 96, 24)
@@ -336,8 +339,17 @@ local function pyramid(parent: Instance, name: string, frame: CFrame, w: number,
 	end
 end
 
--- Montagne : pied vert, pic principal, 2 pics secondaires, neige sur les pics assez hauts.
+-- Base verte d'un pic : une pyramide plus large (x SLOPE_WIDE) et plus basse (x SLOPE_HIGH) autour
+-- du pic. La roche ne depasse qu'au-dessus de la ligne ou les deux pentes se croisent, a
+-- t = HIGH x (WIDE - 1) / (WIDE - HIGH) de la hauteur du pic : 36 % ici. Donc, de bas en haut :
+-- vert jusqu'a 36 %, gris, puis neige sur les 32 % du haut.
+local SLOPE_WIDE, SLOPE_HIGH = 1.28, 0.72
+local mountainIndex = 0
+
+-- Montagne : pied vert, pic principal, 2 pics secondaires (chacun avec sa base verte), neige sur
+-- les pics assez hauts.
 local function mountain(cx: number, cz: number, w: number, h: number)
+	mountainIndex += 1
 	local m = newModel("Mountain")
 	local frame = CFrame.new(cx, 0, cz) * CFrame.Angles(0, math.rad(rng:NextNumber(0, 90)), 0)
 	local rock = pick(ROCK)
@@ -353,6 +365,8 @@ local function mountain(cx: number, cz: number, w: number, h: number)
 		local pf = frame * CFrame.new(p[1] * w, 0, p[2] * w)
 		local pw, pd, ph = w * p[3], w * p[3] * rng:NextNumber(0.85, 1), h * p[4]
 		pyramid(m, "Peak" .. i, pf, pw, pd, ph, -2, if i == 1 then rock else pick(ROCK))
+		-- base verte (couleur choisie sans tirage : la forme des montagnes ne change pas)
+		pyramid(m, "Slope" .. i, pf, pw * SLOPE_WIDE, pd * SLOPE_WIDE, ph * SLOPE_HIGH, -2, SLOPE[((mountainIndex + i) % #SLOPE) + 1])
 		-- neige : meme pente, legerement au-dessus de la roche (pas de z-fighting)
 		if ph > 400 then
 			local f = 0.32

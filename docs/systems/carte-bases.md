@@ -182,7 +182,7 @@ Du centre vers le fond :
 | Alentours (on y marche) | entre l'ancien coeur (x +-384, z +-214) et les murs | Foret (un arbre possible par case de 30 studs, bosquets et clairieres par bruit, arbres plus gros et plus serres pres des murs), collines a grimper (gradins de 5 studs au plus), rochers, buissons, fleurs, 4 mares | `03-decor` |
 | Crete | 0 a 190 studs derriere les murs | Talus en gradins a studs (10 a 55 de haut), falaises grises, grands arbres dessus et derriere. Montre la limite (on est dans une vallee) et cache l'horizon plat | `09-mountains` |
 | Cascade | nord, x 100 | Rocher gris a chapeaux d'herbe (84 de haut), 2 chutes, bassin a cheval sur le mur (rive de sable solide, liquide sans collision), ecume | `09-mountains` |
-| Montagnes | anneaux a 1500 et 2150 studs | Pics a facettes (4 CornerWedgeParts par pyramide), neige, pied vert, 480 a 1100 de haut | `09-mountains` |
+| Montagnes | anneaux a 1500 et 2150 studs | Pics a facettes (4 CornerWedgeParts par pyramide), 480 a 1100 de haut. De bas en haut : **base verte** jusqu'a 36 % de la hauteur du pic, roche grise, neige sur les 32 % du haut ; pied vert large autour | `09-mountains` |
 | Volcan | nord-ouest (-900, 1700) | Tronc de pyramide, 660 de haut, coulees Neon sur la face cote carte, 1 emetteur de fumee | `09-mountains` |
 
 **Choix final (2026-11-27, apres l'echantillon du cote nord montre en 2 versions) : "garde le volcan
@@ -197,6 +197,12 @@ depend est dans le modele `Backdrop.Details` :
 - Fruit geant = le fruit voxel du jeu (`ReplicatedStorage.FruitAssets.<Id>`, une `UnionOperation`)
   clone et agrandi : **1 seule piece par fruit**. Si `FruitAssets` manque, le script le dit et saute.
 - Orange en Neon : la couleur doit etre foncee (255, 116, 10), sinon elle vire au jaune.
+- Base verte des pics (2026-11-27, "rends les montagnes un peu plus vertes, en base verte et
+  grise") : autour de chaque pic, une pyramide verte plus large (x 1.28) et plus basse (x 0.72).
+  La roche ne depasse qu'au-dessus de la ligne ou les deux pentes se croisent :
+  hauteur = HIGH x (WIDE - 1) / (WIDE - HIGH) = 36 %. Pour plus ou moins de vert : `SLOPE_WIDE` /
+  `SLOPE_HIGH` en tete de la partie Montagnes. Couleur choisie sans tirage : la forme des
+  montagnes ne change pas. Roche passee du gris-bleu a un gris plus neutre. Le volcan reste sombre.
 - Poids : tout est ancre, sans ombre, sans CanTouch. Derriere les murs : aucune collision, modeles
   `Persistent` (StreamingEnabled, rayon 1024 : sinon le fond disparaitrait). Dans la zone : les arbres
   sont dans `Decor.Trees.Outskirts` (caches en Low Quality avec `Decor.Trees`, vus par CameraFade),
@@ -212,8 +218,9 @@ depend est dans le modele `Backdrop.Details` :
 - `SAMPLE_NORTH = true` (dans les deux scripts) ne pose que le cote nord, avec le meme tirage que
   la carte complete : a utiliser pour montrer un echantillon avant un gros changement.
 - **Etat dans la place (2026-11-27) : tout le tour est pose.** Mesures : alentours 2 595 pieces
-  (615 modeles d'arbres / buissons / fleurs, 74 collines / rochers / mares), fond 1 447 pieces en
-  29 modeles (4 cretes, 23 montagnes, volcan, Details), carte entiere 5 103 pieces (avant : ~1 190).
+  (615 modeles d'arbres / buissons / fleurs, 74 collines / rochers / mares), fond 1 723 pieces en
+  29 modeles (4 cretes, 23 montagnes dont 276 pieces de base verte, volcan, Details), carte entiere
+  5 379 pieces (avant : ~1 190).
   Captures : `docs/references/fond-de-carte/`.
 - Pour changer un reglage : modifier la valeur en tete de `09-mountains`, relancer le script, puis
   `check-zfighting` (ligne `Map` a 0). Pour lancer un script de carte : voir "Reconstruire la carte".
@@ -328,10 +335,16 @@ Positions des machines, pads et panneaux : dans `02e` et `02g`.
 
 ## Problemes connus / a faire
 
+- **Dossier temporaire `src/shared/_BuildMap/` et Rojo (2026-11-27)** : apres la suppression du
+  dossier sur le disque, le plugin Rojo de Studio n'a pas retire le dossier et a arrete de
+  synchroniser, 2 fois sur 3 (sa fenetre affiche une page avec un bouton "Okay" ; cause pas
+  trouvee). Il faut alors retirer `Shared._BuildMap` dans Studio et refaire Connect (port 34850).
+  Piste pour ne plus avoir le probleme : ranger les scripts de carte dans
+  `ServerScriptService.DevTools` par `default.project.json`, comme `PreviewFactory`.
 - Le detecteur `check-zfighting` ne voit ni les montagnes (Wedge / CornerWedge) ni les fruits geants
   (Union) : regardes a l'oeil sur les captures seulement.
 - Fond de carte pas vu sur telephone ni dans l'appli Roblox (brume, fumee du volcan, poids :
-  1 447 pieces toujours chargees + ~2 600 dans la zone). Si un telephone rame : Low Quality cache deja
+  1 723 pieces toujours chargees + ~2 600 dans la zone). Si un telephone rame : Low Quality cache deja
   les arbres ; sinon baisser la densite (`CELL` dans `03-decor`).
 - `check-zfighting` du 2026-11-27 : `FloorTemplate` a 5 lignes (pas liees a la carte, pas regardees).
 - Taille du serveur (6) : reglage de l'experience a faire par l'utilisateur.
