@@ -1,6 +1,6 @@
 # Systeme : Vol de boissons (pass Thief)
 
-**Statut :** en cours (vol a l'unite code le 2026-11-27 : 1er gratuit puis 19 R$ ; produit cree ; PAS teste en Play)
+**Statut :** en cours (vol a l'unite code le 2026-11-27 : 1er gratuit puis 19 R$ ; produit cree ; teste en solo, pas a 2 joueurs)
 **Derniere mise a jour :** 2026-11-27
 
 ## Role
@@ -101,8 +101,9 @@ pass. Vol gratuit, credits, photo et delais : en memoire du serveur.
 ## Problemes connus / a faire
 
 - Produit Steal cree le 2026-11-27 : id 3736758899, 19 R$, en vente, icone `thief.png` (verifie par `GetProductInfo`).
-- **Pas teste en Play** (place partagee pas branchee sur Rojo). A tester avec Rojo : 1er E gratuit,
-  2e E = fenetre 19 R$, `Debug.Call:Invoke("Thief", "GrantSteal", nom)` = credit puis E gratuit.
+- **Teste en Play solo le 2026-11-27 (Rojo connecte) :** recu simule (`Thief GrantSteal`) -> `true`,
+  vol paye garde en credit + message `StealCredit` ; pass Thief absent de la boutique. **Pas teste
+  (il faut 2 joueurs : Test > Clients and Servers) :** 1er E gratuit, 2e E fenetre 19 R$, vrai achat.
 - Credit d'un vol paye (mains pleines au recu) garde en memoire du serveur seulement : perdu si le
   joueur change de serveur avant de l'utiliser (cas rare ; le PurchaseId, lui, est sauvegarde).
 - Avocat du diable : 19 R$ par vol peut rapporter moins que l'ancien pass a 149 R$ (il faut 8 vols
