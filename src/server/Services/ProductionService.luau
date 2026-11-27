@@ -1196,6 +1196,17 @@ function ProductionService.PeekJuices(floor: Model, max: number): ({ string }, {
 	return ids, from, models
 end
 
+-- Nombre de jus poses sur la table a jus de l'etage (0 si l'etage ne tourne pas). Pass Thief.
+function ProductionService.GetJuiceCount(floor: Model): number
+	local state = floorStates[floor]
+	return if state then #state.juices else 0
+end
+
+-- Nombre de jus que le joueur peut porter en tout (mains vides). Pass Thief : taille de la "photo".
+function ProductionService.GetHandCapacity(player: Player): number
+	return math.max(0, PlayerUpgradeService.GetValue(player, "JuiceCarry"))
+end
+
 -- Place libre dans les mains du joueur (jus).
 function ProductionService.GetHandRoom(player: Player): number
 	local inventory = inventories[player]

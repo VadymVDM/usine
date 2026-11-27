@@ -24,6 +24,10 @@ local Gameplay = {
 		Hire = "Hire",
 		BlenderObject = "Blender",
 		BlenderAction = "Blend",
+		-- Pass Thief (2026-11-27) : prompt E sur les jus d'une AUTRE base ({name} = proprietaire)
+		StealAction = "Steal",
+		StealTableObject = "{name}'s Juice Table",
+		StealCounterObject = "{name}'s Counter",
 	}),
 	Messages = table.freeze({
 		InventoryFull = "Your inventory is full!",
@@ -40,14 +44,17 @@ local Gameplay = {
 		StealVictim = "{name} stole {n} juices from you! Your insurance refunded everything.",
 		StealWait = "You can rob {name} again in {seconds}s!",
 		StealNothing = "No juice to steal here!",
-		StealAtTable = "Steal juices from the juice table!",
 	}),
 
-	-- Pass Thief (ThiefService, 2026-11-20) : marcher sur les pads a jus d'une AUTRE base
-	-- (Production.TakeJuicePad, Counter.JuiceDropPad) ouvre la fenetre d'achat Roblox du pass.
-	ThiefPromptCooldown = 8, -- secondes minimum entre deux fenetres d'achat pour un meme joueur
-	-- Avec le pass : se tenir sur la table a jus d'un autre = prendre ses mains pleines de jus. La
-	-- victime ne perd rien (seul le voleur voit les gobelets disparaitre). Une fois par victime par :
+	-- Pass Thief (ThiefService, refait le 2026-11-27) : touche E "Steal" sur les jus de la table a
+	-- jus ou du comptoir d'une AUTRE base. Sans le pass : fenetre d'achat Roblox, et les jus vises
+	-- sont "photographies" a l'appui sur E (donnes apres l'achat, meme si la table a change).
+	ThiefPromptCooldown = 2, -- secondes minimum entre deux fenetres d'achat pour un meme joueur
+	StealPromptDistance = 14, -- portee du prompt Steal (studs ; le comptoir est long)
+	StealPendingSeconds = 180, -- la "photo" reste valable ce temps apres l'appui sur E (achat lent)
+	StealRefreshSeconds = 0.5, -- frequence de mise a jour des prompts Steal (jus presents ou non)
+	-- Avec le pass : E = prendre ses mains pleines de jus. La victime ne perd rien (seul le voleur
+	-- voit les gobelets disparaitre). Une fois par victime par :
 	StealCooldown = 60, -- secondes
 	StealHideSeconds = 60, -- duree pendant laquelle les gobelets voles restent caches chez le voleur
 

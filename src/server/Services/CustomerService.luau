@@ -958,6 +958,38 @@ function CustomerService.AddToCounter(floor: Model, ids: { string }, from: { Vec
 	return addToCounter(state, ids, from)
 end
 
+-- Nombre de jus poses sur le comptoir de l'etage (0 si pas pret). Pass Thief (ThiefService).
+function CustomerService.GetCounterCount(floor: Model): number
+	local state = states[floor]
+	return if state then #state.cups else 0
+end
+
+-- Pass Thief (ThiefService, 2026-11-27) : les `max` gobelets du haut du comptoir, SANS les retirer
+-- (la victime ne perd rien). Renvoie ids, positions (effet de vol) et modeles (caches chez le voleur).
+function CustomerService.PeekCounter(floor: Model, max: number): ({ string }, { Vector3 }, { Model })
+	local state = states[floor]
+	local ids: { string } = {}
+	local from: { Vector3 } = {}
+	local models: { Model } = {}
+	if state == nil or max <= 0 then
+		return ids, from, models
+	end
+	local last = #state.cups
+	for index = last, math.max(1, last - max + 1), -1 do
+		table.insert(ids, state.cups[index])
+		local model = state.cupModels[index]
+		if model and model.Parent then
+			table.insert(from, model:GetPivot().Position)
+			table.insert(models, model)
+		else
+			local cf = cupCFrame(state, index)
+			local area = state.topArea
+			table.insert(from, if cf then cf.Position elseif area then area.Position else Vector3.zero)
+		end
+	end
+	return ids, from, models
+end
+
 -- Argent par seconde VRAIMENT gagne ces dernieres minutes (somme des panneaux MONEY / HOUR de ses
 -- etages : ventes des IncomeWindowSeconds dernieres secondes). Packs d'argent Robux (RobuxShopService).
 function CustomerService.GetRecentIncomePerSecond(player: Player): number

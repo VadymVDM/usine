@@ -244,3 +244,11 @@ Regle : une seule apparence. Toute interface nouvelle prend police, couleurs et 
 - Bouton X des en-tetes (`MenuController.styleExitButton`) : le fond rouge fonce du pack, visible
   en bande sous l'image (effet "un truc derriere"), est retire ; une seule plaque en degrade
   `PackStyle.RED`, contour noir, croix en police du jeu.
+
+## Touche E (prompts des bases)
+
+- `Util/Prompt` cree tous les ProximityPrompt du jeu (E, X a la manette, appui sur mobile). Le serveur
+  ne touche jamais `Enabled` : il pose l'attribut `Active` ; `PromptController` (client) decide.
+- Regle : un prompt de base se montre seulement dans SA base et quand `Active ~= false`.
+- Exception (2026-11-27) : attribut `ForOthers = true` (prompts "Steal" du pass Thief, `vol.md`) :
+  montre seulement dans la base d'un AUTRE joueur (base avec proprietaire, pas la sienne).

@@ -1,70 +1,90 @@
 # Systeme : Vol de boissons (pass Thief)
 
-**Statut :** en cours (vol code le 2026-11-23 ; pas teste a 2 joueurs)
-**Derniere mise a jour :** 2026-11-23
+**Statut :** en cours (touche E refaite le 2026-11-27 ; prompt teste a 1 joueur dans Studio ; vol pas teste a 2 joueurs)
+**Derniere mise a jour :** 2026-11-27
 
 ## Role
 
-Pass Robux "Thief" (149 R$, `Shop.Passes`, aussi dans la boutique). Quand un joueur marche sur les
-boissons d'une autre base, la fenetre d'achat Roblox du pass s'ouvre directement (pas de menu du jeu).
+Pass Robux "Thief" (149 R$, `Shop.Passes`, aussi dans la boutique). Dans la base d'un autre joueur,
+en regardant les boissons de sa **table a jus** ou de son **comptoir**, le joueur voit un prompt
+**E "Steal"**. Avec le pass : il vole tout de suite. Sans le pass : la fenetre d'achat Roblox s'ouvre,
+et les boissons visees sont gardees de cote ("photo") pendant qu'il paie.
 
 ## Fichiers
 
 | Fichier | Cote | Role |
 |---|---|---|
-| `src/server/Services/ThiefService.luau` | serveur | Detecte le joueur sur un pad a jus d'une autre base, ouvre la fenetre d'achat, pose l'attribut `Thief` |
+| `src/server/Services/ThiefService.luau` | serveur | Cree les prompts Steal, verifie chaque appui sur E, photo + fenetre d'achat, vol, attribut `Thief` |
+| `src/client/Controllers/PromptController.luau` | client | Montre les prompts `ForOthers` seulement dans les bases des AUTRES joueurs |
 | `src/shared/Config/Shop.luau` | partage | Pass `Thief` : prix, `passId` 2097082802 (cree sur Roblox) |
-| `src/shared/Config/Gameplay.luau` | partage | `ThiefPromptCooldown`, `StealCooldown`, `StealHideSeconds`, messages `Steal*` |
-| `src/server/Services/ProductionService.luau` | serveur | `PeekJuices` (gobelets du haut sans les retirer), `GetHandRoom`, `GiveJuices` |
+| `src/shared/Config/Gameplay.luau` | partage | Delais, portee, textes du prompt (`PromptTexts.Steal*`), messages `Steal*` |
+| `src/server/Services/ProductionService.luau` | serveur | `PeekJuices` (gobelets du haut de la table, sans les retirer), `GetJuiceCount`, `GetHandRoom`, `GetHandCapacity`, `GiveJuices` |
+| `src/server/Services/CustomerService.luau` | serveur | `PeekCounter` (gobelets du haut du comptoir, sans les retirer), `GetCounterCount` |
 | `src/client/Controllers/HandStackController.luau` | client | Cache chez le voleur les gobelets voles (Feedback `StolenCups`) |
 
 ## Fonctionnement
 
-- Pads surveilles sur chaque etage qui tourne (proprietaire charge) ET vivant (son proprietaire y est) :
-  `Production.TakeJuicePad` (table a jus) et `Counter.JuiceDropPad` (comptoir).
-- Le serveur teste la position des personnages 10 fois / s (`PlayerCheck.IsOver`). Seulement a
-  l'ARRIVEE sur un pad d'une autre base, et au plus une fois toutes les `ThiefPromptCooldown` s :
-  - pas le pass et `passId > 0` : `MarketplaceService:PromptGamePassPurchase` (fenetre Roblox) ;
-  - `passId = 0` : message "Robux purchases: coming soon!" (aucune fenetre possible) ;
-  - deja le pass : message `ThiefOwned`.
-- Achat fini (`PromptGamePassPurchaseFinished`) ou pass deja possede a l'arrivee
-  (`UserOwnsGamePassAsync`) : attribut joueur `Thief = true` (pose par le serveur seulement).
-- Ses propres pads ne declenchent rien.
-- **Vol (2026-11-23, regles de l'utilisateur)**, avec le pass, sur la **table a jus** d'un autre :
-  - le voleur prend **ses mains pleines** (place libre = `JuiceCarry` - jus deja portes), parmi les
-    gobelets du haut de la table ; une fois par victime toutes les `StealCooldown` s (60 s) ;
-  - **la victime ne perd rien** (son "assurance" rembourse) : sur le serveur, sa table ne change
-    pas ; elle recoit le message `StealVictim` ("X stole N juices from you! Your insurance refunded
-    everything.") ;
-  - **seul le voleur** voit les gobelets disparaitre : Feedback `StolenCups` (modeles) ->
-    `HandStackController` les rend transparents chez lui pendant `StealHideSeconds` (60 s) ; il voit
-    aussi les gobelets sauter dans ses mains (Feedback `TakeJuice`) ;
-  - il va les vendre a son propre comptoir (prix normal du jus = valeur du fruit).
-  - Sur le comptoir d'un autre avec le pass : message `StealAtTable`. Mains pleines / table vide /
-    trop tot : message rouge.
-- Achat du pass : `GamePass.OnPurchased` (possession reverifiee aupres de Roblox, voir
-  `achats-robux.md`).
+- **Prompts** : sur chaque etage qui tourne, 2 prompts E "Steal" sur de petites pieces invisibles
+  dans `Dynamic` de l'etage (`StealTableAnchor` au centre de `Production.JuicePile`,
+  `StealCounterAnchor` au centre de `Counter.CounterTopArea`). Texte : "Adam's Juice Table" /
+  "Adam's Counter". Portee `StealPromptDistance` (14 studs).
+  - Attribut `ForOthers = true` : `PromptController` les montre seulement dans une base qui a un
+    proprietaire et qui n'est PAS la sienne (les autres prompts restent visibles seulement chez soi).
+  - Attribut `Active` (serveur, toutes les `StealRefreshSeconds` = 0.5 s) : vrai seulement si l'etage
+    est vivant (son proprietaire y est) ET qu'il y a des jus sur cette table / ce comptoir.
+  - Roblox montre le prompt le plus proche de la direction de la camera : on "regarde" la table ou
+    le comptoir pour choisir.
+- **Appui sur E** (`Triggered`, verifie par le serveur) : pas sa propre base, victime presente, etage
+  vivant, joueur a portee (`PlayerCheck.CanReach`), 0.4 s minimum entre deux appuis.
+  - **Avec le pass** : ses mains pleines (place libre = `JuiceCarry` - jus deja portes), parmi les
+    gobelets du haut de la table ou du comptoir ; une fois par victime toutes les `StealCooldown` s
+    (60 s). Mains pleines / rien a voler / trop tot : message rouge.
+  - **Sans le pass** (au plus une fenetre toutes les `ThiefPromptCooldown` = 2 s) :
+    1. **photo** des jus vises A L'APPUI SUR E : les gobelets du haut, autant que le joueur peut en
+       porter mains vides (`GetHandCapacity`) ; ids, positions et modeles gardes sur le serveur ;
+    2. fenetre d'achat Roblox du pass (`Lib/PurchasePrompt`) ;
+    3. achat confirme (`GamePass.OnPurchased`, possession reverifiee aupres de Roblox) dans les
+       `StealPendingSeconds` (180 s) : attribut `Thief` + le voleur recoit **les jus de la photo**,
+       meme si la table a ete videe ou vendue pendant qu'il payait (place libre des mains au moment
+       de l'achat). Un nouvel appui sur E remplace la photo. Fenetre fermee sans acheter : la photo
+       expire toute seule.
+  - `passId = 0` : message "Robux purchases: coming soon!".
+- **La victime ne perd rien** (son "assurance" rembourse) : sur le serveur, sa table et son comptoir
+  ne changent pas ; elle recoit `StealVictim` ("X stole N juices from you! Your insurance refunded
+  everything.") si elle est encore la.
+- **Seul le voleur** voit les gobelets disparaitre : Feedback `StolenCups` (modeles) ->
+  `HandStackController` les rend transparents chez lui pendant `StealHideSeconds` (60 s) ; il voit
+  aussi les gobelets sauter dans ses mains (Feedback `TakeJuice`). Il va les vendre a son comptoir.
+- Possession : attribut joueur `Thief = true`, pose par le serveur seulement (arrivee si deja achete,
+  achat, cadeau `GamePass.OnGranted`, panneau admin).
+- Avant le 2026-11-27 : le vol / la fenetre se declenchaient en MARCHANT sur les pads a jus d'une
+  autre base (table seulement). Remplace par la touche E.
 
 ## Remotes
 
-Aucun : le serveur lit la position du personnage.
+Aucun remote a nous : `ProximityPrompt.Triggered` (verifie comme un remote).
 
 ## Donnees sauvegardees
 
-Aucune : Roblox garde le pass.
+Aucune : Roblox garde le pass. La photo et les delais sont en memoire (oublies au depart du joueur).
 
 ## Configuration
 
-- `Gameplay.ThiefPromptCooldown` (8 s), `StealCooldown` (60 s), `StealHideSeconds` (60 s),
-  messages `StealDone`, `StealVictim`, `StealWait`, `StealNothing`, `StealAtTable`.
+- `Gameplay.ThiefPromptCooldown` (2 s), `StealPromptDistance` (14), `StealPendingSeconds` (180),
+  `StealRefreshSeconds` (0.5), `StealCooldown` (60 s), `StealHideSeconds` (60 s).
+- Textes : `PromptTexts.StealAction` ("Steal"), `StealTableObject`, `StealCounterObject` ;
+  messages `StealDone`, `StealVictim`, `StealWait`, `StealNothing`.
 - `Shop.Passes` cle `Thief` : `passId` 2097082802 (verifie le 2026-11-23 : "Thief", 149 R$, en vente).
 
 ## Problemes connus / a faire
 
+- **Pas teste a 2 joueurs** (Test > Clients and Servers, 2 joueurs) : appui sur E chez l'autre, vol
+  avec le pass, fenetre d'achat + photo. Teste le 2026-11-27 a 1 joueur seulement : prompts crees,
+  `Active` suit les jus du comptoir, prompt cache dans sa base et visible en simulant une autre base.
+- Le createur n'a jamais le pass (Lib/GamePass) : il voit toujours la fenetre d'achat, et l'achat
+  n'est jamais confirme pour lui (la photo n'est donc pas testable avec son compte). Pour tester le
+  vol avec le pass : activer Thief dans le panneau admin, ou un autre compte.
 - Le vol cree des jus (la victime ne perd rien) : argent en plus pour le voleur, limite par ses
   mains et 60 s par victime. A surveiller dans l'economie.
-- Vol pas teste en jeu (code + build + Selene seulement). Le createur n'a jamais le pass : pour
-  tester, activer le pass Thief dans le panneau admin, ou utiliser un autre compte.
-- Pas teste a 2 joueurs dans Studio (seul cas qui ouvre la fenetre : il faut la base vivante d'un
-  autre joueur ; test MCP a 1 joueur impossible). A faire : Test > Clients and Servers, 2 joueurs.
-- Le createur n'a jamais le pass (Lib/GamePass) : il voit donc toujours la fenetre d'achat.
+- Les gobelets caches chez le voleur sont les MODELES photographies : si la victime vend / bouge ses
+  gobelets pendant les 60 s, d'autres gobelets peuvent rester visibles ou cachés (effet visuel seul).
