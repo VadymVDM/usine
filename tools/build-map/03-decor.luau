@@ -17,13 +17,15 @@
 -- Tout est sans ombre et sans CanTouch (comme apres 05-shadows et 06-no-touch).
 -- Ce qui est derriere les murs (crete, montagnes, volcan) : 09-mountains.luau.
 --
--- SAMPLE_NORTH = true : echantillon. Ne reconstruit PAS le coeur ; retire la rangee nord de
--- l'ancien anneau et ne pose que les alentours du nord (z >= 200). Meme tirage que la carte
--- complete : le nord de l'echantillon = le nord de la version finale.
--- SAMPLE_NORTH = false : detruit et recree tout Workspace.Map.Decor.
+-- REBUILD_CORE = false (par defaut) : garde le coeur deja dans la place (et les retouches faites a
+-- la main dedans). Retire seulement l'ancien anneau de collines et refait les alentours.
+-- REBUILD_CORE = true : detruit et recree tout Workspace.Map.Decor (place neuve).
+-- SAMPLE_NORTH = true : echantillon, ne pose que les alentours du nord (z >= 200) et ne retire que
+-- la rangee nord de l'anneau. Meme tirage que la carte complete.
 -- Doc : docs/systems/carte-bases.md
 
-local SAMPLE_NORTH = true
+local REBUILD_CORE = false
+local SAMPLE_NORTH = false
 
 local ZONE_HX, ZONE_HZ = 690, 530 -- murs invisibles (01-ground-road : GROUND_SIZE / 2)
 local CORE_HX, CORE_HZ = 384, 214 -- ancien coeur de carte (decor d'origine)
@@ -163,10 +165,11 @@ local decor: Instance
 local trees: Instance
 local hills: Instance
 
-if SAMPLE_NORTH then
-	-- Echantillon : on garde le coeur tel quel, on ouvre seulement le nord
+if not REBUILD_CORE then
+	-- On garde le coeur tel quel : on retire l'ancien anneau de collines (seulement la rangee
+	-- nord pour l'echantillon) et les anciens alentours
 	local existing = map:FindFirstChild("Decor")
-	assert(existing, "Echantillon : Map.Decor doit deja exister (sinon SAMPLE_NORTH = false)")
+	assert(existing, "Map.Decor doit deja exister (sinon REBUILD_CORE = true)")
 	decor = existing
 	trees = decor:FindFirstChild("Trees") :: Instance
 	hills = decor:FindFirstChild("Hills") :: Instance
@@ -178,7 +181,7 @@ if SAMPLE_NORTH then
 		end
 	end
 	for _, h in hills:GetChildren() do
-		if h:IsA("Model") and h.Name == "Hill" and h:GetPivot().Position.Z > SAMPLE_Z then
+		if h:IsA("Model") and h.Name == "Hill" and (not SAMPLE_NORTH or h:GetPivot().Position.Z > SAMPLE_Z) then
 			h:Destroy()
 		end
 	end

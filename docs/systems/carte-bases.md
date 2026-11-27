@@ -1,7 +1,7 @@
 # Systeme : Carte, bases et attribution
 
 **Statut :** fonctionne (playtest Studio a 1 joueur ; 2 joueurs et telephone a tester)
-**Derniere mise a jour :** 2026-11-27 (murs recules de 300 studs, alentours et fond de carte : echantillon du cote nord en 2 variantes, le reste attend le choix de l'utilisateur)
+**Derniere mise a jour :** 2026-11-27 (murs recules de 300 studs ; alentours et fond de carte poses sur tout le tour : foret, crete, montagnes, volcan de jus)
 
 > **2026-11-20 : la base est maintenant une tour d'etages** (`tour-etages.md`). Les scripts
 > construisent DEUX modeles : `BaseTemplate` (terrain, cour, annexe ouest, entree) et `FloorTemplate`
@@ -38,8 +38,8 @@ propre et se promene ; il recoit la premiere base qui se libere.
 | `tools/build-map/preview-tower.luau` | Studio | Apercu temporaire de la tour (`Workspace._PreviewBase`, a retirer) |
 | `tools/build-map/preview-factory.luau` | Studio | Apercu de toute l'usine "tout achete" en mode Edit (`Workspace._Preview`, non archivable : jamais sauvegarde ni copie dans le Play). Voir `apercu-edit.md` |
 | `tools/build-map/02g-base-boards.luau` | Studio | Panneaux d'ameliorations (tuiles colorees) : Conveyor (mur du fond), Juice Table (mur de droite), Customers (facade), un panneau suspendu au-dessus de chaque mixeur |
-| `tools/build-map/03-decor.luau` | Studio | `Map.Decor` : le coeur (arbres des couloirs, foret derriere les bases, spawn) + **les alentours** (2026-11-27 : foret, collines a grimper, rochers, mares dans la bande entre l'ancien coeur et les murs). `SAMPLE_NORTH` : voir "Alentours et fond de carte" |
-| `tools/build-map/09-mountains.luau` | Studio | **v3 (2026-11-27)** : `Map.Backdrop`, tout ce qui est derriere les murs : crete en gradins + grands arbres, rocher de la cascade, montagnes a facettes, volcan, et les 2 variantes `Classic` / `Fruity` (l'autre en reserve dans `ServerStorage.MapVariants`). `SAMPLE_NORTH`, `ACTIVE` : voir "Alentours et fond de carte" |
+| `tools/build-map/03-decor.luau` | Studio | `Map.Decor` : le coeur (arbres des couloirs, foret derriere les bases, spawn) + **les alentours** (2026-11-27 : foret, collines a grimper, rochers, mares dans la bande entre l'ancien coeur et les murs). `REBUILD_CORE` (faux par defaut : garde le coeur de la place), `SAMPLE_NORTH` : voir "Alentours et fond de carte" |
+| `tools/build-map/09-mountains.luau` | Studio | **v3 (2026-11-27)** : `Map.Backdrop`, tout ce qui est derriere les murs : crete en gradins + grands arbres, rocher de la cascade, montagnes a facettes, volcan. Reglages `FRUITY_VOLCANO` (vrai), `FRUITY_REST` (faux), `SAMPLE_NORTH` : voir "Alentours et fond de carte" |
 | `tools/build-map/04-lighting.luau` | Studio | Eclairage |
 | `tools/build-map/05-shadows.luau` | Studio | Coupe les ombres inutiles (decor, petites pieces...), a lancer en dernier |
 | `src/client/Controllers/ShadowController.luau` | client | Seul l'etage du joueur projette des ombres (evite les ombres des etages du dessus) |
@@ -185,36 +185,38 @@ Du centre vers le fond :
 | Montagnes | anneaux a 1500 et 2150 studs | Pics a facettes (4 CornerWedgeParts par pyramide), neige, pied vert, 480 a 1100 de haut | `09-mountains` |
 | Volcan | nord-ouest (-900, 1700) | Tronc de pyramide, 660 de haut, coulees Neon sur la face cote carte, 1 emetteur de fumee | `09-mountains` |
 
-Les deux variantes (memes emplacements, modeles `Classic` et `Fruity`) :
+**Choix final (2026-11-27, apres l'echantillon du cote nord montre en 2 versions) : "garde le volcan
+fruits et pour le reste garde le naturel".** Deux reglages en tete de `09-mountains` ; tout ce qui en
+depend est dans le modele `Backdrop.Details` :
 
-| | Classic | Fruity |
-|---|---|---|
-| Volcan | lave orange, fumee grise | jus : 5 coulees (orange, fraise, raisin, citron vert, citron), brume orangee, 5 fruits geants craches en eventail au-dessus du cratere |
-| Cascade | eau bleue | jus orange (Neon), paille geante rose et 2 glacons dans le bassin |
-| Reperes | 2 tas de gros rochers dans la foret | fruits du jeu en geant : 11 sur la crete, 4 au pied des montagnes, 2 dans la foret (solides) |
+| Reglage | Valeur dans la place | Vrai | Faux |
+|---|---|---|---|
+| `FRUITY_VOLCANO` | **vrai** | volcan de jus : 5 coulees (orange, fraise, raisin, citron vert, citron), brume orangee, 5 fruits geants craches en eventail au-dessus du cratere | lave orange, fumee grise |
+| `FRUITY_REST` | **faux** | cascade de jus (Neon) + paille geante + glacons ; fruits geants : 11 sur la crete, 4 au pied des montagnes, 2 dans la foret (solides) | cascade d'eau bleue ; 2 tas de gros rochers comme reperes dans la foret (x -520, z 380 et x 520, z -380) |
 
 - Fruit geant = le fruit voxel du jeu (`ReplicatedStorage.FruitAssets.<Id>`, une `UnionOperation`)
   clone et agrandi : **1 seule piece par fruit**. Si `FruitAssets` manque, le script le dit et saute.
-- La variante choisie (`ACTIVE` en tete de `09-mountains`) est dans `Workspace.Map.Backdrop` ; l'autre
-  attend dans `ServerStorage.MapVariants` (jamais envoyee aux joueurs). Pour changer : `ACTIVE` puis
-  relancer le script, ou echanger les deux modeles a la main.
+- Orange en Neon : la couleur doit etre foncee (255, 116, 10), sinon elle vire au jaune.
 - Poids : tout est ancre, sans ombre, sans CanTouch. Derriere les murs : aucune collision, modeles
   `Persistent` (StreamingEnabled, rayon 1024 : sinon le fond disparaitrait). Dans la zone : les arbres
   sont dans `Decor.Trees.Outskirts` (caches en Low Quality avec `Decor.Trees`, vus par CameraFade),
   collines / rochers / mares dans `Decor.Hills.Outskirts` (toujours visibles). Fumee et ecume sont
-  des particules : Low Quality les eteint deja.
+  des particules : Low Quality les eteint.
 - L'ancien anneau de collines (z +-220, x +-396) est retire par `03-decor` : il aurait ferme l'acces
   a la nouvelle bande.
+- `03-decor` garde le coeur deja dans la place (`REBUILD_CORE = false` : les retouches a la main
+  dans le coeur ne sont pas perdues). `REBUILD_CORE = true` seulement pour une place neuve.
 - `03-decor` reserve 3 places sans arbre pour ce que `09-mountains` pose dans la zone (bassin de la
   cascade, 2 reperes) : garder les deux listes d'accord (`blocked` / `LANDMARKS`, `CASCADE_X`).
-- **Etat dans la place (2026-11-27) : echantillon du cote nord seulement** (`SAMPLE_NORTH = true`
-  dans les deux scripts : alentours z >= 200, crete nord, cascade, volcan, 9 montagnes ; meme tirage
-  que la version complete). Variante affichee : Fruity. Le sud, l'est et l'ouest ont encore l'ancien
-  anneau de collines et rien derriere. Captures : `docs/references/fond-de-carte/`.
-  Pour tout poser : `SAMPLE_NORTH = false` dans `03-decor` et `09-mountains`, les lancer, puis
-  `check-zfighting` (ligne `Map` a 0).
-- Mesures de l'echantillon : alentours 1 121 pieces (272 modeles d'arbres / buissons / fleurs,
-  28 collines / rochers / mares), fond 535 pieces, reserve 16.
+- Aux 4 coins, deux blocs fixes bouchent la fente entre la crete est / ouest et la crete nord / sud.
+- `SAMPLE_NORTH = true` (dans les deux scripts) ne pose que le cote nord, avec le meme tirage que
+  la carte complete : a utiliser pour montrer un echantillon avant un gros changement.
+- **Etat dans la place (2026-11-27) : tout le tour est pose.** Mesures : alentours 2 595 pieces
+  (615 modeles d'arbres / buissons / fleurs, 74 collines / rochers / mares), fond 1 447 pieces en
+  29 modeles (4 cretes, 23 montagnes, volcan, Details), carte entiere 5 103 pieces (avant : ~1 190).
+  Captures : `docs/references/fond-de-carte/`.
+- Pour changer un reglage : modifier la valeur en tete de `09-mountains`, relancer le script, puis
+  `check-zfighting` (ligne `Map` a 0). Pour lancer un script de carte : voir "Reconstruire la carte".
 
 ### Z-fighting (check-zfighting)
 
@@ -326,11 +328,11 @@ Positions des machines, pads et panneaux : dans `02e` et `02g`.
 
 ## Problemes connus / a faire
 
-- **Alentours et fond de carte : seul le nord est pose** (echantillon du 2026-11-27). A faire apres
-  le choix de l'utilisateur (Fruity ou Classic, retouches) : `SAMPLE_NORTH = false` et relancer.
 - Le detecteur `check-zfighting` ne voit ni les montagnes (Wedge / CornerWedge) ni les fruits geants
   (Union) : regardes a l'oeil sur les captures seulement.
-- Fond de carte pas vu sur telephone ni dans l'appli Roblox (brume, fumee du volcan, poids).
+- Fond de carte pas vu sur telephone ni dans l'appli Roblox (brume, fumee du volcan, poids :
+  1 447 pieces toujours chargees + ~2 600 dans la zone). Si un telephone rame : Low Quality cache deja
+  les arbres ; sinon baisser la densite (`CELL` dans `03-decor`).
 - `check-zfighting` du 2026-11-27 : `FloorTemplate` a 5 lignes (pas liees a la carte, pas regardees).
 - Taille du serveur (6) : reglage de l'experience a faire par l'utilisateur.
 - Non teste : 2 joueurs, telephone. Carte reconstruite le 2026-11-19 (version 52 de la place).

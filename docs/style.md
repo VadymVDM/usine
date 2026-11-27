@@ -28,8 +28,9 @@ lampes. Eclairage dans `tools/build-map/04-lighting.luau`.
   geants ont ete refuses ("moches"), et les studs font du moirage a cette distance. Tout ce qui
   est pres du joueur (foret, collines, crete derriere les murs, rocher de la cascade) reste en
   blocs a studs. Voir `systems/carte-bases.md`, section "Alentours et fond de carte".
-- Touche "notre jeu" dans le decor : les fruits du jeu en geant (fruits voxel agrandis) et du
-  jus a la place de la lave ou de l'eau (variante Fruity).
+- Touche "notre jeu" dans le decor : seulement le volcan (jus a la place de la lave, fruits du
+  jeu en geant craches au-dessus). Le reste du decor est naturel (choix de l'utilisateur,
+  2026-11-27 : pas de fruits geants ni de cascade de jus ailleurs).
 - Objets lisibles de loin : un objet = une forme simple + une couleur franche.
 
 ## Couleurs

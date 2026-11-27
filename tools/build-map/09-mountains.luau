@@ -1,11 +1,11 @@
 --!strict
 -- Fond de carte, derriere les murs invisibles (v3, 2026-11-27). Demande : "recule les Bounds et
 -- ajoute des montagnes, volcan, arbres... dans le theme de Roblox et de notre jeu", decor geant au
--- fond, en DEUX versions : une fruitee et une sans.
+-- fond.
 --
 -- Historique : v1 (blocs empiles a 600-1000 studs, 120-320 de haut) refusee : "moches, trop proches,
 -- pas assez grandes". v2 : pics a facettes geants, loin. v3 = v2 + ce qui manquait entre les murs et
--- les montagnes, + la couche fruitee.
+-- les montagnes, + la touche fruitee (au choix).
 --
 -- Trois plans, du plus pres au plus loin (zone jouable : 1380 x 1060, 01-ground-road) :
 --   1. Crete : talus en gradins a studs (meme style que les collines) juste derriere les murs,
@@ -15,13 +15,16 @@
 --   2. Montagnes : pics a facettes (4 CornerWedgeParts par pyramide), neige, pied vert, en deux
 --      anneaux (1500 et 2150 studs), 480 a 1100 de haut.
 --   3. Volcan au nord-ouest (tronc de pyramide), 660 de haut.
--- Deux variantes (modeles Classic et Fruity, memes emplacements) :
---   Classic : lave, fumee grise, cascade d'eau, rochers.
---   Fruity  : volcan de jus (coulees orange / fraise / raisin / citron vert / citron), brume
---             orangee, fruits du jeu en geant (ReplicatedStorage.FruitAssets agrandis : 1 piece
---             par fruit) sur la crete, dans la foret, autour du volcan ; cascade de jus + paille.
--- La variante ACTIVE est dans Workspace.Map.Backdrop ; l'autre attend dans
--- ServerStorage.MapVariants (jamais envoyee aux joueurs). Pour changer : ACTIVE puis relancer.
+-- Deux reglages (2026-11-27, choix de l'utilisateur apres l'echantillon : "garde le volcan fruits
+-- et pour le reste garde le naturel") :
+--   FRUITY_VOLCANO = true  : volcan de jus (coulees orange / fraise / raisin / citron vert /
+--                            citron, brume orangee) qui crache 5 fruits du jeu en geant
+--                            (ReplicatedStorage.FruitAssets agrandis : 1 piece par fruit).
+--                    false : lave et fumee grise.
+--   FRUITY_REST    = false : naturel. Cascade d'eau, gros rochers comme reperes dans la foret.
+--                    true  : cascade de jus + paille + glacons, fruits geants sur la crete, au pied
+--                            des montagnes et dans la foret.
+-- Tout ce qui depend de ces reglages est dans le modele Backdrop.Details.
 --
 -- Leger : tout est Anchored, sans collision / requete / toucher / ombre (sauf la rive du bassin et
 -- les 2 reperes de la foret, ou l'on marche). Modeles "Persistent" : toujours envoyes au client
@@ -29,10 +32,11 @@
 -- Low Quality (SettingsController) eteint deja les particules (fumee, ecume).
 -- Relancable : detruit et recree Workspace.Map.Backdrop (et l'ancien Map.Mountains).
 -- SAMPLE_NORTH = true : echantillon, seulement le cote nord (meme tirage que la version complete).
--- Doc : docs/systems/carte-bases.md (section Fond de carte)
+-- Doc : docs/systems/carte-bases.md (section Alentours et fond de carte)
 
-local SAMPLE_NORTH = true
-local ACTIVE = "Fruity" -- "Fruity" ou "Classic"
+local SAMPLE_NORTH = false
+local FRUITY_VOLCANO = true
+local FRUITY_REST = false
 
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -295,6 +299,15 @@ for _, side in SIDES do
 		cascadeRock(m)
 	end
 	farForest(m, side)
+	-- Coins : la crete est / ouest s'arrete a z +-530 et la crete nord / sud commence 5 a 15 studs
+	-- plus loin. Deux blocs fixes bouchent la fente (pas de tirage : le reste ne bouge pas).
+	if side.name == "East" or side.name == "West" then
+		for _, corner in { side.a0, side.a1 } do
+			local out = math.sign(corner)
+			slab(m, side, "Corner", corner - 4, corner + 4, 5, RIDGE_DEPTH, 13.2, RIDGE[2], false)
+			slab(m, side, "Corner", corner + out * 2, corner + out * 18, 5.5, RIDGE_DEPTH - 1, 12.6, RIDGE[3], false)
+		end
+	end
 	ridgeModels[side.name] = m
 	if SAMPLE_NORTH and side.name ~= "North" then
 		m:Destroy()
@@ -397,7 +410,7 @@ ring(1500, 1330, 14, 650, 900, 480, 720, 0)
 ring(2150, 1950, 12, 900, 1200, 800, 1100, 0.5)
 
 ---------------------------------------------------------------------------------------------
--- 3. Les deux variantes
+-- 3. Details selon les reglages (volcan, cascade, reperes)
 
 -- Lac du cratere, coulees et fumee. `flows` : une couleur par coulee (5).
 local function volcanoLiquids(m: Model, pool: Color3, flows: { Color3 }, smokeA: Color3, smokeB: Color3)
@@ -511,34 +524,14 @@ end
 -- Reperes dans la foret (places reservees dans 03-decor)
 local LANDMARKS = { Vector3.new(-520, 0, 380), Vector3.new(520, 0, -380) }
 
-local classic = newModel("Classic")
-do
-	if keep(VOLCANO_POS.Y) then
-		volcanoLiquids(classic, LAVA_HOT, { LAVA, LAVA, LAVA, LAVA, LAVA }, Color3.fromRGB(62, 58, 58), Color3.fromRGB(120, 118, 120))
-	end
-	cascadeLiquid(classic, WATER, Color3.fromRGB(240, 248, 255))
-	-- gros rochers a la place des fruits geants de la foret
-	for _, p in LANDMARKS do
-		if keep(p.Z) then
-			local b1 = box(classic, "Boulder", p.X - 9, p.X + 9, -1, 13, p.Z - 8, p.Z + 8, CLIFF[1], STUDS)
-			local b2 = box(classic, "Boulder", p.X - 3, p.X + 12, -1, 7.5, p.Z + 3, p.Z + 14, CLIFF[2], STUDS)
-			local b3 = box(classic, "Boulder", p.X - 6, p.X + 4, 13, 19, p.Z - 5, p.Z + 4, CLIFF[2], STUDS)
-			for _, b in { b1, b2, b3 } do
-				b.CanCollide = true
-			end
-		end
-	end
-end
+local details = newModel("Details")
 
-local fruity = newModel("Fruity")
-do
-	if keep(VOLCANO_POS.Y) then
-		volcanoLiquids(fruity, JUICE, JUICES, Color3.fromRGB(255, 190, 140), Color3.fromRGB(255, 236, 220))
-		-- le volcan crache des fruits
-		local function above(lx: number, ly: number, lz: number): Vector3
-			return (V_FRAME * CFrame.new(lx, V_TOP + ly, lz)).Position
-		end
-		-- en eventail au-dessus du cratere : { fruit, x local, hauteur au-dessus du cratere, z local, taille }
+-- Volcan
+if keep(VOLCANO_POS.Y) then
+	if FRUITY_VOLCANO then
+		volcanoLiquids(details, JUICE, JUICES, Color3.fromRGB(255, 190, 140), Color3.fromRGB(255, 236, 220))
+		-- le volcan crache des fruits, en eventail au-dessus du cratere :
+		-- { fruit, x local, hauteur au-dessus du cratere, z local, taille }
 		local erupted = {
 			{ "Orange", -330, 70, -150, 120 },
 			{ "Strawberry", -170, 250, -70, 105 },
@@ -547,23 +540,29 @@ do
 			{ "Apple", 350, 60, -160, 110 },
 		}
 		for i, f in erupted do
-			local p = above(f[2] :: number, f[3] :: number, f[4] :: number)
-			giantFruit(fruity, f[1] :: string, p.X, p.Y, p.Z, f[5] :: number, i * 50, CFrame.Angles(math.rad(-30 + i * 14), 0, math.rad(40 - i * 16)))
+			local p = (V_FRAME * CFrame.new(f[2] :: number, V_TOP + (f[3] :: number), f[4] :: number)).Position
+			giantFruit(details, f[1] :: string, p.X, p.Y, p.Z, f[5] :: number, i * 50, CFrame.Angles(math.rad(-30 + i * 14), 0, math.rad(40 - i * 16)))
 		end
+	else
+		volcanoLiquids(details, LAVA_HOT, { LAVA, LAVA, LAVA, LAVA, LAVA }, Color3.fromRGB(62, 58, 58), Color3.fromRGB(120, 118, 120))
 	end
-	cascadeLiquid(fruity, JUICE, Color3.fromRGB(255, 226, 180), Enum.Material.Neon)
+end
+
+-- Cascade, reperes de la foret, fruits geants
+if FRUITY_REST then
+	cascadeLiquid(details, JUICE, Color3.fromRGB(255, 226, 180), Enum.Material.Neon)
 	-- paille geante et glacons dans le bassin de jus
 	do
 		local z = ZONE_HZ
 		local straw = CFrame.new(CASCADE_X + 20, 14, z - 16) * CFrame.Angles(0, math.rad(25), math.rad(66))
-		local s = make("Part", fruity, "Straw", Vector3.new(40, 4.2, 4.2), straw, Color3.fromRGB(255, 104, 150)) :: Part
+		local s = make("Part", details, "Straw", Vector3.new(40, 4.2, 4.2), straw, Color3.fromRGB(255, 104, 150)) :: Part
 		s.Shape = Enum.PartType.Cylinder
 		for i = -1, 1 do
-			local band = make("Part", fruity, "StrawBand", Vector3.new(3, 4.5, 4.5), straw * CFrame.new(i * 11, 0, 0), Color3.fromRGB(250, 250, 250)) :: Part
+			local band = make("Part", details, "StrawBand", Vector3.new(3, 4.5, 4.5), straw * CFrame.new(i * 11, 0, 0), Color3.fromRGB(250, 250, 250)) :: Part
 			band.Shape = Enum.PartType.Cylinder
 		end
 		for _, c in { CFrame.new(CASCADE_X - 14, 1.4, z - 20) * CFrame.Angles(0.3, 0.6, 0.2), CFrame.new(CASCADE_X - 4, 1.1, z - 30) * CFrame.Angles(-0.2, 1.1, 0.35) } do
-			local ice = make("Part", fruity, "IceCube", Vector3.new(5.5, 5.5, 5.5), c, Color3.fromRGB(214, 240, 255))
+			local ice = make("Part", details, "IceCube", Vector3.new(5.5, 5.5, 5.5), c, Color3.fromRGB(214, 240, 255))
 			ice.Transparency = 0.25
 		end
 	end
@@ -585,7 +584,7 @@ do
 	for _, f in onRidge do
 		local id, x, z, height, rot = f[1] :: string, f[2] :: number, f[3] :: number, f[4] :: number, f[5] :: number
 		if keep(z) then
-			giantFruit(fruity, id, x, groundAt(x, z, height * 0.15), z, height, rot)
+			giantFruit(details, id, x, groundAt(x, z, height * 0.15), z, height, rot)
 		end
 	end
 	local atFeet = {
@@ -597,33 +596,36 @@ do
 	for _, f in atFeet do
 		local id, x, z, height, rot = f[1] :: string, f[2] :: number, f[3] :: number, f[4] :: number, f[5] :: number
 		if keep(z) then
-			giantFruit(fruity, id, x, 0, z, height, rot)
+			giantFruit(details, id, x, 0, z, height, rot)
 		end
 	end
 	if keep(LANDMARKS[1].Z) then
-		giantFruit(fruity, "Orange", LANDMARKS[1].X, 0, LANDMARKS[1].Z, 26, 30, nil, true)
+		giantFruit(details, "Orange", LANDMARKS[1].X, 0, LANDMARKS[1].Z, 26, 30, nil, true)
 	end
 	if keep(LANDMARKS[2].Z) then
-		giantFruit(fruity, "Pineapple", LANDMARKS[2].X, 0, LANDMARKS[2].Z, 34, -20, nil, true)
+		giantFruit(details, "Pineapple", LANDMARKS[2].X, 0, LANDMARKS[2].Z, 34, -20, nil, true)
+	end
+else
+	cascadeLiquid(details, WATER, Color3.fromRGB(240, 248, 255))
+	-- gros rochers comme reperes dans la foret (on peut monter dessus)
+	for _, p in LANDMARKS do
+		if keep(p.Z) then
+			local b1 = box(details, "Boulder", p.X - 9, p.X + 9, -1, 13, p.Z - 8, p.Z + 8, CLIFF[1], STUDS)
+			local b2 = box(details, "Boulder", p.X - 3, p.X + 12, -1, 7.5, p.Z + 3, p.Z + 14, CLIFF[2], STUDS)
+			local b3 = box(details, "Boulder", p.X - 6, p.X + 4, 13, 19, p.Z - 5, p.Z + 4, CLIFF[2], STUDS)
+			for _, b in { b1, b2, b3 } do
+				b.CanCollide = true
+			end
+		end
 	end
 end
+details.Parent = root
 
--- La variante active dans la carte, l'autre en reserve (ServerStorage : jamais envoyee aux joueurs)
+-- Reserve de l'echantillon (les deux variantes cote a cote) : plus utilisee
 local variants = ServerStorage:FindFirstChild("MapVariants")
-if not variants then
-	local created = Instance.new("Folder")
-	created.Name = "MapVariants"
-	created.Parent = ServerStorage
-	variants = created
+if variants then
+	variants:Destroy()
 end
-assert(variants)
-variants:ClearAllChildren()
-local active, spare = fruity, classic
-if ACTIVE == "Classic" then
-	active, spare = classic, fruity
-end
-active.Parent = root
-spare.Parent = variants
 
 local lines = {}
 local total = 0
@@ -636,7 +638,7 @@ for _, child in root:GetChildren() do
 	end
 	total += n
 end
-table.insert(lines, ("Backdrop%s : %d modeles, %d pieces, variante %s (reserve : %s)"):format(if SAMPLE_NORTH then " (echantillon nord)" else "", #root:GetChildren(), total, active.Name, spare.Name))
+table.insert(lines, ("Backdrop%s : %d modeles, %d pieces, volcan %s, reste %s"):format(if SAMPLE_NORTH then " (echantillon nord)" else "", #root:GetChildren(), total, if FRUITY_VOLCANO then "fruite" else "lave", if FRUITY_REST then "fruite" else "naturel"))
 if missingFruits > 0 then
 	table.insert(lines, missingFruits .. " fruit(s) geant(s) introuvable(s) dans ReplicatedStorage.FruitAssets")
 end
