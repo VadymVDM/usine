@@ -191,7 +191,7 @@ Shop.LimitedOffers = {
 -- Vol a l'unite (ThiefService, 2026-11-27, demande utilisateur) : 1er vol gratuit a chaque serveur,
 -- puis ce produit a chaque vol (E "Steal" chez un autre joueur). Le pass Thief n'est plus vendu en
 -- jeu ; ceux qui l'ont (achat ou cadeau) volent toujours gratuitement sans limite.
-Shop.Steal = table.freeze({ price = 19, productId = 0 })
+Shop.Steal = table.freeze({ price = 19, productId = 3736758899 }) -- cree le 2026-11-27 (Open Cloud)
 
 -- Effets des passes (RobuxShopService pose l'attribut joueur du meme nom ; Lib/Perks lit les effets).
 -- Les autres passes ont leur propre service : AutoCollect (CustomerService),
