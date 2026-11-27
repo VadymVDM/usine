@@ -149,7 +149,7 @@ de la Config) : changer l'un = changer l'autre (Creator Hub > Monetization).
 | P7 | Instant Sell (All Floors) | 199 | Juices sell as soon as you drop them on the counter. | `lightning.png` | `Shop.Passes` InstantSell || 2093680945 |
 | P8 | Waiter Speed x10 (All Floors) | 149 | Your waiter works 10x faster, forever. | `shoe.png` | `Shop.Passes` SpeedBoost || 2092415019 |
 | P9 | Billboard | 99 | Your billboard doubles your sell price, forever. | `cash.png` | `Shop.Passes` Billboard || 2093464945 |
-| P10 | Thief | 149 | Steal ready drinks from other stands! | `thief.png` | `Shop.Passes` Thief || 2097082802 |
+| P10 | Thief | 149 | Steal ready drinks from other stands! | `thief.png` | `Shop.Passes` Thief || 2097082802 (plus vendu en jeu depuis le 2026-11-27, `hidden` ; vol a l'unite `Shop.Steal` 19 R$, voir `vol.md`) |
 | P11 | Rebirth Master | 199 | Keep your tree level when you rebirth. | `rebirth.png` | `Shop.Passes` RebirthMaster || 2096880861 |
 
 ### Developer Products (35 + 14 ajoutes ensuite)

@@ -407,6 +407,9 @@ local function buildPasses()
 	buildBundles()
 	local row = grid("Passes", 0.315, 0.98)
 	for _, pass in Shop.Passes do
+		if pass.hidden then
+			continue -- plus vendu (ex. Thief depuis le 2026-11-27)
+		end
 		local frame = card(row, pass.key, pass.color, pass.color2)
 		label(frame, pass.title, "PassTitle", UDim2.fromScale(0.5, 0.035), UDim2.fromScale(0.94, 0.15))
 		-- Grosse icone, en partie derriere les deux lignes de texte (moins d'espace perdu).

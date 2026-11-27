@@ -8,11 +8,18 @@
 --     "UNLIMITED", demande utilisateur du 2026-11-27 : plus de delai de 60 s par victime) ; seules
 --     les mains pleines et l'anti-spam d'appui limitent. La victime ne perd rien ("assurance",
 --     message) et seul le voleur voit les gobelets disparaitre (Feedback "StolenCups").
---   * Sans le pass : E = fenetre d'achat Roblox du pass. Les jus vises sont "photographies" A
+--   * (Jusqu'au 2026-11-27) Sans le pass : E = fenetre d'achat du pass. Les jus vises sont "photographies" A
 --     L'APPUI SUR E (ids, positions, modeles) : si l'achat aboutit (possession reverifiee par
 --     Lib/GamePass) dans les Gameplay.StealPendingSeconds, le voleur recoit CES jus, meme si la table
 --     a ete videe pendant qu'il payait.
 --   * passId = 0 (pass pas cree) : message "Robux purchases: coming soon!".
+-- 2026-11-27 (demande utilisateur) : VOL A L'UNITE. Le pass n'est plus vendu en jeu (Shop "hidden").
+--   * Avec le pass (deja achete / offert) : inchange, vol gratuit sans limite.
+--   * Sans le pass : 1er vol GRATUIT a chaque serveur (memoire, rien de sauvegarde), puis chaque vol
+--     = produit Robux Shop.Steal (19 R$). Meme "photo" des jus a l'appui sur E ; le recu
+--     (ReceiptService) donne ces jus. Recu sans photo valable ou mains pleines : le vol paye devient
+--     un credit (prochain E gratuit), jamais de Robux perdus. PurchaseId note une seule fois
+--     (DataService.GrantPurchaseOnce).
 -- Possession : attribut joueur "Thief" (pose ici seulement, par le serveur). Rien de sauvegarde.
 -- Aucun remote : ProximityPrompt.Triggered, verifie ici (proprietaire, etage vivant, distance, delai).
 -- Doc : docs/systems/vol.md
@@ -34,6 +41,8 @@ local FloorService = require(script.Parent.FloorService)
 local ProductionService = require(script.Parent.ProductionService)
 local CustomerService = require(script.Parent.CustomerService)
 local NotifyService = require(script.Parent.NotifyService)
+local DataService = require(script.Parent.DataService)
+local ReceiptService = require(script.Parent.ReceiptService)
 
 local ThiefService = {}
 
@@ -67,8 +76,14 @@ for _, pass in Shop.Passes do
 	end
 end
 
+local STEAL = Shop.Steal
+local RECEIPT_WAIT_SECONDS = 15 -- recu arrive pendant le chargement du joueur : attendre ses donnees
+
 local floors: { [Model]: FloorSteal } = {}
 local pending: { [Player]: Pending } = {}
+-- Vols gratuits restants sur ce serveur, par compte (UserId : quitter / revenir ne redonne pas le
+-- vol gratuit ; un vol paye pas encore utilise reste au retour sur ce serveur). Jamais vide : petit.
+local freeSteals: { [number]: number } = {}
 
 function ThiefService.Owns(player: Player): boolean
 	return player:GetAttribute(ATTRIBUTE) == true
@@ -106,28 +121,28 @@ local function give(player: Player, victimId: number, victimName: string, ids: {
 	return given
 end
 
--- Avec le pass : vol immediat (ses mains pleines), a chaque appui sur E.
-local function stealNow(player: Player, floor: Model, victim: Player, source: Source)
+-- Vol immediat (ses mains pleines) : avec le pass, ou vol gratuit / deja paye. Renvoie le nombre vole.
+local function stealNow(player: Player, floor: Model, victim: Player, source: Source): number
 	local room = ProductionService.GetHandRoom(player)
 	if room <= 0 then
 		NotifyService.Notify(player, MESSAGES.HandsFull, true)
-		return
+		return 0
 	end
 	local ids, from, models = peek(floor, source, room)
 	if #ids == 0 then
 		NotifyService.Notify(player, MESSAGES.StealNothing, true)
-		return
+		return 0
 	end
-	give(player, victim.UserId, victim.DisplayName, ids, from, models)
+	return give(player, victim.UserId, victim.DisplayName, ids, from, models)
 end
 
--- Sans le pass : photo des jus vises PUIS fenetre d'achat. La photo est prise avant la fenetre :
--- le temps de payer ne fait rien perdre.
-local function offerPass(player: Player, floor: Model, victim: Player, source: Source)
+-- Sans le pass, sans vol gratuit : photo des jus vises PUIS fenetre d'achat du vol (19 R$). La photo
+-- est prise avant la fenetre : le temps de payer ne fait rien perdre.
+local function offerSteal(player: Player, floor: Model, victim: Player, source: Source)
 	if not PlayerCheck.Cooldown(player, "ThiefPrompt", Gameplay.ThiefPromptCooldown) then
 		return
 	end
-	if passId <= 0 then
+	if STEAL.productId <= 0 then
 		NotifyService.Notify(player, Upgrades.Messages.RobuxSoon)
 		return
 	end
@@ -144,21 +159,7 @@ local function offerPass(player: Player, floor: Model, victim: Player, source: S
 		models = models,
 		at = os.clock(),
 	}
-	PurchasePrompt.GamePass(player, passId)
-end
-
--- Achat confirme : vol avec la photo prise a l'appui sur E (si encore valable).
-local function claimPending(player: Player)
-	local snap = pending[player]
-	pending[player] = nil
-	if snap == nil or os.clock() - snap.at > Gameplay.StealPendingSeconds then
-		return
-	end
-	if ProductionService.GetHandRoom(player) <= 0 then
-		NotifyService.Notify(player, MESSAGES.HandsFull, true)
-		return
-	end
-	give(player, snap.victimId, snap.victimName, snap.ids, snap.from, snap.models)
+	PurchasePrompt.Product(player, STEAL.productId)
 end
 
 local function onTriggered(player: Player, floor: Model, source: Source)
@@ -183,9 +184,60 @@ local function onTriggered(player: Player, floor: Model, source: Source)
 	end
 	if ThiefService.Owns(player) then
 		stealNow(player, floor, victim, source)
-	else
-		offerPass(player, floor, victim, source)
+		return
 	end
+	local left = freeSteals[player.UserId] or 0
+	if left > 0 then
+		if stealNow(player, floor, victim, source) > 0 then
+			freeSteals[player.UserId] = left - 1
+			if left - 1 <= 0 then
+				NotifyService.Notify(player, fill(MESSAGES.StealFree, { price = tostring(STEAL.price) }))
+			end
+		end
+		return
+	end
+	offerSteal(player, floor, victim, source)
+end
+
+---------------------------------------------------------------------------------------------
+-- Recu du vol a l'unite (Shop.Steal) : donne les jus de la photo, sinon un vol gratuit en reserve.
+
+local function grantSteal(player: Player, purchaseId: string): boolean
+	local deadline = os.clock() + RECEIPT_WAIT_SECONDS
+	while DataService.GetData(player) == nil and player.Parent == Players and os.clock() < deadline do
+		task.wait(0.25)
+	end
+	local stolen = 0
+	local applied = false
+	local granted = DataService.GrantPurchaseOnce(player, purchaseId, function(_data): boolean
+		applied = true
+		local snap = pending[player]
+		pending[player] = nil
+		if snap and os.clock() - snap.at <= Gameplay.StealPendingSeconds then
+			stolen = give(player, snap.victimId, snap.victimName, snap.ids, snap.from, snap.models)
+		end
+		if stolen <= 0 then
+			freeSteals[player.UserId] = (freeSteals[player.UserId] or 0) + 1 -- vol paye garde pour le prochain E
+		end
+		return true
+	end)
+	if applied and stolen <= 0 then
+		NotifyService.Notify(player, MESSAGES.StealCredit)
+	end
+	return granted
+end
+
+local function receiptHandler(receipt: ReceiptService.Receipt): boolean
+	local player = Players:GetPlayerByUserId(receipt.PlayerId)
+	if player == nil then
+		return false -- joueur parti : Roblox redonnera le recu
+	end
+	return grantSteal(player, receipt.PurchaseId)
+end
+
+-- Test Studio : simule un achat paye du vol a l'unite.
+function ThiefService.DebugGrantSteal(player: Player): boolean
+	return grantSteal(player, "debug-steal-" .. tostring(os.clock()))
 end
 
 ---------------------------------------------------------------------------------------------
@@ -287,7 +339,18 @@ local function checkPass(player: Player)
 	end
 end
 
-function ThiefService:Init() end
+function ThiefService:Init()
+	if STEAL.productId > 0 then
+		ReceiptService.Register(STEAL.productId, receiptHandler)
+	end
+end
+
+local function onPlayerAdded(player: Player)
+	if freeSteals[player.UserId] == nil then
+		freeSteals[player.UserId] = 1 -- 1er vol gratuit sur ce serveur
+	end
+	checkPass(player)
+end
 
 function ThiefService:Start()
 	FloorService.OnFloorStarted(function(player: Player, floor: Model, _index: number)
@@ -296,9 +359,9 @@ function ThiefService:Start()
 	FloorService.OnFloorStopped(function(_player: Player, floor: Model)
 		stopFloor(floor)
 	end)
-	Players.PlayerAdded:Connect(checkPass)
+	Players.PlayerAdded:Connect(onPlayerAdded)
 	for _, player in Players:GetPlayers() do
-		task.spawn(checkPass, player)
+		task.spawn(onPlayerAdded, player)
 	end
 	Players.PlayerRemoving:Connect(function(player: Player)
 		pending[player] = nil
@@ -306,7 +369,6 @@ function ThiefService:Start()
 	GamePass.OnPurchased(function(player: Player, id: number) -- possession reverifiee
 		if passId > 0 and id == passId then
 			grant(player)
-			claimPending(player)
 		end
 	end)
 	-- Pass offert (GiftService) : meme effet qu'un achat (sans vol en attente : pas d'appui sur E)

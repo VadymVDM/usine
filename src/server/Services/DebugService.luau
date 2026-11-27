@@ -17,6 +17,7 @@
 --   game.ServerStorage.Debug.Call:Invoke("Floor", "Get" | "Set" n | "GoTo" n, "<NomJoueur>")
 --   game.ServerStorage.Debug.Call:Invoke("Rebirth", "Get" | "Do" [keepCash] | "Set" n | "Master" bool, "<NomJoueur>")
 --   game.ServerStorage.Debug.Call:Invoke("LuckyCash", "Get" | "Grant", "<NomJoueur>") (Grant = simule un achat Robux paye)
+--   game.ServerStorage.Debug.Call:Invoke("Thief", "GrantSteal", "<NomJoueur>") (simule l'achat d'un vol a 19 R$, ecrit la sauvegarde !)
 --   game.ServerStorage.Debug.Call:Invoke("Shop", "Get" | "ClearBoosts" | "ClearOffers", "<NomJoueur>")
 --   game.ServerStorage.Debug.Call:Invoke("Shop", "FreeBoost", "<NomJoueur>", 0) -- boost gratuit tout de suite
 --   game.ServerStorage.Debug.Call:Invoke("Shop", "Grant", "<NomJoueur>", "Boost" | "CashPack" | "Offer", "Money_15" | "Cash5m" | "OfferStarter", purchaseId?) (recu simule)
@@ -53,6 +54,7 @@ local MoneyService = require(script.Parent.MoneyService)
 local CustomerService = require(script.Parent.CustomerService)
 local ProductionService = require(script.Parent.ProductionService)
 local LuckyCashService = require(script.Parent.LuckyCashService)
+local ThiefService = require(script.Parent.ThiefService)
 local RobuxShopService = require(script.Parent.RobuxShopService)
 local GiftService = require(script.Parent.GiftService)
 local OfflineService = require(script.Parent.OfflineService)
@@ -236,6 +238,12 @@ local handlers: { [string]: { [string]: Handler } } = {
 		-- Recu simule d'un lot (ecrit la sauvegarde !) : ("Shop", "Bundle", "<Nom>", "Ultimate", "id")
 		Bundle = function(player, key, purchaseId)
 			return RobuxShopService.DebugBundle(player, if type(key) == "string" then key else "", tostring(purchaseId))
+		end,
+	},
+	Thief = {
+		-- Simule l'achat paye d'un vol a l'unite (Shop.Steal ; ecrit la sauvegarde !)
+		GrantSteal = function(player)
+			return ThiefService.DebugGrantSteal(player)
 		end,
 	},
 	LuckyCash = {

@@ -1,14 +1,21 @@
 # Systeme : Vol de boissons (pass Thief)
 
-**Statut :** en cours (touche E refaite le 2026-11-27, vol sans limite de temps le meme jour ; prompt teste a 1 joueur dans Studio ; vol pas teste a 2 joueurs)
+**Statut :** en cours (vol a l'unite code le 2026-11-27 : 1er gratuit puis 19 R$ ; PAS teste en Play, produit Roblox pas cree)
 **Derniere mise a jour :** 2026-11-27
 
 ## Role
 
-Pass Robux "Thief" (149 R$, `Shop.Passes`, titre en jeu "THIEF (UNLIMITED)", aussi dans la boutique). Dans la base d'un autre joueur,
-en regardant les boissons de sa **table a jus** ou de son **comptoir**, le joueur voit un prompt
-**E "Steal"**. Avec le pass : il vole tout de suite. Sans le pass : la fenetre d'achat Roblox s'ouvre,
-et les boissons visees sont gardees de cote ("photo") pendant qu'il paie.
+Dans la base d'un autre joueur, en regardant les boissons de sa **table a jus** ou de son
+**comptoir**, le joueur voit un prompt **E "Steal"**.
+
+**Depuis le 2026-11-27 (demande utilisateur) : vol a l'unite.**
+- **1er vol gratuit** pour tout le monde, **une fois par serveur** (compte par UserId en memoire :
+  quitter / revenir sur le meme serveur ne le redonne pas ; un autre serveur = un nouveau vol gratuit).
+- Ensuite **chaque vol = 19 R$** (Developer Product `Shop.Steal`) : fenetre d'achat Roblox, les
+  boissons visees sont gardees de cote ("photo") pendant qu'il paie, et donnees au recu.
+- Le pass "Thief" (149 R$) n'est **plus vendu en jeu** (`hidden = true` dans `Shop.Passes` : ni carte
+  dans la boutique, ni cadeau). Ceux qui l'ont deja (achat ou cadeau) volent toujours **gratuitement
+  et sans limite**. Le pass reste en vente sur la page Roblox du jeu (pas touche).
 
 ## Fichiers
 
@@ -16,7 +23,10 @@ et les boissons visees sont gardees de cote ("photo") pendant qu'il paie.
 |---|---|---|
 | `src/server/Services/ThiefService.luau` | serveur | Cree les prompts Steal, verifie chaque appui sur E, photo + fenetre d'achat, vol, attribut `Thief` |
 | `src/client/Controllers/PromptController.luau` | client | Montre les prompts `ForOthers` seulement dans les bases des AUTRES joueurs |
-| `src/shared/Config/Shop.luau` | partage | Pass `Thief` : prix, `passId` 2097082802 (cree sur Roblox) |
+| `src/shared/Config/Shop.luau` | partage | Pass `Thief` (`hidden`), `passId` 2097082802 ; `Shop.Steal` : prix 19, `productId` du vol a l'unite |
+| `src/server/Services/ReceiptService.luau` | serveur | Recoit le recu du produit Steal et appelle ThiefService |
+| `src/client/Controllers/ShopController.luau` | client | Ne montre pas les passes `hidden` |
+| `src/server/Services/DebugService.luau` | serveur (Studio) | `Thief GrantSteal` : simule l'achat paye d'un vol |
 | `src/shared/Config/Gameplay.luau` | partage | Delais, portee, textes du prompt (`PromptTexts.Steal*`), messages `Steal*` |
 | `src/server/Services/ProductionService.luau` | serveur | `PeekJuices` (gobelets du haut de la table, sans les retirer), `GetJuiceCount`, `GetHandRoom`, `GetHandCapacity`, `GiveJuices` |
 | `src/server/Services/CustomerService.luau` | serveur | `PeekCounter` (gobelets du haut du comptoir, sans les retirer), `GetCounterCount` |
@@ -41,16 +51,22 @@ et les boissons visees sont gardees de cote ("photo") pendant qu'il paie.
     (pass "UNLIMITED"). Limites : mains pleines et 0.4 s entre deux appuis. Mains pleines / rien a
     voler : message rouge. (Jusqu'au 2026-11-27 : une fois par victime toutes les 60 s, ce qui
     bloquait E juste apres l'achat ; supprime a la demande de l'utilisateur.)
-  - **Sans le pass** (au plus une fenetre toutes les `ThiefPromptCooldown` = 2 s) :
+  - **Sans le pass, vol gratuit restant** (1er vol du serveur, ou vol paye garde en credit) : vol
+    tout de suite comme avec le pass. Le vol gratuit n'est consomme que si au moins 1 jus est vole
+    (mains pleines / rien a voler : pas consomme). Dernier vol gratuit utilise : message
+    `StealFree` ("Free steal used! Next steals cost 19 Robux.").
+  - **Sans le pass, plus de vol gratuit** (au plus une fenetre toutes les `ThiefPromptCooldown` = 2 s) :
     1. **photo** des jus vises A L'APPUI SUR E : les gobelets du haut, autant que le joueur peut en
        porter mains vides (`GetHandCapacity`) ; ids, positions et modeles gardes sur le serveur ;
-    2. fenetre d'achat Roblox du pass (`Lib/PurchasePrompt`) ;
-    3. achat confirme (`GamePass.OnPurchased`, possession reverifiee aupres de Roblox) dans les
-       `StealPendingSeconds` (180 s) : attribut `Thief` + le voleur recoit **les jus de la photo**,
-       meme si la table a ete videe ou vendue pendant qu'il payait (place libre des mains au moment
-       de l'achat). Un nouvel appui sur E remplace la photo. Fenetre fermee sans acheter : la photo
-       expire toute seule.
-  - `passId = 0` : message "Robux purchases: coming soon!".
+    2. fenetre d'achat Roblox du produit `Shop.Steal` (19 R$, `Lib/PurchasePrompt.Product`) ;
+    3. recu (`ReceiptService` -> `ThiefService`, PurchaseId note une seule fois avec
+       `DataService.GrantPurchaseOnce`) : le voleur recoit **les jus de la photo** si elle a moins de
+       `StealPendingSeconds` (180 s), meme si la table a ete videe ou vendue pendant qu'il payait
+       (place libre des mains au moment du recu). Un nouvel appui sur E remplace la photo. Fenetre
+       fermee sans acheter : la photo expire toute seule.
+    4. recu sans photo valable, ou mains pleines au moment du recu : le vol paye devient un **credit**
+       (prochain E = vol gratuit), message `StealCredit`.
+  - `Shop.Steal.productId = 0` : message "Robux purchases: coming soon!" (aucune fenetre).
 - **La victime ne perd rien** (son "assurance" rembourse) : sur le serveur, sa table et son comptoir
   ne changent pas ; elle recoit `StealVictim` ("X stole N juices from you! Your insurance refunded
   everything.") si elle est encore la.
@@ -70,7 +86,8 @@ Aucun remote a nous : `ProximityPrompt.Triggered` (verifie comme un remote).
 
 ## Donnees sauvegardees
 
-Aucune : Roblox garde le pass. La photo et les delais sont en memoire (oublies au depart du joueur).
+Seulement le PurchaseId de chaque vol paye (`Data.PurchaseIds`, anti double recu). Roblox garde le
+pass. Vol gratuit, credits, photo et delais : en memoire du serveur.
 
 ## Configuration
 
@@ -82,6 +99,16 @@ Aucune : Roblox garde le pass. La photo et les delais sont en memoire (oublies a
   "Thief", 149 R$, en vente). Le nom du pass SUR ROBLOX (fenetre d'achat) est toujours "Thief".
 
 ## Problemes connus / a faire
+
+- **Produit Steal pas encore cree sur Roblox** (2026-11-27 : permission Open Cloud
+  `developer-product:write` pas accordee au MCP). Tant que `Shop.Steal.productId = 0`, apres le vol
+  gratuit le joueur voit "coming soon". A creer : nom "Steal", 19 R$, icone `assets/icons/thief.png`.
+- **Pas teste en Play** (place partagee pas branchee sur Rojo). A tester avec Rojo : 1er E gratuit,
+  2e E = fenetre 19 R$, `Debug.Call:Invoke("Thief", "GrantSteal", nom)` = credit puis E gratuit.
+- Credit d'un vol paye (mains pleines au recu) garde en memoire du serveur seulement : perdu si le
+  joueur change de serveur avant de l'utiliser (cas rare ; le PurchaseId, lui, est sauvegarde).
+- Avocat du diable : 19 R$ par vol peut rapporter moins que l'ancien pass a 149 R$ (il faut 8 vols
+  payes pour egaler 1 pass) ; a surveiller dans les ventes.
 
 - **Pas teste a 2 joueurs** (Test > Clients and Servers, 2 joueurs) : appui sur E chez l'autre, vol
   avec le pass, fenetre d'achat + photo. Teste le 2026-11-27 a 1 joueur seulement : prompts crees,

@@ -43,6 +43,9 @@ local Gameplay = {
 		StealDone = "You stole {n} juices from {name}!",
 		StealVictim = "{name} stole {n} juices from you! Your insurance refunded everything.",
 		StealNothing = "No juice to steal here!",
+		-- Vol a l'unite (2026-11-27) : {price} remplace par ThiefService (Shop.Steal.price)
+		StealFree = "Free steal used! Next steals cost {price} Robux.",
+		StealCredit = "Your hands are full! Your paid steal is saved for your next steal.",
 	}),
 
 	-- Pass Thief (ThiefService, refait le 2026-11-27) : touche E "Steal" sur les jus de la table a

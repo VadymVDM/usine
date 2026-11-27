@@ -26,6 +26,7 @@ export type Pass = {
 	giftProductId: number, -- Developer Product "Gift - <pass>" (meme prix), GiftService ; 0 = pas de cadeau
 	tag: string?,
 	oldPrice: number?, -- prix barre : UNIQUEMENT pendant une vraie promotion
+	hidden: boolean?, -- vrai = plus vendu dans la boutique (ni carte ni cadeau) ; ceux qui l'ont le gardent
 }
 
 export type CashPack = {
@@ -102,7 +103,7 @@ Shop.Passes = {
 	-- Take Juices (apres le Waiter), Billboard dans la cour (99 R$ comme la capture de reference).
 	{ key = "SpeedBoost", title = "WAITER SPEED x10 (All Floors)", lines = { "10x waiter speed", "Permanent" }, icon = "Shoe", color = Color3.fromRGB(0, 120, 255), color2 = Color3.fromRGB(0, 230, 255), price = 149, passId = 2092415019, giftProductId = 3734927704 },
 	{ key = "Billboard", title = "BILLBOARD", lines = { "2x sell price", "Permanent" }, icon = "Cash", color = Color3.fromRGB(255, 120, 0), color2 = Color3.fromRGB(255, 220, 40), price = 99, passId = 2093464945, giftProductId = 3734927718 },
-	{ key = "Thief", title = "THIEF (UNLIMITED)", lines = { "Steal ready drinks", "from other stands" }, icon = "Thief", color = Color3.fromRGB(90, 0, 200), color2 = Color3.fromRGB(195, 77, 255), price = 149, passId = 2097082802, giftProductId = 3734927725, tag = "OP" },
+	{ key = "Thief", title = "THIEF (UNLIMITED)", lines = { "Steal ready drinks", "from other stands" }, icon = "Thief", color = Color3.fromRGB(90, 0, 200), color2 = Color3.fromRGB(195, 77, 255), price = 149, passId = 2097082802, giftProductId = 3734927725, tag = "OP", hidden = true }, -- retire de la boutique le 2026-11-27 (vol a l'unite : Shop.Steal)
 	{ key = "RebirthMaster", title = "REBIRTH MASTER", lines = { "Keep your tree", "level on rebirth" }, icon = "Rebirth", color = Color3.fromRGB(255, 0, 122), color2 = Color3.fromRGB(255, 138, 216), price = 199, passId = 2096880861, giftProductId = 3734927736 },
 } :: { Pass }
 
@@ -186,6 +187,11 @@ Shop.LimitedOffers = {
 		{ key = "OfferRareRain", title = "Rare Rain", icon = "Clover", badge = "x5", price = 19, rewards = { { kind = "Boost", stat = "Luck", mult = 5, minutes = 10 } }, productId = 3734031150 },
 	},
 }
+
+-- Vol a l'unite (ThiefService, 2026-11-27, demande utilisateur) : 1er vol gratuit a chaque serveur,
+-- puis ce produit a chaque vol (E "Steal" chez un autre joueur). Le pass Thief n'est plus vendu en
+-- jeu ; ceux qui l'ont (achat ou cadeau) volent toujours gratuitement sans limite.
+Shop.Steal = table.freeze({ price = 19, productId = 0 })
 
 -- Effets des passes (RobuxShopService pose l'attribut joueur du meme nom ; Lib/Perks lit les effets).
 -- Les autres passes ont leur propre service : AutoCollect (CustomerService),
