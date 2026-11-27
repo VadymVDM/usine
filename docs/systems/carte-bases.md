@@ -41,6 +41,7 @@ propre et se promene ; il recoit la premiere base qui se libere.
 | `tools/build-map/03-decor.luau` | Studio | Foret, arbres, buissons, collines (hors des bases) |
 | `tools/build-map/04-lighting.luau` | Studio | Eclairage |
 | `tools/build-map/05-shadows.luau` | Studio | Coupe les ombres inutiles (decor, petites pieces...), a lancer en dernier |
+| `src/client/Controllers/ShadowController.luau` | client | Seul l'etage du joueur projette des ombres (evite les ombres des etages du dessus) |
 | `tools/build-map/check-zfighting.luau` | Studio | Detecteur de z-fighting (lecture seule) : liste les faces visibles qui se superposent |
 | `src/server/Services/BaseService.luau` | serveur | Clone le modele dans les 6 emplacements, attribution, apparition, nettoyage, prompt E des portes fermees |
 | `src/server/Services/NotifyService.luau` | serveur | Message court au joueur (remote `Notify`) |
@@ -185,6 +186,19 @@ escaliers, comptoir, convoyeur, palettes, panneaux, dons, lot, carte et decor. L
 zenith (`04-lighting`), donc les ombres gardees tombent juste sous l'objet. Resultat le 2026-11-20 :
 BaseTemplate 0 avec ombre / 337 ; FloorTemplate 90 / 1428 ; TreeStages 46 / 218 ; Map 0 / 1192.
 Les objets crees en jeu (fruits, gobelets, billets, outils de fruits) coupent leur ombre dans le code.
+
+**2026-11-27 (ombres "super legeres") :** `Counter` (comptoir) et `Production` (etagere, bar a jus,
+convoyeur) rejoignent la liste blanche ; `ShadowSoftness` 0.35 -> 0.5 (`04-lighting`). Resultat :
+FloorTemplate 143 avec ombre / 1435 (avant 90), BaseTemplate 0, TreeStages 46, Map 0.
+**Ombres par etage (`src/client/Controllers/ShadowController.luau`) :** les sols ne projettent pas
+d'ombre, donc un objet de l'etage N jetait son ombre dans l'etage N-1 (taches sur le haut des murs,
+PNJ fantomes au sol). Le client ne garde que les ombres de l'etage ou se trouve le joueur (meme
+hauteur dans chaque tour, `FloorWatch.FloorOfPosition`, teste toutes les 0.25 s) ; les autres etages
+ont `CastShadow = false` en local et le retrouvent quand le joueur y arrive (sauf piece devenue
+fantome, transparence >= 0.5). Pieces sans ombre au depart : jamais touchees. Bonus : moins de
+pieces qui projettent une ombre en meme temps.
+Le soleil reste au zenith (choix du 2026-11-20) : un soleil penche faisait tomber les ombres des
+etages du dessus en taches sur les murs (teste le 2026-11-27).
 
 - Contenu du modele (noms utilises par le code) :
 

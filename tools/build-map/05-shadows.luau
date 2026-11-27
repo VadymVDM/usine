@@ -8,6 +8,11 @@
 -- ombre : murs, balcons, terrasse, ascenseur, escaliers, comptoir, convoyeur, palettes, panneaux,
 -- dons, lot, carte et decor. Dans les dossiers gardes, les petites pieces, les pieces fines et les
 -- pieces transparentes restent sans ombre.
+-- 2026-11-27 (utilisateur : "des ombres super legeres et simples, pour rendre le jeu plus joli") :
+-- le comptoir (Counter) et la chaine de production (Production : etagere, bar a jus, convoyeur)
+-- regagnent leur ombre (meme filtre taille / finesse / transparence). Pour que ces ombres ne tombent
+-- pas dans les etages du dessous, le client ne garde que les ombres de l'etage du joueur
+-- (src/client/Controllers/ShadowController.luau).
 -- Les objets crees pendant le jeu (fruits, gobelets, billets, PNJ) coupent leur ombre dans le code.
 -- Doc : docs/systems/carte-bases.md (section Ombres)
 
@@ -20,6 +25,8 @@ local KEEP_SHADOW_FOLDERS = {
 	Tree = true,
 	Blenders = true,
 	Machines = true,
+	Counter = true,
+	Production = true,
 }
 
 local function underKeepFolder(item: Instance, root: Instance): boolean
