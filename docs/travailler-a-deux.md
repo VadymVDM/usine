@@ -38,6 +38,11 @@ la sauvegarde des joueurs ou a 2 joueurs, utiliser la place partagee.
 4. **Envoyer** souvent, par petits morceaux : commit, `git pull --rebase`, puis `git push`.
    Dire a l'autre ce qui a ete envoye.
 5. Le travail de l'autre arrive par `git pull`. Si Rojo tourne, il met a jour Studio tout seul.
+   **Seulement le code de `src/`** (et il se voit surtout au Play). Ce qui est dans `Workspace` ou
+   `ServerStorage` ne passe jamais par Git ni Rojo (voir "La carte" plus bas).
+6. Pour voir toute l'usine en mode Edit : onglet Plugins > bouton **Factory Preview**
+   (installe par `start-rojo.bat` ; rouvrir la place apres une mise a jour du bouton).
+   Doc : `docs/systems/apercu-edit.md`.
 
 ## Mettre le code dans la place partagee (tester ensemble, publier)
 

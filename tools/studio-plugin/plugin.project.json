@@ -1,0 +1,12 @@
+{
+  "name": "UsineTools",
+  "tree": {
+    "$className": "Folder",
+    "Main": {
+      "$path": "Main.server.luau"
+    },
+    "PreviewFactory": {
+      "$path": "../build-map/preview-factory.luau"
+    }
+  }
+}

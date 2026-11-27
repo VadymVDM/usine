@@ -23,6 +23,11 @@ for /f "tokens=5" %%p in ('netstat -ano ^| findstr ":%PORT% .*LISTENING"') do (
   taskkill /PID %%p /F >nul 2>&1
 )
 
+rem Installe / met a jour le plugin Studio "UsineTools" (bouton Factory Preview) dans le dossier
+rem Plugins local de Studio. Doc : docs/systems/apercu-edit.md
+"%ROJO%" build tools\studio-plugin\plugin.project.json --plugin UsineTools.rbxm
+if errorlevel 1 echo Plugin UsineTools pas installe (erreur au-dessus). Rojo demarre quand meme.
+
 echo Studio : plugin Rojo ^> Connect ^> localhost:%PORT%
 echo Arreter : fermer cette fenetre ou lancer stop-rojo.bat
 

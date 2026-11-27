@@ -1,6 +1,6 @@
 # Systeme : Apercu de l'usine en mode Edit
 
-**Statut :** en cours (script lance via MCP le 2026-11-27, valide par l'utilisateur ; bouton Studio et retouches a faire)
+**Statut :** en cours (bouton Studio "Factory Preview" en place ; retouches a reporter dans le moule)
 **Derniere mise a jour :** 2026-11-27
 
 ## Role
@@ -13,6 +13,7 @@ seulement au Play (BaseService, FloorService, TreeService, WorkerService...).
 
 | Fichier | Cote | Role |
 |---|---|---|
+| `tools/studio-plugin/` (`plugin.project.json`, `Main.server.luau`) | plugin Studio local | Bouton "Factory Preview" (onglet Plugins, barre "Usine") : construit / supprime l'apercu. Embarque `preview-factory.luau` |
 | `tools/build-map/preview-factory.luau` | Studio (hors Rojo) | Construit `Workspace._Preview` : base + 10 etages "tout achete" + arbres + fruits + PNJ. `REMOVE = true` : supprime l'apercu |
 | `src/server/Lib/FloorAssembly.luau` | serveur (reutilise) | Assemble chaque etage (variantes `Only<Tag>`), meme code que FloorService |
 | `src/server/Lib/TreeBuilder.luau` | serveur (reutilise) | Arbre de chaque etage au niveau max |
@@ -23,7 +24,14 @@ seulement au Play (BaseService, FloorService, TreeService, WorkerService...).
 
 ## Fonctionnement
 
-- Lancer `tools/build-map/preview-factory.luau` en mode Edit (MCP `execute_luau`, ou coller le
+- **Le plus simple : le bouton.** Onglet Plugins > "Factory Preview" (mode Edit). 1er clic : construit
+  l'apercu (environ 15 s). 2e clic : le supprime. Messages dans la fenetre Sortie (`[Factory Preview]`).
+  - Installe / mis a jour par `start-rojo.bat` (`rojo build ... --plugin UsineTools.rbxm` dans le
+    dossier Plugins local de Studio). Studio ne recharge pas un plugin deja charge : apres une mise a
+    jour, **rouvrir la place** (ou lancer `start-rojo.bat` avant d'ouvrir Studio).
+  - Si la place n'a pas ce qu'il faut (`ReplicatedStorage.Shared`, `ServerStorage.BaseTemplate`,
+    `Workspace.Map.BaseSlots`...), le bouton ne fait rien et l'ecrit dans la Sortie (pas de blocage).
+- Sinon : lancer `tools/build-map/preview-factory.luau` en mode Edit (MCP `execute_luau`, ou coller le
   fichier dans la barre de commande). Il remplace l'ancien apercu s'il existe. Environ 13 500 pieces.
 - Ce qui est montre (etat "tout achete", comme un joueur au max) :
   - base posee sur `Map.BaseSlots.BaseSlot1`, salle du Rebirth ouverte (vitre `RebirthGate` retiree) ;
@@ -59,7 +67,10 @@ En tete du script : `FLOORS` (10), `SLOT` (1), `REMOVE`. Le reste vient de la Co
 
 ## Problemes connus / a faire
 
-- Pas encore de bouton dans Studio : il faut lancer le script (MCP ou barre de commande).
+- **Chaque dev construit son propre apercu** : `_Preview` n'est ni dans Git, ni sauvegarde, ni partage
+  par Team Create (verifie le 2026-11-27 : construit dans une fenetre, absent dans une 2e fenetre de la
+  meme place). D'ou le bouton.
+- Le bouton ne s'allume pas visiblement quand l'apercu existe (`SetActive` peu visible) : a revoir si genant.
 - Retouches a la main a reporter dans le moule (FloorTemplate / BaseTemplate) : pas fait. Attention :
   les scripts `tools/build-map/02*` recreent le moule et effaceraient ces retouches.
 - Pas montres (passagers ou lies a un joueur) : bulles d'attente des clients, textes "+$" des ventes,
