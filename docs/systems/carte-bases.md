@@ -197,8 +197,12 @@ hauteur dans chaque tour, `FloorWatch.FloorOfPosition`, teste toutes les 0.25 s)
 ont `CastShadow = false` en local et le retrouvent quand le joueur y arrive (sauf piece devenue
 fantome, transparence >= 0.5). Pieces sans ombre au depart : jamais touchees. Bonus : moins de
 pieces qui projettent une ombre en meme temps.
-Le soleil reste au zenith (choix du 2026-11-20) : un soleil penche faisait tomber les ombres des
-etages du dessus en taches sur les murs (teste le 2026-11-27).
+Soleil penche a 14 h depuis le 2026-11-27 (ombres "plus visibles", demande utilisateur ;
+`04-lighting`). Sans ShadowController, un soleil penche faisait tomber les ombres des etages du
+dessus en taches sur les murs ; avec lui, seul l'etage du joueur projette (verifie en Play : seul
+l'etage 1 de chaque tour a des ombres, etages fermes et carte a 0).
+**Attention :** le Studio du PC de Natixe n'affiche aucune ombre (meme un bloc de test), en Play
+comme en Edit ; l'appli Roblox les affiche. Juger les ombres dans l'appli, pas dans Studio.
 
 - Contenu du modele (noms utilises par le code) :
 

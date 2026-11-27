@@ -21,7 +21,12 @@ local Lighting = game:GetService("Lighting")
 
 -- 2026-11-20 (utilisateur : soleil tout en haut, ombres juste en dessous) : midi + latitude 23.5
 -- = soleil au zenith, GetSunDirection() = (0, 1, 0) mesure dans Studio.
-Lighting.ClockTime = 12
+-- 2026-11-27 (utilisateur : ombres "plus visibles", sans calcul en plus) : soleil penche, 14 h
+-- (GetSunDirection = (-0.5, 0.87, 0) : 30 degres du zenith, ombres vers +X). Possible depuis que
+-- ShadowController ne garde que les ombres de l'etage du joueur (sinon les etages du dessus
+-- faisaient des taches sur les murs). NB : le Studio de ce PC n'affiche pas les ombres (meme un
+-- bloc de test) ; dans l'appli Roblox elles s'affichent.
+Lighting.ClockTime = 14
 Lighting.GeographicLatitude = 23.5
 Lighting.Brightness = 2.4
 Lighting.Ambient = Color3.fromRGB(110, 110, 114)
