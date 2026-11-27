@@ -340,10 +340,14 @@ for _, t in { 0.35, 0.7 } do
 		box(conveyor, "Leg", x - 0.25, x + 0.25, 0.5, p.Y - 0.45, p.Z - 0.25, p.Z + 0.25, METAL_DARK)
 	end
 end
--- Tapis de la rangee, derriere les bols (les fruits roulent jusqu'a la goulotte de leur bol)
+-- Tapis de la rangee, derriere les bols (les fruits roulent jusqu'a la goulotte de leur bol).
+-- 2026-11-27 : deux tapis qui partent du haut de la montee (T, x 26) : un vers la gauche
+-- (mixeurs 1 et 2) et un vers la droite (mixeurs 3 et 4). Avant : un seul tapis de 6.5 a 50
+-- qui allait dans le meme sens pour tous les mixeurs ("pas logique").
 local rowA = Vector3.new(6.5, BELT_Y, BELT_Z)
 local rowB = Vector3.new(50, BELT_Y, BELT_Z)
-beltBetween("RowBelt", rowA, rowB, 2.6)
+beltBetween("RowBelt", T, rowA, 2.6)
+beltBetween("RowBelt", T, rowB, 2.6)
 for _, x in { 7, 17.75, 28.25, 38.75, 49.5 } do
 	box(conveyor, "RowLeg", x - 0.3, x + 0.3, 0.5, BELT_Y - 0.4, BELT_Z - 0.3, BELT_Z + 0.3, METAL_DARK)
 	box(conveyor, "RowLegFoot", x - 0.7, x + 0.7, 0.5, 0.8, BELT_Z - 0.7, BELT_Z + 0.7, METAL_DARK)

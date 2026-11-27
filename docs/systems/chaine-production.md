@@ -128,6 +128,11 @@ bras tendus) et les pose sur le pad "Drop Juices" du comptoir (voir `clients.md`
     (1.6 s) x (2.2 / vitesse)^0.6, au moins `ConveyorTravelMin` (0.75 s). Le serveur pose sur
     `Production` les attributs `ConveyorTravel` (meme duree pour l'animation) et `ConveyorRate`
     (les lattes du tapis defilent plus vite, LevelLookController).
+  - **Deux tapis de rangee** (2026-11-27) : la montee arrive au milieu de la rangee (x 26) ; de la
+    partent deux `RowBelt`, un vers la gauche (mixeurs 1 et 2) et un vers la droite (mixeurs 3 et
+    4). Le fruit va donc dans le sens des lattes, quel que soit son mixeur (avant : un seul tapis
+    de 6.5 a 50, lattes toujours vers la droite, meme pour les fruits qui partaient a gauche).
+    Template `ServerStorage.FloorTemplate` corrige dans la place + `tools/build-map/02c`.
   - **Le tapis emporte le joueur** (2026-11-27) : un joueur qui monte sur le tapis (pente `Belt` ou
     rangee `RowBelt`) avance tout seul dans le sens des lattes, a la meme vitesse qu'elles
     (2.5 + 1.6 x `ConveyorRate` studs / s : 6 au niveau 1, ~15 au niveau 10). Fait cote client par
