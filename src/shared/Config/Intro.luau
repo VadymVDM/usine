@@ -81,6 +81,14 @@ Intro.PoseSmoothing = 0.07 -- lissage des articulations (secondes ; 0 = aucun)
 -- Camera rendue derriere le personnage a la fin (studs derriere lui, au-dessus de sa tete)
 Intro.ExitCameraDistance = 12
 Intro.ExitCameraHeight = 3.5
+-- Arrivee dans l'usine sans a-coup (2026-11-27) : sous le blanc de la fin, la camera fait un tour
+-- de l'usine (chaque cote est dessine une fois : maillages, textures, ecrans 3D), puis on attend que
+-- la carte soit chargee (streaming + prechargement du Preloader) et que l'image soit fluide.
+Intro.ArrivalSweepSteps = 8 -- angles du tour de camera (1 image chacun)
+Intro.ArrivalMinHold = 0.5 -- blanc tenu au moins (secondes, apres le tour)
+Intro.ArrivalMaxWait = 4 -- blanc tenu au plus (secondes) : le joueur n'est jamais bloque
+Intro.ArrivalSmoothFrames = 10 -- images fluides de suite pour dire "pret"
+Intro.ArrivalSmoothFrameSeconds = 0.05 -- une image est fluide sous cette duree (20 images/s)
 -- Sons plus doux que dans le jeu (2026-11-22 : "les bruitages sont trop forts")
 Intro.SoundVolume = 0.4 -- bruitages (multiplie le volume de Config/Sounds)
 Intro.BirdsVolume = 0.3 -- oiseaux en boucle

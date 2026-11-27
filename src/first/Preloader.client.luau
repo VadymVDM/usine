@@ -160,3 +160,6 @@ do
 		ContentProvider:PreloadAsync(list)
 	end)
 end
+-- Lu par la cinematique d'ouverture : elle garde le blanc de la fin tant que ce n'est pas fini
+-- (Config/Intro.ArrivalMaxWait au plus). Attribut local (client seulement).
+player:SetAttribute("PreloadDone", true)

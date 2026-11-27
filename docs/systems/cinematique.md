@@ -1,7 +1,7 @@
 # Systeme : Cinematique d'ouverture (profil neuf)
 
 **Statut :** fonctionne (playtest Studio PC a 1 joueur le 2026-11-22, version ~20 s sans Skip ; version ralentie ~24 s pas encore rejouee ; telephone, manette et 2 joueurs pas testes)
-**Derniere mise a jour :** 2026-11-22
+**Derniere mise a jour :** 2026-11-27
 
 ## Role
 
@@ -76,13 +76,22 @@ attend `IntroPending` du serveur, puis coupe tant que `IntroPending` ou `IntroPl
    - Les angles des articulations sont lisses (`PoseSmoothing`, 0.07 s) : pas de saut entre deux
      poses ; presque pas de lissage quand les mains tiennent la pelle ou l'arbre (sinon elles
      quittent le manche). Epaules qui balancent un peu a la marche et a la course.
-4. Fin : camera `Custom` posee DERRIERE le personnage, dans le sens ou il regarde
+4. **Arrivee sans a-coup (2026-11-27)** : sous le blanc de la fin, decor detruit, puis
+   `warmArrival` : la camera fait un tour du personnage dans l'usine (`ArrivalSweepSteps` angles,
+   1 image chacun : chaque cote de l'usine est dessine une fois, maillages, textures, ecrans 3D),
+   puis le blanc reste tant que : streaming autour du personnage pas fini (`RequestStreamAroundAsync`),
+   prechargement du Preloader pas fini (attribut local `PreloadDone`, voir `chargement.md`), ou
+   moins de `ArrivalSmoothFrames` images fluides de suite. Au moins `ArrivalMinHold`, au plus
+   `ArrivalMaxWait` (4 s). Avant, l'usine n'etait dessinee que 0.15 s sous le blanc : sa premiere
+   image tombait pendant que le blanc s'effacait (a-coup a l'arrivee). Pendant les ~24 s de l'intro,
+   la carte se charge deja en arriere-plan (streaming + Preloader etape 4).
+5. Fin : camera `Custom` posee DERRIERE le personnage, dans le sens ou il regarde
    (`ExitCameraDistance`, `ExitCameraHeight`) : avant, on rendait la vue d'avant l'intro, mais le
    serveur pose le personnage dans sa base apres le debut de l'intro (camera de cote contre un mur, vu
    par l'utilisateur le 2026-11-22). Le personnage est pose face a l'usine, bien droit depuis la
    porte (voir `carte-bases.md`, Apparition), donc la camera aussi. decor detruit, camera `Custom` remise a la meme place qu'avant l'intro (par rapport
    au personnage), HUD rendu, remote `IntroDone`. Le vrai personnage n'a jamais quitte la base.
-5. Ensuite : musique de fond, tutoriel etape par etape (`tutoriel.md`) ; touche E au centre de la
+6. Ensuite : musique de fond, tutoriel etape par etape (`tutoriel.md`) ; touche E au centre de la
    pelouse ("Plant tree") -> l'arbre pousse
    (`Tree.PlantStamp`), 5 pommes tombent, `HoldingSapling = false` (l'arbre quitte les mains).
 
@@ -105,7 +114,8 @@ est faux chez eux : vrai pour le profil de test).
 `PileOffset`, `TreeSpot`, `ItemSpot`, `TreeLevel`, `TreeFruits`, `SaplingLevel`, `SaplingScale`,
 `ShovelScale`, `StepsPerSecond`, `RunStepsPerSecond`, `NoticeSpot`, `ShovelSpot`, `ShovelReach`,
 `ShovelDepth`, `ShovelRestSide`, `HoldOffset`, `HoldArmDegrees`, `Times`, `Digs`, `Shots`, fondus,
-`AppearanceWaitSeconds`, `PoseSmoothing`, `ExitCameraDistance`, `ExitCameraHeight`, volumes
+`AppearanceWaitSeconds`, `PoseSmoothing`, `ExitCameraDistance`, `ExitCameraHeight`,
+`ArrivalSweepSteps`, `ArrivalMinHold`, `ArrivalMaxWait`, `ArrivalSmoothFrames`, `ArrivalSmoothFrameSeconds`, volumes
 (`SoundVolume` 0.4 pour les bruitages, `BirdsVolume` 0.3 : plus doux que dans le jeu ; `StepVolume`,
 `WhooshVolume`, `CrackVolume` multiplient `SoundVolume`), effets (`DigShake`, `PullShake`, `LandShake`, `NoticeFovKick`, `WowFovKick`),
 textes (`NoticeText`, `WowText`, `ThinkText`, `IdeaText`), `BarHeight`. Poses de la pelle (CARRY,
@@ -168,6 +178,11 @@ Revoir la cinematique : panneau admin > Player > **Replay Intro** (ou, cote serv
   `Setup = 1`, arbre plante, pommes, pad suivant ; pas d'erreur de script. Videos et captures MCP.
 
 ## Problemes connus / a faire
+
+- Arrivee (2026-11-27, Play Studio PC, intro rejouee) : blanc tenu 0.62 s, pire image pendant le
+  blanc 76 ms (a-coup qui etait visible avant, maintenant cache). En Studio, rejouee = usine deja
+  dessinee une fois : le vrai premier lancement (cache vide, telephone, connexion lente) n'est pas
+  mesure. En Studio seulement, une ligne `[IntroController] arrivee : ...` donne le temps tenu.
 
 - Fluidite mesuree le 2026-11-22 (Studio PC, profil neuf) : 18.5 s a ~236 images/s, 2 a-coups
   seulement au tout debut (50 et 97 ms : copie du decor et du personnage, caches par l'ecran blanc).

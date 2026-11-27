@@ -714,6 +714,58 @@ local function waitForAppearance(character: Model)
 	character:WaitForChild("HumanoidRootPart", 5)
 end
 
+-- Arrivee dans l'usine sans a-coup (2026-11-27). Appele sous le blanc de la fin, camera Scriptable.
+-- Avant, l'usine n'etait dessinee que 0.15 s sous le blanc : sa premiere image (maillages, textures,
+-- ecrans 3D) tombait pendant que le blanc s'effacait. Ici : tour de camera autour du personnage
+-- (chaque cote de l'usine dessine une fois), puis attente de la carte (streaming, prechargement du
+-- Preloader : attribut "PreloadDone") et d'une image fluide. Jamais plus de ArrivalMaxWait.
+-- task.wait (pas RenderStepped) : si le rendu est en pause (fenetre reduite), le delai max joue.
+local function warmArrival(camera: Camera, focus: Vector3, final: CFrame)
+	local startedAt = os.clock()
+	local streamed = false
+	task.spawn(function()
+		pcall(function()
+			player:RequestStreamAroundAsync(focus, Intro.ArrivalMaxWait)
+		end)
+		streamed = true
+	end)
+	local smoothFrames = 0
+	local worstFrame = 0
+	local frames = RunService.PreRender:Connect(function(dt: number)
+		worstFrame = math.max(worstFrame, dt)
+		smoothFrames = if dt <= Intro.ArrivalSmoothFrameSeconds then smoothFrames + 1 else 0
+	end)
+	camera.CameraType = Enum.CameraType.Scriptable
+	local offset = final.Position - focus
+	for i = 1, Intro.ArrivalSweepSteps do
+		local turn = CFrame.Angles(0, i / Intro.ArrivalSweepSteps * math.pi * 2, 0)
+		camera.CFrame = CFrame.lookAt(focus + turn:VectorToWorldSpace(offset), focus)
+		task.wait()
+	end
+	camera.CFrame = final
+	local holdFrom = os.clock()
+	smoothFrames = 0
+	while os.clock() - startedAt < Intro.ArrivalMaxWait do
+		task.wait()
+		if
+			os.clock() - holdFrom >= Intro.ArrivalMinHold
+			and streamed
+			and player:GetAttribute("PreloadDone") == true
+			and smoothFrames >= Intro.ArrivalSmoothFrames
+		then
+			break
+		end
+	end
+	frames:Disconnect()
+	if RunService:IsStudio() then
+		print(
+			`[IntroController] arrivee : blanc tenu {math.floor((os.clock() - startedAt) * 100) / 100} s,`
+				.. ` streaming {streamed}, prechargement {player:GetAttribute("PreloadDone") == true},`
+				.. ` pire image {math.floor(worstFrame * 1000)} ms`
+		)
+	end
+end
+
 local function play()
 	local ui = makeUi()
 	local lock = lockPlayer()
@@ -781,13 +833,11 @@ local function play()
 			set:Destroy()
 		end
 		local humanoid = character:FindFirstChildOfClass("Humanoid")
-		camera.CameraType = Enum.CameraType.Custom
 		camera.FieldOfView = 70
-		if humanoid then
-			camera.CameraSubject = humanoid
-		end
 		local live = player.Character
 		local liveRoot = live and live:FindFirstChild("HumanoidRootPart")
+		local exitFrame = cameraBefore
+		local exitFocus: Vector3? = nil
 		if liveRoot and liveRoot:IsA("BasePart") then
 			-- Camera derriere le personnage, dans le sens ou il regarde (vers l'usine). Pas la vue d'avant
 			-- l'intro : le serveur pose le personnage dans sa base APRES le debut de l'intro (vu en test :
@@ -796,10 +846,20 @@ local function play()
 			local flat = Vector3.new(look.X, 0, look.Z)
 			flat = if flat.Magnitude > 1e-3 then flat.Unit else Vector3.new(0, 0, -1)
 			local focus = liveRoot.Position + Vector3.new(0, 1.5, 0)
-			camera.CFrame = CFrame.lookAt(focus - flat * Intro.ExitCameraDistance + Vector3.new(0, Intro.ExitCameraHeight, 0), focus)
-			camera.Focus = CFrame.new(focus)
-		else
-			camera.CFrame = cameraBefore
+			exitFrame = CFrame.lookAt(focus - flat * Intro.ExitCameraDistance + Vector3.new(0, Intro.ExitCameraHeight, 0), focus)
+			exitFocus = focus
+		end
+		-- Sous le blanc : l'usine est dessinee et chargee avant d'etre montree (pas d'a-coup a l'arrivee)
+		if exitFocus then
+			pcall(warmArrival, camera, exitFocus, exitFrame)
+		end
+		camera.CameraType = Enum.CameraType.Custom
+		if humanoid then
+			camera.CameraSubject = humanoid
+		end
+		camera.CFrame = exitFrame
+		if exitFocus then
+			camera.Focus = CFrame.new(exitFocus)
 		end
 		-- Arrivee dans l'usine : etincelles autour de l'arbre niveau 1 dans les mains
 		if liveRoot and liveRoot:IsA("BasePart") then

@@ -1,7 +1,7 @@
 # Systeme : Chargement (prechargement invisible)
 
 **Statut :** fonctionne (teste en Studio PC, pas sur telephone)
-**Derniere mise a jour :** 2026-11-20
+**Derniere mise a jour :** 2026-11-27
 
 ## Role
 
@@ -42,13 +42,16 @@ s'ouvre des l'arrivee, sans attendre la fin (il ne precharge que ses propres ima
    des joueurs deja presents. Jusqu'au 2026-11-20 le HUD attendait aussi cette etape (jusqu'a
    ~20 s de plus : carte 8 s + prechargement 12 s) : c'etait la cause des boutons qui mettaient
    longtemps a apparaitre.
+   A la fin, attribut joueur local `PreloadDone` = true (2026-11-27) : la cinematique d'ouverture
+   garde son blanc de fin tant qu'il manque (4 s max, voir `cinematique.md`). Pour un profil neuf,
+   cette etape tourne pendant la cinematique : la carte se charge derriere l'histoire.
 5. `Prewarm()` (optionnel) d'un controleur : appele par `Main` une fois son `Start()` fini, pendant
    que le HUD est cache. Le Shop s'y ouvre en invisible et calcule la taille de ses textes, sinon la
    premiere ouverture montrait ~1 s de textes trop gros.
 
 ## Remotes
 
-Aucun. Attributs joueur cote client seulement : `ClientReady`, `LoadingDone`.
+Aucun. Attributs joueur cote client seulement : `ClientReady`, `LoadingDone`, `PreloadDone`.
 
 ## Donnees sauvegardees
 
