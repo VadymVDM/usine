@@ -221,10 +221,12 @@ slots.Parent = map
 local bounds = Instance.new("Folder")
 bounds.Name = "Bounds"
 local hx, hz = GROUND_SIZE.X / 2, GROUND_SIZE.Z / 2
-part(bounds, "North", Vector3.new(GROUND_SIZE.X, 80, 2), CFrame.new(0, 40, hz + 1), Color3.new(), INVISIBLE)
-part(bounds, "South", Vector3.new(GROUND_SIZE.X, 80, 2), CFrame.new(0, 40, -hz - 1), Color3.new(), INVISIBLE)
-part(bounds, "East", Vector3.new(2, 80, GROUND_SIZE.Z), CFrame.new(hx + 1, 40, 0), Color3.new(), INVISIBLE)
-part(bounds, "West", Vector3.new(2, 80, GROUND_SIZE.Z), CFrame.new(-hx - 1, 40, 0), Color3.new(), INVISIBLE)
+local BOUNDS_HEIGHT = 800 -- 10x l'ancienne hauteur (80) ; le bas reste au sol (Y = 0)
+local by = BOUNDS_HEIGHT / 2
+part(bounds, "North", Vector3.new(GROUND_SIZE.X, BOUNDS_HEIGHT, 2), CFrame.new(0, by, hz + 1), Color3.new(), INVISIBLE)
+part(bounds, "South", Vector3.new(GROUND_SIZE.X, BOUNDS_HEIGHT, 2), CFrame.new(0, by, -hz - 1), Color3.new(), INVISIBLE)
+part(bounds, "East", Vector3.new(2, BOUNDS_HEIGHT, GROUND_SIZE.Z), CFrame.new(hx + 1, by, 0), Color3.new(), INVISIBLE)
+part(bounds, "West", Vector3.new(2, BOUNDS_HEIGHT, GROUND_SIZE.Z), CFrame.new(-hx - 1, by, 0), Color3.new(), INVISIBLE)
 bounds.Parent = map
 
 return "Map OK"

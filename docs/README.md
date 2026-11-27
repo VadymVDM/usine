@@ -47,5 +47,6 @@ Un fichier par systeme dans `systems/`, a partir de [systems/_TEMPLATE.md](syste
 | Cinematique d'ouverture (profil neuf : foret, arbre niveau 10, pelle, l'arbre niveau 1 dans les mains ; sans Skip) | [systems/cinematique.md](systems/cinematique.md) | fonctionne (playtest Studio PC le 2026-11-22 ; telephone et 2 joueurs pas testes) |
 | Tutoriel etape par etape (usine, Fruit Picker, Index, tour complet, vitesse FREE, Operator, ameliorations au hasard ; objectif en haut, ligne + fleches, etape sauvegardee) | [systems/tutoriel.md](systems/tutoriel.md) | fonctionne (parcours complet en playtest Studio PC le 2026-11-22 ; telephone et 2 joueurs pas testes) |
 | Rebirth (salle du Rebirth a l'etage 10, multiplicateur x2/x3..., keep cash en Robux, Rebirth Master) | [systems/rebirth.md](systems/rebirth.md) | en cours (code le 2026-11-20 ; produits Robux pas crees) |
+| Apercu de l'usine en mode Edit (toute l'usine "tout achete" visible sans Play : 10 etages, arbres, fruits, PNJ ; jamais sauvegarde ni copie dans le Play) | [systems/apercu-edit.md](systems/apercu-edit.md) | en cours (echantillon par script le 2026-11-27 ; bouton Studio et retouches a faire) |
 
 Statuts possibles : `a concevoir`, `en cours`, `fonctionne`, `a corriger`.

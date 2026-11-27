@@ -36,6 +36,7 @@ propre et se promene ; il recoit la premiere base qui se libere.
 | `src/server/Lib/OwnerBadge.luau` | serveur | Logo du proprietaire au sommet de sa tour (photo ronde de l'avatar, nom, nombre de rebirths en jaune), appele par FloorService |
 | `tools/build-map/02h-floor-stairs.luau` | Studio | Escalier (voies A/B), dalle des voies, trou + garde-corps (murs invisibles seulement sur l'etage a acheter), vitre d'achat, balcon, cage d'ascenseur (etages 2+) |
 | `tools/build-map/preview-tower.luau` | Studio | Apercu temporaire de la tour (`Workspace._PreviewBase`, a retirer) |
+| `tools/build-map/preview-factory.luau` | Studio | Apercu de toute l'usine "tout achete" en mode Edit (`Workspace._Preview`, non archivable : jamais sauvegarde ni copie dans le Play). Voir `apercu-edit.md` |
 | `tools/build-map/02g-base-boards.luau` | Studio | Panneaux d'ameliorations (tuiles colorees) : Conveyor (mur du fond), Juice Table (mur de droite), Customers (facade), un panneau suspendu au-dessus de chaque mixeur |
 | `tools/build-map/03-decor.luau` | Studio | Foret, arbres, buissons, collines (hors des bases) |
 | `tools/build-map/04-lighting.luau` | Studio | Eclairage |
@@ -59,7 +60,8 @@ les envoie dans Studio comme ModuleScripts, qu'on lance avec un `require` d'une 
 
 ## Fonctionnement
 
-- Carte : zone jouable 780 x 460 (limites invisibles). Route de 600 x 24 le long de l'axe X, place
+- Carte : zone jouable 780 x 460 (limites invisibles `Map.Bounds` : North/South/East/West, 800 de
+  haut depuis le sol, passees de 80 a 800 le 2026-11-27). Route de 600 x 24 le long de l'axe X, place
   du spawn a l'ouest. Bases espacees de 200, a 30 studs du centre de la route (agrandi le
   2026-11-19 : "plus spacieux, zones delimitees, l'arbre trop colle aux autres trucs") :
 
