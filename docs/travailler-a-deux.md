@@ -53,18 +53,18 @@ Une seule personne a la fois, et on previent l'autre.
 3. Rojo > Disconnect juste apres.
 4. Publier seulement si les deux sont d'accord (et jamais par un agent sans demande explicite).
 
-## Attention : Team Create pas actif (verifie le 2026-11-27)
+## Team Create (actif depuis le 2026-11-27, 01:47)
 
-- La place partagee n'est **pas** en Team Create : en Edit, `Players` est vide (aucun collaborateur) et
-  une fenetre ouverte a neuf ne voit pas les changements non sauvegardes d'une autre fenetre
-  (murs `Map.Bounds` a 800 dans la fenetre de Natixe, a 80 dans une fenetre ouverte apres).
-- Consequence : chaque Studio a sa propre copie. Un changement de carte n'existe pour l'autre
-  qu'apres **Fichier > Sauvegarder sur Roblox**, et **le dernier qui sauvegarde ecrase l'autre**.
-- A faire : activer Team Create : **Fenetre > Collaboration > Collaborateurs live > Activer** (le
-  bouton "Sauvegarder" du panneau "Collaborer" ne l'active pas). Essai du 2026-11-27 refuse par Roblox
-  ("serveur occupe"), a refaire. En attendant :
-  une seule personne modifie la carte a la fois, sauvegarde sur Roblox, previent l'autre, qui
-  ferme et rouvre la place.
+- Avant 01:47 il etait desactive : chaque Studio avait sa propre copie, et les murs `Map.Bounds`
+  montes a 800 n'existaient que chez Natixe. Le panneau "Collaborer" listait bien PROVADNIKE_ROBLOX,
+  mais ecrivait "La creation d'equipe doit etre activee".
+- Pour l'activer (si jamais il faut le refaire) : **Fenetre > Collaboration > Collaborateurs live >
+  Activer**. Le bouton "Sauvegarder" du panneau "Collaborer" ne l'active pas.
+- Si Studio repond "Le serveur est occupe et ne peut pas traiter ta demande d'importation" a chaque
+  sauvegarde alors que status.roblox.com est vert : fermer **toutes** les fenetres Studio et rouvrir
+  la place (session Studio bloquee ; c'est ce qui a debloque le 2026-11-27).
+- Maintenant : les changements de carte faits dans la place partagee arrivent chez l'autre en direct.
+  Rojo connecte dans la place partagee ecrit aussi chez l'autre : Connect, accepter, Disconnect.
 
 ## La carte
 
