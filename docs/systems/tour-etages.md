@@ -2,7 +2,7 @@
 
 **Statut :** code (lots 0 a 6 faits le 2026-11-20, verifies dans Studio par script) ; en attente du
 test en jeu de l'utilisateur. Restent : 2 vrais joueurs, vrai telephone, chiffres A VALIDER.
-**Derniere mise a jour :** 2026-11-20 (lot 6 : mesures, relecture)
+**Derniere mise a jour :** 2026-11-27 (dernier etage : plus d'escalier ni de lampes, toit sur la cage d'ascenseur)
 
 ## Role
 
@@ -170,6 +170,19 @@ L'annexe (x -46 -> 0) n'existe qu'au rez-de-chaussee : la tour ne monte que sur 
 - Avec les etages : chaque etage a un plafond (la dalle du dessus) -> les lampes neon existantes
   eclairent. **Seul le dernier etage achete** garde le ciel ouvert. Le dernier etage de la tour
   (10) aura un vrai toit / enseigne.
+
+## Dernier etage de la tour (etage MaxFloors = 10, depuis le 2026-11-27)
+
+Demande utilisateur : "supprimer ce qui sert a aller a l'etage superieur, l'ascenseur s'arrete au
+dernier etage". Rien dans le modele `FloorTemplate` ne change, tout se fait a l'assemblage :
+- `Config/Floors.Tags(MaxFloors)` ne met plus de tag `StairA/B` : l'escalier qui monte est detruit,
+  sa voie garde la dalle pleine (`OnlySolid*`). Nouveaux tags `Top` (n = MaxFloors) / `NotTop`,
+  libres pour de futures variantes `OnlyTop` / `OnlyNotTop` dans le modele.
+- `Lib/FloorAssembly` (`trimTopFloor`, etage ouvert seulement) : retire `Building.Lamps` (ciel
+  ouvert, rien au-dessus) et pose un toit `Building.Elevator.ShaftRoof` sur les 4 poteaux de la cage
+  vitree (meme couleur / matiere que les poteaux, debord 0.4, epaisseur 0.6).
+- Garde : poutres du haut (`Beams`, elles portent les panneaux et chaines), garde-corps du trou
+  d'arrivee. Pas d'etage 11 ferme (deja le cas : FloorService s'arrete a MaxFloors).
 
 ## Modeles dans Studio (lot 1, fait le 2026-11-20)
 

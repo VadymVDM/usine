@@ -42,7 +42,12 @@ function Floors.Tags(n: number, closed: boolean): { [string]: boolean }
 	tags[if n == 1 then "Ground" else "Upper"] = true
 	local stair = Floors.StairLane(n)
 	local hole = Floors.HoleLane(n)
-	tags["Stair" .. stair] = true
+	-- Dernier etage (MaxFloors) : pas d'escalier qui monte (rien au-dessus) ; sa voie reste une
+	-- dalle pleine (tag Solid). Lampes et toit de la cage d'ascenseur : FloorAssembly (2026-11-27).
+	if n < Floors.MaxFloors then
+		tags["Stair" .. stair] = true
+	end
+	tags[if n >= Floors.MaxFloors then "Top" else "NotTop"] = true
 	for _, lane in { "A", "B" } do
 		if lane == hole then
 			tags["Hole" .. lane] = true
