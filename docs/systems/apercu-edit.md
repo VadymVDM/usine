@@ -78,6 +78,14 @@ En tete du script : `FLOORS` (10), `SLOT` (1), `REMOVE`. Le reste vient de la Co
   par Team Create (verifie le 2026-11-27 : construit dans une fenetre, absent dans une 2e fenetre de la
   meme place). D'ou le bouton.
 - Le bouton ne s'allume pas visiblement quand l'apercu existe (`SetActive` peu visible) : a revoir si genant.
+- **Le bouton peut construire une vieille version** (vu le 2026-11-27 : ancienne fleche du tuto et PNJ
+  R6). Il embarque une copie de `preview-factory.luau` faite au lancement de `start-rojo.bat` (12:45),
+  et Studio garde en memoire le plugin charge a l'ouverture de la place. Verifie : plugin reconstruit
+  a 18:12, clic a 18:13 = toujours l'ancienne copie. Donc apres une modif de l'apercu : relancer
+  `start-rojo.bat` (ou `rojo build tools/studio-plugin/plugin.project.json --plugin UsineTools.rbxm`)
+  ET rouvrir la place. En attendant : lancer `preview-factory.luau` par MCP `execute_luau` (toujours
+  la version du disque). Piste pour en finir : un plugin qui lit le script dans la place (synchronise
+  par Rojo comme le reste du code) au lieu d'en garder une copie.
 - Retouches a la main a reporter dans le moule (FloorTemplate / BaseTemplate) : pas fait. Attention :
   les scripts `tools/build-map/02*` recreent le moule et effaceraient ces retouches.
 - Pas montres (passagers ou lies a un joueur) : bulles d'attente des clients, textes "+$" des ventes,
