@@ -49,7 +49,7 @@ local TEXT_STROKE = Color3.fromRGB(20, 16, 28)
 local DIRT = Color3.fromRGB(150, 105, 62)
 local DIRT_DARK = Color3.fromRGB(110, 76, 46)
 local SPARKLE_GOLD = Color3.fromRGB(255, 225, 80)
-local KEEP_GUIS = { IntroGui = true, TouchGui = true } -- jamais caches par l'intro
+local KEEP_GUIS = { IntroGui = true, IntroBubbles = true, TouchGui = true } -- jamais caches par l'intro
 local TIMES = Intro.Times
 local SHOVEL_LENGTH = 5.2 * Intro.ShovelScale -- poignee -> bout de la lame (studs)
 local LOWER_HAND = 1.6 -- main gauche plus bas sur le manche (studs depuis la poignee)
@@ -499,13 +499,17 @@ end
 ---------------------------------------------------------------------------------------------
 -- Interface : bandes noires, blanc, bulles
 
-type Ui = { gui: ScreenGui, fade: Frame }
+type Ui = { gui: ScreenGui, fade: Frame, bubbles: ScreenGui }
 
 local function makeUi(): Ui
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "IntroGui"
 	gui.ResetOnSpawn = false
 	gui.IgnoreGuiInset = true
+	-- Bandes noires et blanc d'un bord a l'autre (2026-11-27) : avec IgnoreGuiInset seul, Roblox met
+	-- DeviceSafeInsets et, sur un telephone a encoche ou a coins arrondis, ils s'arretaient avant les
+	-- bords gauche et droit (iPhone 17 Pro simule : 750 px sur 874). None : tout l'ecran.
+	gui.ScreenInsets = Enum.ScreenInsets.None
 	gui.DisplayOrder = 200
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	for i, anchor in { 0, 1 } do
@@ -526,8 +530,20 @@ local function makeUi(): Ui
 	fade.BorderSizePixel = 0
 	fade.ZIndex = 5
 	fade.Parent = gui
-	gui.Parent = player:WaitForChild("PlayerGui")
-	return { gui = gui, fade = fade }
+	-- Bulles dans un ecran a part, reste en DeviceSafeInsets : son coin est celui de
+	-- WorldToViewportPoint. Dans l'ecran None, une bulle tombait a cote de la tete sur un telephone
+	-- a encoche (decalee de la largeur de l'encoche, vu au simulateur le 2026-11-27).
+	local bubbles = Instance.new("ScreenGui")
+	bubbles.Name = "IntroBubbles"
+	bubbles.ResetOnSpawn = false
+	bubbles.IgnoreGuiInset = true
+	bubbles.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
+	bubbles.DisplayOrder = 201 -- au-dessus des bandes ; jamais en meme temps que le blanc
+	bubbles.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	local playerGui = player:WaitForChild("PlayerGui")
+	gui.Parent = playerGui
+	bubbles.Parent = playerGui
+	return { gui = gui, fade = fade, bubbles = bubbles }
 end
 
 -- Bulle "Wow!" / "?" / "!" au-dessus de la tete. Dessinee dans l'ecran de l'intro (ScreenGui) et placee
@@ -1078,6 +1094,7 @@ local function play()
 				child:Destroy()
 			end
 		end
+		ui.bubbles:Destroy()
 		unlockPlayer(lock)
 		activeLock = nil
 		local remote = Remotes.WaitClientEvent("IntroDone")
@@ -1634,7 +1651,7 @@ local function play()
 	end
 	at(TIMES.notice, function()
 		-- Il a vu quelque chose au loin
-		bubble(ui.gui, actorRig, Intro.NoticeText, Color3.fromRGB(255, 220, 60), 0.9)
+		bubble(ui.bubbles, actorRig, Intro.NoticeText, Color3.fromRGB(255, 220, 60), 0.9)
 		playSound("Notify")
 		fovKick(Intro.NoticeFovKick, 0.35)
 		if treeTwinkle then
@@ -1645,7 +1662,7 @@ local function play()
 		playSound("TreeChime")
 	end)
 	at(TIMES.wow + 0.15, function()
-		bubble(ui.gui, actorRig, Intro.WowText, Color3.fromRGB(255, 220, 60), 1.0)
+		bubble(ui.bubbles, actorRig, Intro.WowText, Color3.fromRGB(255, 220, 60), 1.0)
 		playSound("NewFruit")
 		fovKick(Intro.WowFovKick, 0.45)
 		local head = actorRig.head
@@ -1744,11 +1761,11 @@ local function play()
 		dirtBurst(setModel, feet() + actorRig.root.CFrame.LookVector, actorRig.root.CFrame.LookVector, 5, 0.5)
 	end)
 	at(TIMES.think, function()
-		bubble(ui.gui, actorRig, Intro.ThinkText, Color3.new(1, 1, 1), 0.9)
+		bubble(ui.bubbles, actorRig, Intro.ThinkText, Color3.new(1, 1, 1), 0.9)
 		playSound("Notify")
 	end)
 	at(TIMES.idea, function()
-		bubble(ui.gui, actorRig, Intro.IdeaText, Color3.fromRGB(255, 220, 60), 0.9)
+		bubble(ui.bubbles, actorRig, Intro.IdeaText, Color3.fromRGB(255, 220, 60), 0.9)
 		playSound("Notify")
 		shovelTwinkle.Enabled = true
 		sparkles(setModel, stuckCf.Position, SPARKLE_GOLD, 15)
@@ -2105,9 +2122,12 @@ function IntroController.Start()
 				activeMood.restore()
 				activeMood = nil
 			end
-			local gui = player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild("IntroGui")
-			if gui then
-				gui:Destroy()
+			local playerGui = player:FindFirstChild("PlayerGui")
+			for _, name in { "IntroGui", "IntroBubbles" } do
+				local gui = playerGui and playerGui:FindFirstChild(name)
+				if gui then
+					gui:Destroy()
+				end
 			end
 			local set = workspace:FindFirstChild("IntroSet")
 			if set then

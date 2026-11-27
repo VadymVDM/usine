@@ -66,6 +66,13 @@ grand arbre = origine, la marche va vers +X, les cameras sont cote +Z.
      de repos des epaules calculee par la chaine des articulations, buste penche / tourne compris ;
      les poses de pelle sont corrigees pour la vraie hauteur du personnage (`gripDrop`) ;
    - camera `Scriptable` (plans `Intro.Shots`, glissement doux ou coupe), bandes noires ;
+   - **ecrans de l'intro (2026-11-27, "responsive sur tous les telephones")** : `IntroGui` (bandes
+     noires + blanc) est en `ScreenInsets.None` : d'un bord a l'autre de l'ecran, encoche et coins
+     arrondis compris. Avant, `IgnoreGuiInset = true` seul le mettait en `DeviceSafeInsets` : sur un
+     telephone a encoche, les bandes s'arretaient avant les bords gauche et droit (iPhone 17 Pro
+     simule : 750 px sur 874, le jeu visible des deux cotes). Les bulles ("!", "Wow!", "?") sont dans
+     un 2e ecran, `IntroBubbles`, reste en `DeviceSafeInsets` : son coin est celui de
+     `WorldToViewportPoint` (dans l'ecran None, une bulle tombait ~62 px a cote de la tete) ;
    - **lumiere de cinema** (`Intro.Mood`, 2026-11-27), posee sous le blanc du debut et remise sous
      le blanc de la fin : soleil du matin (`ClockTime` 9.2, latitude 50 : a ~40 degres, cote camera
      et devant lui, donc ombres longues et visages eclaires), `Brightness`, `ColorShift_Top` dore,
@@ -235,6 +242,18 @@ Revoir la cinematique : panneau admin > Player > **Replay Intro** (ou, cote serv
   - Attention pendant un test MCP : un appel `execute_luau` qui dure pendant la fin de la
     cinematique remet le type de camera du debut de l'appel (`Scriptable`) : remettre `Custom` a la
     main. Ce n'est pas le jeu.
+- **Bandes noires sur telephone (2026-11-27, 23 h, simulateur de Studio, Play, R15)** :
+  - A/B en mode Edit, meme bande de 10 % : ancien reglage = 750 px sur 874 (iPhone 17 Pro) et 685
+    sur 779 (Galaxy S25 Ultra), le jeu visible a gauche et a droite ; nouveau = toute la largeur.
+    Capture : `docs/references/cinematique/2026-11-27-bandes-avant-apres.jpg` (rouge = ancien,
+    vert = nouveau ; le point rouge, ecran DeviceSafeInsets, est pile sur la boule jaune, le vert
+    a cote : d'ou l'ecran a part pour les bulles) ;
+  - Play, iPhone 17 Pro, fige a 8 s : `IntroGui` et les 2 bandes de x = -62 a 812 (tout l'ecran),
+    "Wow!" pile au-dessus de la tete. Capture : `2026-11-27-bandes-iphone-wow.jpg` ;
+  - fin : `IntroGui`, `IntroBubbles`, `IntroSet` supprimes, camera `Custom`, 0 erreur de script.
+  - Pas teste sur un vrai telephone (le simulateur ne fait pas la vraie encoche) ni en portrait.
+  - Vu au passage : sur telephone, le joystick et le bouton de saut (`TouchGui`, jamais cache par
+    l'intro) restent affiches par-dessus la cinematique.
 - **Charge pour un telephone (2026-11-27, 21 h, Play Studio PC, qualite 21 puis 3)** : rejouee en
   entier, 28.1 s, 0 erreur. 12 000 a 91 000 triangles et 19 a 115 appels de dessin selon la phase
   (repere Roblox : 800 000 / 600), memes chiffres en qualite 3 (montagnes toujours la, ombres a 0).
