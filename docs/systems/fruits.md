@@ -103,6 +103,9 @@ raison de visiter ses etages.
   1. le fond s'assombrit un peu ; le fruit en 3D (ViewportFrame, modele de `FruitAssets`) arrive au
      centre de l'ecran en grossissant et tourne ;
   2. au-dessus : "NEW FRUIT!" ; en dessous : le nom, la rarete dans sa couleur, la chance "1 in X" ;
+     ces textes tombent / montent a leur place en fondu (ressort sur la position), **sans grossir**
+     (depuis le 2026-11-27 : un texte qui grossit clignote sur telephone, voir `interface.md`
+     "Textes animes") ;
   3. confettis aux couleurs de la rarete (reutiliser `Fx/Celebration.luau`) + son ; plus fort pour
      les raretes hautes (Legendary+ : rayons qui tournent derriere le fruit) ;
   4. apres ~2 s, le fruit rapetisse et **vole jusqu'au bouton Index** a gauche ; le bouton

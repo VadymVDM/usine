@@ -25,6 +25,7 @@ local SoundFx = require(Shared:WaitForChild("Util"):WaitForChild("SoundFx")) :: 
 local FruitModels = require(Shared:WaitForChild("FruitModels")) :: any
 local NumberFormat = require(Shared:WaitForChild("Util"):WaitForChild("NumberFormat"))
 local PackStyle = require(script.Parent.Parent:WaitForChild("UI"):WaitForChild("PackStyle"))
+local TextPop = require(script.Parent.Parent:WaitForChild("UI"):WaitForChild("TextPop"))
 
 local MENU_NAME = "Upgrade"
 local TITLE = "Upgrades"
@@ -216,16 +217,14 @@ local function fadeOut(label: TextLabel, delay: number, duration: number)
 	end
 end
 
--- Texte qui apparait en rebondissant puis monte et s'efface
+-- Texte qui apparait en fondu, monte et s'efface (sans grossir : sur telephone un texte qui
+-- grossit clignote, UI/TextPop)
 local function floatText(text: string, color: Color3, at: Vector2, height: number, rise: number)
 	local label = PackStyle.label(fxLayer(), text, UDim2.fromOffset(at.X, at.Y), UDim2.fromOffset(height * 5, height), 90)
 	label.AnchorPoint = Vector2.new(0.5, 0.5)
 	label.TextColor3 = color
 	label.ZIndex = 20
-	local scale = Instance.new("UIScale")
-	scale.Scale = 0.3
-	scale.Parent = label
-	TweenService:Create(scale, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+	TextPop.FadeIn(label)
 	TweenService:Create(label, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 		Position = UDim2.fromOffset(at.X, at.Y - rise),
 	}):Play()

@@ -21,7 +21,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 
 local Config = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config")
 local Setup = require(Config:WaitForChild("Setup"))
@@ -35,6 +34,7 @@ local NumberFormat = require(Shared:WaitForChild("Util"):WaitForChild("NumberFor
 local MachineModels = require(Shared:WaitForChild("Util"):WaitForChild("MachineModels"))
 local TutorialArrow = require(Shared:WaitForChild("Util"):WaitForChild("TutorialArrow"))
 local FloorWatch = require(script.Parent.Parent:WaitForChild("Util"):WaitForChild("FloorWatch"))
+local TextPop = require(script.Parent.Parent:WaitForChild("UI"):WaitForChild("TextPop"))
 
 local TutorialController = {}
 
@@ -232,8 +232,8 @@ local function buildBanner(): (ScreenGui, TextLabel)
 	stroke.Thickness = 3
 	stroke.Color = TEXT_STROKE
 	stroke.Parent = label
-	local scale = Instance.new("UIScale")
-	scale.Parent = label
+	-- Pas d'UIScale : faire grossir ce texte a chaque nouvelle etape le faisait clignoter sur
+	-- telephone (UI/TextPop explique pourquoi). Il tombe a sa place en fondu.
 	label.Parent = gui
 	-- Petite ligne sous l'objectif : le but de l'etape quand le geste a faire est autre chose
 	-- (ex. "Fruit Picker: $20 / $25" pendant qu'on fait des jus)
@@ -299,7 +299,6 @@ function TutorialController.Start()
 	local beams, from, to = buildGuide()
 	to.Parent = workspace.Terrain
 	local _, label = buildBanner()
-	local scale = label:FindFirstChildOfClass("UIScale") :: UIScale
 	local goal = (label.Parent :: Instance):FindFirstChild("Goal") :: TextLabel
 
 	local pointer = buildPointer()
@@ -423,10 +422,8 @@ function TutorialController.Start()
 		if newTarget then
 			if label.Text ~= newTarget.text then
 				label.Text = newTarget.text
-				scale.Scale = 0.6
-				TweenService:Create(scale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-					Scale = 1,
-				}):Play()
+				-- Nouvelle etape : le texte tombe de 18 px avec un petit rebond, sans changer de taille
+				TextPop.In(label, { drop = 18, duration = 0.35 })
 			end
 			label.Visible = newTarget.text ~= ""
 			goal.Text = newTarget.sub or ""

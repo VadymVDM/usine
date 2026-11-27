@@ -24,6 +24,7 @@ local SoundFx = require(Shared:WaitForChild("Util"):WaitForChild("SoundFx")) :: 
 local PackStyle = require(script.Parent.Parent:WaitForChild("UI"):WaitForChild("PackStyle"))
 local Jelly = require(script.Parent.Parent:WaitForChild("Fx"):WaitForChild("Jelly"))
 local Celebration = require(script.Parent.Parent:WaitForChild("Fx"):WaitForChild("Celebration"))
+local TextPop = require(script.Parent.Parent:WaitForChild("UI"):WaitForChild("TextPop"))
 local FloorWatch = require(script.Parent.Parent:WaitForChild("Util"):WaitForChild("FloorWatch"))
 
 local NEW_FLOOR_SOUND = "NewFruit" -- "Cute level up" (Config/Sounds)
@@ -282,9 +283,6 @@ local function showNewFloor(k: number, floor: Model)
 	holder.Position = UDim2.fromScale(0.5, 0.4)
 	holder.Size = UDim2.fromScale(0.8, 0.26)
 	holder.BackgroundTransparency = 1
-	local scale = Instance.new("UIScale")
-	scale.Scale = 0.2
-	scale.Parent = holder
 	local title = PackStyle.label(holder, "NEW FLOOR!", UDim2.fromScale(0.5, 0), UDim2.fromScale(1, 0.66), 110)
 	local titleGradient = Instance.new("UIGradient")
 	titleGradient.Rotation = 90
@@ -293,6 +291,10 @@ local function showNewFloor(k: number, floor: Model)
 	local color = floorColor(k)
 	local sub = PackStyle.label(holder, `Floor {k}`, UDim2.fromScale(0.5, 0.68), UDim2.fromScale(0.8, 0.3), 50)
 	sub.TextColor3 = color
+	-- Chute "gelee" en fondu, sans grossir (un texte qui grossit clignote sur telephone : UI/TextPop)
+	local spring = Jelly.Spring(260, 9)
+	spring.x = -0.8
+	local drop = TextPop.NewDrop(holder, spring, 0.3)
 	holder.Parent = screen
 	screen.Parent = player:WaitForChild("PlayerGui")
 	SoundFx.Play(NEW_FLOOR_SOUND)
@@ -302,15 +304,12 @@ local function showNewFloor(k: number, floor: Model)
 	local center = floor:GetPivot():PointToWorldSpace(FIREWORKS_OFFSET)
 	Celebration.Fireworks(center, party, 34, 8, 27) -- eclatent sous le plafond (dalle a 35)
 
-	-- Pop gelee, leger balancement, puis fondu
-	local spring = Jelly.Spring(260, 9)
-	spring.x = -0.8
+	-- Chute gelee, leger balancement, puis fondu (le fondu de la fin reprend la main sur les textes)
 	local elapsed = 0
 	local connection: RBXScriptConnection
 	connection = RunService.RenderStepped:Connect(function(dt: number)
 		elapsed += dt
-		Jelly.Step(spring, dt)
-		scale.Scale = math.max(0.05, 1 + spring.x)
+		TextPop.StepDrop(drop, dt, elapsed < NEW_FLOOR_SECONDS)
 		holder.Rotation = math.sin(elapsed * 5) * 3 * math.max(0, 1 - elapsed / NEW_FLOOR_SECONDS)
 		if elapsed >= NEW_FLOOR_SECONDS + 0.4 then
 			connection:Disconnect()

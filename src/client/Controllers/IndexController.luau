@@ -24,6 +24,7 @@ local SoundFx = require(Shared:WaitForChild("Util"):WaitForChild("SoundFx")) :: 
 local NumberFormat = require(Shared:WaitForChild("Util"):WaitForChild("NumberFormat"))
 local FruitModels = require(Shared:WaitForChild("FruitModels")) :: any
 local PackStyle = require(script.Parent.Parent:WaitForChild("UI"):WaitForChild("PackStyle"))
+local TextPop = require(script.Parent.Parent:WaitForChild("UI"):WaitForChild("TextPop"))
 local Celebration = require(script.Parent.Parent:WaitForChild("Fx"):WaitForChild("Celebration"))
 
 local MENU_NAME = "Index"
@@ -394,16 +395,15 @@ local function onClaimed(fruitId: string, amount: number)
 			root,
 			"+" .. NumberFormat.Money(amount),
 			UDim2.fromOffset(start.X, start.Y),
-			UDim2.fromOffset(card.frame.AbsoluteSize.X * 1.6, card.frame.AbsoluteSize.X * 0.45),
-			40
+			-- Taille finale d'avant (ancien pop qui finissait a x1.15), sans animation de taille
+			UDim2.fromOffset(card.frame.AbsoluteSize.X * 1.6 * 1.15, card.frame.AbsoluteSize.X * 0.45 * 1.15),
+			46
 		)
 		pop.AnchorPoint = Vector2.new(0.5, 0.5)
 		pop.TextColor3 = PackStyle.MONEY_GREEN
 		pop.ZIndex = 30
-		local scale = Instance.new("UIScale")
-		scale.Scale = 0.4
-		scale.Parent = pop
-		TweenService:Create(scale, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1.15 }):Play()
+		-- Apparait en fondu et monte, sans grossir (un texte qui grossit clignote sur telephone : UI/TextPop)
+		TextPop.FadeIn(pop)
 		local rise = TweenInfo.new(0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 		TweenService:Create(pop, rise, { Position = pop.Position - UDim2.fromOffset(0, card.frame.AbsoluteSize.Y * 0.8) }):Play()
 		task.delay(0.55, function()

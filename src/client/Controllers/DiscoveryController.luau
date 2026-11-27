@@ -5,7 +5,8 @@
 --   1. le fond s'assombrit un peu ; le fruit en 3D (ViewportFrame, il tourne sur lui-meme) arrive au
 --      centre en grossissant (pop "gelee") ;
 --   2. au-dessus "NEW FRUIT!" (degrade dore comme "NEW FLOOR!"), en dessous le nom, la rarete dans sa
---      couleur et "1 in X" (pas pour le Common) ;
+--      couleur et "1 in X" (pas pour le Common) ; ces textes tombent / montent a leur place en
+--      fondu, sans jamais grossir (UI/TextPop : sinon ils clignotent sur telephone) ;
 --   3. confettis aux couleurs de la rarete + son ; Legendary+ : rayons qui tournent derriere le
 --      fruit, 2e salve de confettis et 2e son ;
 --   4. apres ~2 s (ou un clic / tap / bouton A), le fruit rapetisse et vole jusqu'au bouton Index du
@@ -31,6 +32,7 @@ local FruitModels = require(Shared:WaitForChild("FruitModels")) :: any
 local PackStyle = require(script.Parent.Parent:WaitForChild("UI"):WaitForChild("PackStyle"))
 local Jelly = require(script.Parent.Parent:WaitForChild("Fx"):WaitForChild("Jelly"))
 local Celebration = require(script.Parent.Parent:WaitForChild("Fx"):WaitForChild("Celebration"))
+local TextPop = require(script.Parent.Parent:WaitForChild("UI"):WaitForChild("TextPop"))
 
 local DISPLAY_ORDER = 48 -- au-dessus de "NEW FLOOR!" (45), sous les confettis (50)
 local DIM_TRANSPARENCY = 0.6 -- fond noir
@@ -40,6 +42,7 @@ local SKIP_DELAY = 0.35 -- s : un clic avant ce delai ne passe pas (evite le cli
 local SAFETY_SECONDS = 8 -- securite : une decouverte ne bloque jamais la file plus longtemps
 local SPIN_SPEED = 1.1 -- rad/s : rotation lente du fruit
 local FRUIT_Y = 0.45 -- centre du fruit dans la carte (fraction de la hauteur)
+local TEXT_DROP = 0.3 -- chute des textes a l'arrivee (fraction de la hauteur de la carte)
 local BIG_RARITY = 5 -- Legendary et plus : rayons + effets plus forts
 local RAY_COUNT = 10 -- barres (2 rayons chacune)
 local RAY_SPEED = 28 -- degres / s
@@ -301,9 +304,6 @@ local function playOne(fruitId: string)
 	titleGradient.Rotation = 90
 	titleGradient.Color = ColorSequence.new(GOLD[1], GOLD[2])
 	titleGradient.Parent = title
-	local titleScale = Instance.new("UIScale")
-	titleScale.Scale = 0.05
-	titleScale.Parent = title
 
 	local info = Instance.new("Frame")
 	info.Name = "Info"
@@ -313,9 +313,6 @@ local function playOne(fruitId: string)
 	info.Size = UDim2.fromScale(1, 0.26)
 	info.BackgroundTransparency = 1
 	info.ZIndex = 6
-	local infoScale = Instance.new("UIScale")
-	infoScale.Scale = 0.05
-	infoScale.Parent = info
 	info.Parent = card
 	local labels: { TextLabel } = { title }
 	local nameLabel = PackStyle.label(info, fruit.name, UDim2.fromScale(0.5, 0), UDim2.fromScale(0.95, 0.42), 54)
@@ -331,6 +328,15 @@ local function playOne(fruitId: string)
 		chance.ZIndex = 7
 		table.insert(labels, chance)
 	end
+	-- Les textes arrivent en "gelee" SANS grossir (sur telephone, un texte qui grossit clignote :
+	-- UI/TextPop) : "NEW FRUIT!" tombe d'en haut, les infos montent d'en bas, en fondu. Le fruit 3D,
+	-- lui, garde son pop qui grossit (pas de texte dedans).
+	local titleSpring = Jelly.Spring(300, 12)
+	titleSpring.x = -0.95
+	local titleDrop = TextPop.NewDrop(title, titleSpring, TEXT_DROP)
+	local infoSpring = Jelly.Spring(300, 12)
+	infoSpring.x = -0.95
+	local infoDrop = TextPop.NewDrop(info, infoSpring, -TEXT_DROP)
 
 	screen.Parent = playerGui
 
@@ -365,10 +371,6 @@ local function playOne(fruitId: string)
 	local angle = 0
 	local fruitSpring = Jelly.Spring(240, 11)
 	fruitSpring.x = -0.95
-	local titleSpring = Jelly.Spring(300, 12)
-	titleSpring.x = -0.95
-	local infoSpring = Jelly.Spring(300, 12)
-	infoSpring.x = -0.95
 	-- Vol (rempli par beginFly)
 	local flyStart = 0
 	local from, control, target = Vector2.zero, Vector2.zero, Vector2.zero
@@ -462,13 +464,11 @@ local function playOne(fruitId: string)
 			Jelly.Step(fruitSpring, dt)
 			fruitScale.Scale = math.max(0.05, 1 + fruitSpring.x)
 			if elapsed > 0.06 then
-				Jelly.Step(titleSpring, dt)
+				TextPop.StepDrop(titleDrop, dt)
 			end
 			if elapsed > 0.14 then
-				Jelly.Step(infoSpring, dt)
+				TextPop.StepDrop(infoDrop, dt)
 			end
-			titleScale.Scale = math.max(0.05, 1 + titleSpring.x)
-			infoScale.Scale = math.max(0.05, 1 + infoSpring.x)
 			title.Rotation = math.sin(elapsed * 5) * 3 * math.max(0, 1 - elapsed / HOLD_SECONDS)
 			if elapsed >= HOLD_SECONDS then
 				beginFly()

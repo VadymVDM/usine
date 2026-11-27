@@ -1,7 +1,7 @@
 # Systeme : Interface (HUD et menus)
 
 **Statut :** en cours
-**Derniere mise a jour :** 2026-11-20 (infobulle au survol des fruits et jus)
+**Derniere mise a jour :** 2026-11-27 (textes animes sans changement de taille : `UI/TextPop`, clignotement sur telephone)
 
 ## Role
 
@@ -39,6 +39,7 @@ sont encore ceux du pack (textes "[Name]", "Item Name", "$123,456,789"), pas bra
 | `src/client/UI/ButtonFx.luau` | client | Animation commune de tous les boutons (survol, appui, rebond, sons) |
 | `src/client/Controllers/ButtonFxController.luau` | client | Branche ButtonFx sur tous les boutons de PlayerGui, meme crees plus tard |
 | `src/client/UI/PackStyle.luau` | client | **Source unique du style** : police, couleurs des boutons et de l'en-tete, texte, boutons, Robux, prix |
+| `src/client/UI/TextPop.luau` | client | Faire apparaitre un texte **sans changer sa taille** (chute avec rebond, fondu, ressort "gelee" sur la position) : voir "Textes animes" |
 | `src/shared/Config/Shop.luau` | partage | Boosts, passes, packs d'argent (prix, ids Roblox) |
 | `src/shared/Config/Icons.luau` | partage | Ids des images de l'interface |
 | `assets/icons/` | disque | Icones choisies dans ICONSPACK, a mettre en ligne |
@@ -262,6 +263,39 @@ Regle : une seule apparence. Toute interface nouvelle prend police, couleurs et 
   `WorldLabel` cree directement ses contours en `ScaledSize` (0.06). Les menus 2D (shop, HUD) ne
   sont pas concernes : ceux du pack sont deja en `ScaledSize`.
   Teste dans Studio : carte "Terrace" a ~12 studs et a ~75 studs.
+
+### Textes animes : jamais de changement de taille (2026-11-27)
+
+Bug vu sur telephone : "Pick up the fruits", "NEW FRUIT!"... saccadaient, des lettres
+apparaissaient / disparaissaient ou clignotaient en noir.
+
+- **Cause** (equipe texte de Roblox, DevForum "All About Text - Best Practices" et "UI Flickering -
+  Unable to fix") : toutes les lettres affichees sont rangees dans une seule image partagee (atlas
+  de glyphes). Chaque lettre x taille x epaisseur de contour y prend sa place, et un telephone
+  dessine les lettres ~3 fois plus grandes qu'un PC (ecran plus dense). Un texte qu'on fait grossir
+  (UIScale, TextSize) cree une nouvelle taille a chaque image : l'atlas deborde, Roblox jette des
+  lettres pour faire de la place, elles clignotent (le contour fonce reste parfois seul = lettre
+  noire). Les gros textes qui grossissaient depuis presque 0 etaient les pires.
+- **Mesure (Studio PC, 2026-11-27)** : l'ancien pop de "NEW FRUIT!" (UIScale 0.05 -> 1, ressort)
+  dessinait le titre en 20 tailles differentes en 1.6 s ; la carte entiere ~80. Maintenant : 1 taille
+  par texte (4 textes, 4 tailles).
+- **Regle** : un texte apparait a sa taille finale. On anime sa **position, sa transparence, sa
+  rotation** (la rotation tourne l'image des lettres, elle n'en cree pas de nouvelles). Outil commun :
+  `UI/TextPop` : `In` (tombe a sa place avec un petit depassement + fondu), `FadeIn` (fondu seul,
+  pour un texte qui bouge deja), `NewDrop` / `StepDrop` (ressort Jelly sur la position + fondu, pour
+  garder l'effet "gelee"). Le fruit 3D de "NEW FRUIT!" garde son pop qui grossit (pas de texte).
+- **Passe a TextPop** : objectif du tuto (`TutorialController`), carte "NEW FRUIT!"
+  (`DiscoveryController`), bandeaux "NEW FLOOR!" (`FloorController`) et REBIRTH
+  (`RebirthController`), compteur "+$X" et texte Auto Collect (`CashController`), "+$X" du CLAIM de
+  l'Index (taille finale = celle d'avant, x1.15), textes qui flottent du menu Upgrade, "+1 Apple" du
+  ramassage (`InventoryController`).
+- **Reste (toleres pour l'instant, a surveiller sur telephone)** : petits rebonds autour de 1 (appui
+  et survol des boutons `ButtonFx`, montant du HUD, compteur "+$X" a chaque billet, nom d'etage du
+  selecteur, pulsation du bouton vise par le tuto) : peu de tailles, toujours les memes, deja en
+  memoire ; ouverture des menus (UIScale 0.74 -> 1.025 -> 1 sur tout le menu) ; billets "$" qui
+  volent ; panneaux 3D (`BillboardGui`) en `TextScaled` avec contours `ScaledSize` : leur taille
+  change avec la distance (DevForum : "especially bad"). Si des lettres clignotent encore sur
+  telephone en marchant ou en ouvrant un menu, c'est la prochaine piste.
 
 ### Espacements et bouton X (2026-11-19 soir)
 

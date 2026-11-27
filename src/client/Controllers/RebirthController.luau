@@ -29,6 +29,7 @@ local NumberFormat = require(Util:WaitForChild("NumberFormat"))
 local PackStyle = require(script.Parent.Parent:WaitForChild("UI"):WaitForChild("PackStyle"))
 local Celebration = require(script.Parent.Parent:WaitForChild("Fx"):WaitForChild("Celebration"))
 local Jelly = require(script.Parent.Parent:WaitForChild("Fx"):WaitForChild("Jelly"))
+local TextPop = require(script.Parent.Parent:WaitForChild("UI"):WaitForChild("TextPop"))
 
 local MENU_NAME = "Rebirth"
 local PROMPT_NAME = "RebirthPrompt"
@@ -383,9 +384,6 @@ local function celebrate(count: number)
 	holder.Size = UDim2.fromScale(0.8, 0.3)
 	holder.BackgroundTransparency = 1
 	holder.ZIndex = 2
-	local scale = Instance.new("UIScale")
-	scale.Scale = 0.2
-	scale.Parent = holder
 	local title = PackStyle.label(holder, Rebirth.Texts.Banner, UDim2.fromScale(0.5, 0), UDim2.fromScale(1, 0.62), 120)
 	title.ZIndex = 3
 	local gradient = Instance.new("UIGradient")
@@ -396,6 +394,10 @@ local function celebrate(count: number)
 	local sub = PackStyle.label(holder, string.format(Rebirth.Texts.BannerSub, multiplier), UDim2.fromScale(0.5, 0.64), UDim2.fromScale(0.7, 0.34), 64)
 	sub.TextColor3 = PackStyle.MONEY_GREEN
 	sub.ZIndex = 3
+	-- Chute "gelee" en fondu, sans grossir (un texte qui grossit clignote sur telephone : UI/TextPop)
+	local spring = Jelly.Spring(260, 9)
+	spring.x = -0.8
+	local drop = TextPop.NewDrop(holder, spring, 0.3)
 	holder.Parent = screen
 	screen.Parent = player:WaitForChild("PlayerGui")
 	SoundFx.Play(CELEBRATE_SOUND)
@@ -405,15 +407,12 @@ local function celebrate(count: number)
 	if root and root:IsA("BasePart") then
 		Celebration.Fireworks(root.Position, PARTY, 22, 8, 22)
 	end
-	-- Pop gelee, leger balancement, puis fondu (comme "NEW FLOOR!")
-	local spring = Jelly.Spring(260, 9)
-	spring.x = -0.8
+	-- Chute gelee, leger balancement, puis fondu (comme "NEW FLOOR!")
 	local elapsed = 0
 	local connection: RBXScriptConnection
 	connection = RunService.RenderStepped:Connect(function(dt: number)
 		elapsed += dt
-		Jelly.Step(spring, dt)
-		scale.Scale = math.max(0.05, 1 + spring.x)
+		TextPop.StepDrop(drop, dt, elapsed < BANNER_SECONDS)
 		holder.Rotation = math.sin(elapsed * 5) * 3 * math.max(0, 1 - elapsed / BANNER_SECONDS)
 		if elapsed >= BANNER_SECONDS + 0.4 then
 			connection:Disconnect()

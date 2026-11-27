@@ -138,3 +138,6 @@ ex. "jus deja poses", repart de zero).
 - Tests Studio : `game.ServerStorage.Debug.Call:Invoke("Tutorial", "Get" | "Set", "<Nom>", n)`.
 - L'objectif est un texte en haut de l'ecran (ScreenGui `TutorialGui`, zone sure) : verifier qu'il ne
   gene pas le HUD sur petit ecran.
+- Depuis le 2026-11-27, un nouvel objectif tombe de 18 px a sa place en fondu (`UI/TextPop.In`) au
+  lieu de grossir (UIScale 0.6 -> 1) : sur telephone, le texte qui grossit faisait clignoter ses
+  lettres (voir `interface.md`, "Textes animes").

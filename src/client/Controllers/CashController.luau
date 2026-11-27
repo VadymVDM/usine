@@ -26,6 +26,7 @@ local SoundFx = require(Util:WaitForChild("SoundFx"))
 local CashController = {}
 
 local PackStyle = require(script.Parent.Parent:WaitForChild("UI"):WaitForChild("PackStyle"))
+local TextPop = require(script.Parent.Parent:WaitForChild("UI"):WaitForChild("TextPop"))
 local FONT = PackStyle.FONT -- police commune de l'interface
 local CASH_GREEN = PackStyle.MONEY_GREEN
 local CASH_STROKE = PackStyle.MONEY_STROKE -- meme contour que le montant du HUD
@@ -246,13 +247,14 @@ local function getCounter(): Counter?
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.TextColor3 = CASH_GREEN -- meme vert uni que le montant du HUD (pas de degrade)
 	local stroke = PackStyle.stroke(label, 3, CASH_STROKE)
+	-- UIScale gardee pour les petits rebonds (bump) ; l'apparition se fait en fondu, sans grossir
+	-- depuis 0.2 (sur telephone un texte qui grossit clignote : UI/TextPop)
 	local scale = Instance.new("UIScale")
-	scale.Scale = 0.2
 	scale.Parent = label
 	local created: Counter = { label = label, stroke = stroke, scale = scale, height = height, shown = 0, token = 0 }
 	placeCounter(created, spot)
 	label.Parent = gui
-	TweenService:Create(scale, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+	TextPop.FadeIn(label)
 	counter = created
 	wake() -- le compteur suit le bord droit du montant (qui s'allonge en comptant)
 	return created
@@ -341,11 +343,11 @@ local function autoCashText(amount: number)
 		label.TextXAlignment = Enum.TextXAlignment.Left
 		label.TextColor3 = CASH_GREEN
 		local stroke = PackStyle.stroke(label, 2.5, CASH_STROKE)
+		-- UIScale gardee pour le petit rebond quand le montant augmente ; apparition en fondu
 		local scale = Instance.new("UIScale")
-		scale.Scale = 0.3
 		scale.Parent = label
 		label.Parent = gui
-		TweenService:Create(scale, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+		TextPop.FadeIn(label)
 		current = { label = label, stroke = stroke, scale = scale, height = height, sum = amount, token = 0 }
 		autoText = current
 	end

@@ -136,11 +136,9 @@ local function floatText(text: string)
 	limit.MaxTextSize = math.floor(28 * k)
 	limit.Parent = label
 	local stroke = PackStyle.stroke(label, 2.5, PackStyle.TEXT_STROKE)
-	local scale = Instance.new("UIScale")
-	scale.Scale = 0.6
-	scale.Parent = label
+	-- Plus de pop qui grossit (0.6 -> 1) : sur telephone un texte qui grossit clignote (UI/TextPop).
+	-- Il apparait a sa taille, monte et s'efface.
 	label.Parent = screen
-	TweenService:Create(scale, TweenInfo.new(0.18, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
 	local info = TweenInfo.new(0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 	TweenService:Create(label, info, { Position = UDim2.new(0.5, 0, 1, startY - 44 * k), TextTransparency = 1 }):Play()
 	local fade = TweenService:Create(stroke, info, { Transparency = 1 })
