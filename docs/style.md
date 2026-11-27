@@ -22,7 +22,14 @@ lampes. Eclairage dans `tools/build-map/04-lighting.luau`.
 
 - Style "brique Roblox" : grandes surfaces avec **texture de studs** (petits carres en relief),
   formes simples et carrees. Pas de details fins, pas de realisme.
-- Arbres, buissons, montagnes en **gros blocs empiles** (low poly carre).
+- Arbres, buissons, collines en **gros blocs empiles** (low poly carre).
+- Exception (2026-11-27) : le **fond de carte tres loin** (montagnes, volcan, a plus de 1000 studs)
+  est en pics a facettes lisses (Wedge / CornerWedge), sans studs. Raison : les blocs empiles
+  geants ont ete refuses ("moches"), et les studs font du moirage a cette distance. Tout ce qui
+  est pres du joueur (foret, collines, crete derriere les murs, rocher de la cascade) reste en
+  blocs a studs. Voir `systems/carte-bases.md`, section "Alentours et fond de carte".
+- Touche "notre jeu" dans le decor : les fruits du jeu en geant (fruits voxel agrandis) et du
+  jus a la place de la lave ou de l'eau (variante Fruity).
 - Objets lisibles de loin : un objet = une forme simple + une couleur franche.
 
 ## Couleurs

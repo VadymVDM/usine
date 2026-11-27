@@ -1,7 +1,7 @@
 # Systeme : Carte, bases et attribution
 
 **Statut :** fonctionne (playtest Studio a 1 joueur ; 2 joueurs et telephone a tester)
-**Derniere mise a jour :** 2026-11-20 (allee `02k`, zones sans sol de couleur, sol et murs plus fonces)
+**Derniere mise a jour :** 2026-11-27 (murs recules de 300 studs, alentours et fond de carte : echantillon du cote nord en 2 variantes, le reste attend le choix de l'utilisateur)
 
 > **2026-11-20 : la base est maintenant une tour d'etages** (`tour-etages.md`). Les scripts
 > construisent DEUX modeles : `BaseTemplate` (terrain, cour, annexe ouest, entree) et `FloorTemplate`
@@ -38,8 +38,8 @@ propre et se promene ; il recoit la premiere base qui se libere.
 | `tools/build-map/preview-tower.luau` | Studio | Apercu temporaire de la tour (`Workspace._PreviewBase`, a retirer) |
 | `tools/build-map/preview-factory.luau` | Studio | Apercu de toute l'usine "tout achete" en mode Edit (`Workspace._Preview`, non archivable : jamais sauvegarde ni copie dans le Play). Voir `apercu-edit.md` |
 | `tools/build-map/02g-base-boards.luau` | Studio | Panneaux d'ameliorations (tuiles colorees) : Conveyor (mur du fond), Juice Table (mur de droite), Customers (facade), un panneau suspendu au-dessus de chaque mixeur |
-| `tools/build-map/03-decor.luau` | Studio | Foret, arbres, buissons, collines (hors des bases) |
-| `tools/build-map/09-mountains.luau` | Studio | **En attente (2026-11-27)** : montagnes low-poly enneigees + volcan (lave, fumee) en anneau a 1500-2300 studs, `Map.Mountains` (modeles Persistent, sans collision ni ombre). Echantillon montre puis retire de la carte a la demande de l'utilisateur ; pas dans la place. `SAMPLE = true` = volcan + 1 montagne |
+| `tools/build-map/03-decor.luau` | Studio | `Map.Decor` : le coeur (arbres des couloirs, foret derriere les bases, spawn) + **les alentours** (2026-11-27 : foret, collines a grimper, rochers, mares dans la bande entre l'ancien coeur et les murs). `SAMPLE_NORTH` : voir "Alentours et fond de carte" |
+| `tools/build-map/09-mountains.luau` | Studio | **v3 (2026-11-27)** : `Map.Backdrop`, tout ce qui est derriere les murs : crete en gradins + grands arbres, rocher de la cascade, montagnes a facettes, volcan, et les 2 variantes `Classic` / `Fruity` (l'autre en reserve dans `ServerStorage.MapVariants`). `SAMPLE_NORTH`, `ACTIVE` : voir "Alentours et fond de carte" |
 | `tools/build-map/04-lighting.luau` | Studio | Eclairage |
 | `tools/build-map/05-shadows.luau` | Studio | Coupe les ombres inutiles (decor, petites pieces...), a lancer en dernier |
 | `src/client/Controllers/ShadowController.luau` | client | Seul l'etage du joueur projette des ombres (evite les ombres des etages du dessus) |
@@ -52,7 +52,7 @@ propre et se promene ; il recoit la premiere base qui se libere.
 ## Reconstruire la carte
 
 Studio en mode Edit, lancer chaque script dans `execute_luau` (MCP) ou la barre de commande, dans
-l'ordre : `01`, `02a` ... `02h`, `02i` (coin des dons, `docs/systems/dons.md`), `02j` (panneau ELEVATOR + cabine, `tour-etages.md`), `02k` (allee), `02l` (pads FREE, `usine-a-construire.md`), `03`, `04`, `05`, puis `06-no-touch` (CanTouch = false sur les modeles, a relancer apres tout 02*), puis `07-floor-studs` (sols en Studs, a relancer apres 01 et 02*), puis `08-leaderboards` (2 murs-ecrans des classements aux deux bouts de la route, `classements.md`). Chaque script est relancable (il detruit et recree sa
+l'ordre : `01`, `02a` ... `02h`, `02i` (coin des dons, `docs/systems/dons.md`), `02j` (panneau ELEVATOR + cabine, `tour-etages.md`), `02k` (allee), `02l` (pads FREE, `usine-a-construire.md`), `03`, `04`, `05`, puis `06-no-touch` (CanTouch = false sur les modeles, a relancer apres tout 02*), puis `07-floor-studs` (sols en Studs, a relancer apres 01 et 02*), puis `08-leaderboards` (2 murs-ecrans des classements aux deux bouts de la route, `classements.md`), puis `09-mountains` (fond de carte derriere les murs, a relancer apres `01` ou `03` ; il n'a besoin ni de `05` ni de `06` : ses pieces sont deja sans ombre et sans CanTouch, comme celles de `03`). Chaque script est relancable (il detruit et recree sa
 partie ; `02a` recree les deux modeles, donc relancer ensuite `02b` a `02j` puis `05`). Les scripts
 02a, 02e, 02f, 02g et 02h chargent une copie fraiche de la Config. Verifier avec `preview-tower` +
 `check-zfighting` (0 ligne), retirer l'apercu, puis `save_place`.
@@ -62,8 +62,10 @@ les envoie dans Studio comme ModuleScripts, qu'on lance avec un `require` d'une 
 
 ## Fonctionnement
 
-- Carte : zone jouable 780 x 460 (limites invisibles `Map.Bounds` : North/South/East/West, 800 de
-  haut depuis le sol, passees de 80 a 800 le 2026-11-27). Route de 600 x 24 le long de l'axe X, place
+- Carte : zone jouable **1380 x 1060** (limites invisibles `Map.Bounds` : North/South a z +-530,
+  East/West a x +-690 ; 800 de haut depuis le sol). Le 2026-11-27 : hauteur 80 -> 800, puis murs
+  recules de 300 studs de chaque cote (avant 780 x 460, colles derriere les usines ; constante
+  `GROUND_SIZE` de `01-ground-road`). Route de 600 x 24 le long de l'axe X, place
   du spawn a l'ouest. Bases espacees de 200, a 30 studs du centre de la route (agrandi le
   2026-11-19 : "plus spacieux, zones delimitees, l'arbre trop colle aux autres trucs") :
 
@@ -166,6 +168,53 @@ chevauche plus le verger (avant : deux sols de zone au meme niveau = z-fighting)
 - Decor retire le 2026-11-19 (soir) car inutile ou confondu avec de vrais fruits : fleurs autour
   de l'arbre, massifs de fleurs de la cour (remplaces par des haies vertes), petits fruits sur le
   comptoir, employes en blocs et chariots de fruits / gobelets des postes d'employes.
+
+### Alentours et fond de carte (2026-11-27)
+
+Demande : "recule les Bounds et ajoute des montagnes, volcan, arbres... dans le theme de Roblox et de
+notre jeu". Choix de l'utilisateur : murs a +300 studs, montagnes et volcan en decor geant derriere
+les murs (on ne grimpe pas dessus), et **deux versions de la carte : une fruitee, une sans**.
+
+Du centre vers le fond :
+
+| Plan | Ou | Quoi | Script |
+|---|---|---|---|
+| Alentours (on y marche) | entre l'ancien coeur (x +-384, z +-214) et les murs | Foret (un arbre possible par case de 30 studs, bosquets et clairieres par bruit, arbres plus gros et plus serres pres des murs), collines a grimper (gradins de 5 studs au plus), rochers, buissons, fleurs, 4 mares | `03-decor` |
+| Crete | 0 a 190 studs derriere les murs | Talus en gradins a studs (10 a 55 de haut), falaises grises, grands arbres dessus et derriere. Montre la limite (on est dans une vallee) et cache l'horizon plat | `09-mountains` |
+| Cascade | nord, x 100 | Rocher gris a chapeaux d'herbe (84 de haut), 2 chutes, bassin a cheval sur le mur (rive de sable solide, liquide sans collision), ecume | `09-mountains` |
+| Montagnes | anneaux a 1500 et 2150 studs | Pics a facettes (4 CornerWedgeParts par pyramide), neige, pied vert, 480 a 1100 de haut | `09-mountains` |
+| Volcan | nord-ouest (-900, 1700) | Tronc de pyramide, 660 de haut, coulees Neon sur la face cote carte, 1 emetteur de fumee | `09-mountains` |
+
+Les deux variantes (memes emplacements, modeles `Classic` et `Fruity`) :
+
+| | Classic | Fruity |
+|---|---|---|
+| Volcan | lave orange, fumee grise | jus : 5 coulees (orange, fraise, raisin, citron vert, citron), brume orangee, 5 fruits geants craches en eventail au-dessus du cratere |
+| Cascade | eau bleue | jus orange (Neon), paille geante rose et 2 glacons dans le bassin |
+| Reperes | 2 tas de gros rochers dans la foret | fruits du jeu en geant : 11 sur la crete, 4 au pied des montagnes, 2 dans la foret (solides) |
+
+- Fruit geant = le fruit voxel du jeu (`ReplicatedStorage.FruitAssets.<Id>`, une `UnionOperation`)
+  clone et agrandi : **1 seule piece par fruit**. Si `FruitAssets` manque, le script le dit et saute.
+- La variante choisie (`ACTIVE` en tete de `09-mountains`) est dans `Workspace.Map.Backdrop` ; l'autre
+  attend dans `ServerStorage.MapVariants` (jamais envoyee aux joueurs). Pour changer : `ACTIVE` puis
+  relancer le script, ou echanger les deux modeles a la main.
+- Poids : tout est ancre, sans ombre, sans CanTouch. Derriere les murs : aucune collision, modeles
+  `Persistent` (StreamingEnabled, rayon 1024 : sinon le fond disparaitrait). Dans la zone : les arbres
+  sont dans `Decor.Trees.Outskirts` (caches en Low Quality avec `Decor.Trees`, vus par CameraFade),
+  collines / rochers / mares dans `Decor.Hills.Outskirts` (toujours visibles). Fumee et ecume sont
+  des particules : Low Quality les eteint deja.
+- L'ancien anneau de collines (z +-220, x +-396) est retire par `03-decor` : il aurait ferme l'acces
+  a la nouvelle bande.
+- `03-decor` reserve 3 places sans arbre pour ce que `09-mountains` pose dans la zone (bassin de la
+  cascade, 2 reperes) : garder les deux listes d'accord (`blocked` / `LANDMARKS`, `CASCADE_X`).
+- **Etat dans la place (2026-11-27) : echantillon du cote nord seulement** (`SAMPLE_NORTH = true`
+  dans les deux scripts : alentours z >= 200, crete nord, cascade, volcan, 9 montagnes ; meme tirage
+  que la version complete). Variante affichee : Fruity. Le sud, l'est et l'ouest ont encore l'ancien
+  anneau de collines et rien derriere. Captures : `docs/references/fond-de-carte/`.
+  Pour tout poser : `SAMPLE_NORTH = false` dans `03-decor` et `09-mountains`, les lancer, puis
+  `check-zfighting` (ligne `Map` a 0).
+- Mesures de l'echantillon : alentours 1 121 pieces (272 modeles d'arbres / buissons / fleurs,
+  28 collines / rochers / mares), fond 535 pieces, reserve 16.
 
 ### Z-fighting (check-zfighting)
 
@@ -277,6 +326,12 @@ Positions des machines, pads et panneaux : dans `02e` et `02g`.
 
 ## Problemes connus / a faire
 
+- **Alentours et fond de carte : seul le nord est pose** (echantillon du 2026-11-27). A faire apres
+  le choix de l'utilisateur (Fruity ou Classic, retouches) : `SAMPLE_NORTH = false` et relancer.
+- Le detecteur `check-zfighting` ne voit ni les montagnes (Wedge / CornerWedge) ni les fruits geants
+  (Union) : regardes a l'oeil sur les captures seulement.
+- Fond de carte pas vu sur telephone ni dans l'appli Roblox (brume, fumee du volcan, poids).
+- `check-zfighting` du 2026-11-27 : `FloorTemplate` a 5 lignes (pas liees a la carte, pas regardees).
 - Taille du serveur (6) : reglage de l'experience a faire par l'utilisateur.
 - Non teste : 2 joueurs, telephone. Carte reconstruite le 2026-11-19 (version 52 de la place).
 - Rojo etait connecte mais ne poussait plus les changements vers Studio le 2026-11-19 (apres

@@ -11,7 +11,9 @@ local SIDEWALK_WIDTH = 5
 local PLOT_FRONT_Z = 30 -- distance centre de la route -> bord avant d'une base
 local BASE_SPACING = 200 -- distance entre les centres de deux bases (bases de 156 de large)
 local PLOT_CENTER_X = 32 -- centre de la base dans son repere local (x de -46 a 110)
-local GROUND_SIZE = Vector3.new(780, 2, 460) -- zone jouable (limites invisibles)
+-- Zone jouable (limites invisibles). 2026-11-27 : reculee de 300 studs de chaque cote (avant
+-- 780 x 460, murs colles derriere les usines) ; la bande en plus est remplie par 03-decor.
+local GROUND_SIZE = Vector3.new(1380, 2, 1060)
 local GROUND_TILE = 2048 -- taille max d'une Part ; 3 x 3 dalles d'herbe : pas de vide a l'horizon
 local PLAZA_X = -322
 

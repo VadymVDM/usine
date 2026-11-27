@@ -28,7 +28,7 @@ Un fichier par systeme dans `systems/`, a partir de [systems/_TEMPLATE.md](syste
 | Sauvegarde des joueurs | [systems/sauvegarde.md](systems/sauvegarde.md) | fonctionne (quitter / revenir teste ; 2 serveurs a tester) |
 | Argent, HUD et classement | [systems/argent.md](systems/argent.md) | en cours (teste sans sauvegarde reelle) |
 | Tour d'etages et escalier (10 etages, 10 raretes par etage) | [systems/tour-etages.md](systems/tour-etages.md) | code (lots 0 a 6, 2026-11-20), en test chez l'utilisateur |
-| Carte, bases et attribution (usine) | [systems/carte-bases.md](systems/carte-bases.md) | fonctionne (usine refaite le 2026-11-19 ; a tester a 2 joueurs) |
+| Carte, bases et attribution (usine) | [systems/carte-bases.md](systems/carte-bases.md) | fonctionne (usine refaite le 2026-11-19 ; a tester a 2 joueurs). Carte agrandie le 2026-11-27 (murs a +300 studs) ; alentours et fond de carte (montagnes, volcan, version fruitee / classique) : echantillon du cote nord, en attente de validation |
 | Chaine de production (arbre, ramassage E, inventaire, etagere, mixeur, jus) | [systems/chaine-production.md](systems/chaine-production.md) | en cours (boucle complete en playtest le 2026-11-19) |
 | Comptoir, clients R15 et tas d'argent | [systems/clients.md](systems/clients.md) | en cours (vraies files + bulles emoji + arrivee / depart au loin le 2026-11-27 : logique testee en Play, mouvement pas encore vu a l'ecran) |
 | Machines, ameliorations et employes R15 | [systems/ameliorations-employes.md](systems/ameliorations-employes.md) | en cours (pad de l'arbre, panneaux Conveyor / Juice Table / Customers, mixeurs a 5 niveaux, decor par niveau ; 3 employes) |
