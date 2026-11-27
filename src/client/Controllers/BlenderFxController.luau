@@ -90,6 +90,8 @@ type Blender = {
 	rig: Jelly.Rig?,
 	juice: BasePart?,
 	juiceBaseSize: Vector3?,
+	juiceGuard: RBXScriptConnection?, -- recache le jus si un autre script le rend visible, bol vide
+	guardedJuice: BasePart?,
 	blade: BasePart?,
 	squash: Jelly.Spring,
 	bendX: Jelly.Spring,
@@ -163,8 +165,42 @@ local function findPart(b: Blender, name: string): BasePart?
 end
 
 local function isBuilt(b: Blender): boolean
-	-- Mixeur 1 : pas d'UpgradeId, toujours construit. Mixeurs 2-4 : attribut Built (UpgradeService).
+	-- Mixeur sans UpgradeId : toujours construit. Sinon attribut Built (UpgradeService / SetupService).
 	return b.model:GetAttribute("UpgradeId") == nil or b.model:GetAttribute("Built") == true
+end
+
+-- Bol vide d'un mixeur construit : la piece Juice doit rester cachee.
+local function juiceHidden(b: Blender): boolean
+	return isBuilt(b) and b.fill <= 0.01
+end
+
+-- La piece Juice a d'autres ecrivains de LocalTransparencyModifier (Fx/Reveal a la construction
+-- par SetupController, GhostVisibilityController, CameraFadeController) qui la remettent a 0 a la
+-- fin de leur effet. Bug du 2026-11-27 : mixeur vide avec un jus orange. Ce module a le dernier
+-- mot : bol vide = cache, quel que soit l'ordre des scripts.
+local function guardJuice(b: Blender)
+	local juice = b.model:FindFirstChild("Juice", true)
+	local part: BasePart? = if juice and juice:IsA("BasePart") then juice else nil
+	b.juice = part
+	if part == b.guardedJuice then
+		return
+	end
+	if b.juiceGuard then
+		b.juiceGuard:Disconnect()
+		b.juiceGuard = nil
+	end
+	b.guardedJuice = part
+	if part == nil then
+		return
+	end
+	local guarded: BasePart = part
+	local function enforce()
+		if guarded.LocalTransparencyModifier < 1 and juiceHidden(b) then
+			guarded.LocalTransparencyModifier = 1
+		end
+	end
+	b.juiceGuard = guarded:GetPropertyChangedSignal("LocalTransparencyModifier"):Connect(enforce)
+	enforce()
 end
 
 ---------------------------------------------------------------------------------------------
@@ -202,7 +238,7 @@ local function ensureRig(b: Blender): Jelly.Rig?
 	end
 	local newRig = Jelly.Capture(parts, pivot)
 	b.rig = newRig
-	b.juice = findPart(b, "Juice")
+	guardJuice(b)
 	b.juiceBaseSize = if b.juice then b.juice.Size else nil
 	b.blade = findPart(b, "Blade")
 	return newRig
@@ -815,6 +851,10 @@ end
 -- Inscription des etages (un etage ouvert = sa Production, ses mixeurs, ses gobelets)
 
 local function forgetBlender(b: Blender)
+	if b.juiceGuard then
+		b.juiceGuard:Disconnect()
+		b.juiceGuard = nil
+	end
 	clearTravelers(b)
 	clearStack(b)
 	if b.splashHolder then
@@ -834,6 +874,8 @@ local function registerBlender(production: Instance, model: Model)
 		rig = nil,
 		juice = nil,
 		juiceBaseSize = nil,
+		juiceGuard = nil,
+		guardedJuice = nil,
 		blade = nil,
 		squash = Jelly.Spring(160, 6), -- ~2 rebonds par seconde, doux
 		bendX = Jelly.Spring(70, 3.5), -- se plie / se deplie lentement
@@ -858,13 +900,19 @@ local function registerBlender(production: Instance, model: Model)
 		quietUntil = 0,
 	}
 	blenders[model] = b
-	b.juice = findPart(b, "Juice")
 	-- Bol vide au depart : pas de jus visible (il monte au demarrage du mixage), sauf jus en attente
 	b.fill = heldFill(b)
 	b.fillTarget = b.fill
+	guardJuice(b)
 	if b.juice and isBuilt(b) then
 		b.juice.LocalTransparencyModifier = if b.fill > 0.01 then 0 else 1
 	end
+	-- StreamingEnabled / reconstruction : la piece Juice peut arriver apres l'inscription
+	model.DescendantAdded:Connect(function(item: Instance)
+		if item.Name == "Juice" and item:IsA("BasePart") then
+			guardJuice(b)
+		end
+	end)
 	model:GetAttributeChangedSignal("Pulse"):Connect(function()
 		local fruitId = model:GetAttribute("PulseFruit")
 		local pivot = pivotOf(b)

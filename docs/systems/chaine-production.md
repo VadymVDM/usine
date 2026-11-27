@@ -150,6 +150,11 @@ bras tendus) et les pose sur le pad "Drop Juices" du comptoir (voir `clients.md`
     fruits, le prompt E est cache et `startBlend` refuse ("Holding" ; l'operateur attend). Client :
     le jus reste visible dans le bol a la hauteur `HeldJuices / BowlMax` (au moins 20 %), petit
     hoquet a chaque versement. Non sauvegarde (comme les bols).
+  - **Bol vide = pas de jus** (2026-11-27) : la piece `Juice` d'un mixeur construit et vide est
+    cachee (`LocalTransparencyModifier = 1`). D'autres scripts ecrivent aussi cette valeur (Fx/Reveal
+    a la construction du mixeur 1 par l'usine a construire, fantomes, camera) et la remettaient a 0 :
+    jus orange dans un mixeur vide. `BlenderFxController.guardJuice` ecoute la propriete et recache
+    le jus tant que le bol est vide (y compris si la piece arrive tard, streaming).
   - Le contenu des bols n'est pas sauvegarde (vide a chaque arrivee dans la base).
 - **Table a jus : pad "Take Juices"** (rose, `Production.TakeJuicePad`, devant la table ; avant
   le 2026-11-19 : prompt E "Juice Table / Take juices"). Se tenir dessus (`PadZone`, `PadEnter`
