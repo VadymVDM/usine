@@ -256,6 +256,41 @@ de dessin sans les ombres :
 - Pas verifie : vrai telephone ; employes du vrai jeu (le profil de test n'en a pas : verifie sur
   les PNJ de l'apercu, memes rigs, immobiles) ; 2 joueurs.
 
+## Correction du 2026-11-27 (22 h) : mini fruits des gobelets invisibles loin de la camera
+
+Les 980 unions d'une tour au maximum, regardees de pres (mode Edit, `TriangleCount`) :
+
+- ~580 **mini fruits** (`MiniFruit`, `FruitModels.CreateCup`) : le fruit voxel entier reduit a
+  0.3 stud et pose sur chaque gobelet. 3 300 a 4 500 triangles chacun.
+- ~400 **fruits entiers** (`Body`) : fruits poses au sol (dossier `PreviewFruits` de l'apercu), memes maillages en grand.
+- 2 300 000 triangles en tout par tour, en detail complet.
+
+Fait : le mini fruit porte le tag `FruitModels.MiniFruitTag` ("FarHideMiniFruit") ;
+`WorldDetailController` le rend invisible (`Transparency = 1` en local) au-dela de
+`Gameplay.MiniFruitMaxDistance` (60 studs, marge de 8), et le remet en s'approchant. Pour tous les
+appareils. Les gobelets des fenetres d'interface ne sont pas touches.
+
+Mesure A/B dans le meme Play (4 tours au maximum, mini fruits montres puis caches, rien d'autre
+ne change), triangles / appels de dessin :
+
+| Vue | Qualite 21 : visibles -> caches | Qualite 3 : visibles -> caches |
+|---|---|---|
+| Vue aerienne | 5 889 000 / 773 -> 4 002 000 / 773 | 903 000 / 456 -> 903 000 / 459 |
+| Tour, dehors, de derriere | 4 634 000 / 466 -> 3 342 000 / 466 | 2 036 000 / 393 -> 2 039 000 / 390 |
+| Route, le long de la route | 1 094 000 / 357 -> 576 000 / 305 | 509 000 / 286 -> 499 000 / 287 |
+
+- **Haute qualite (PC, bons telephones et tablettes) : 500 000 a 1 900 000 triangles en moins.**
+- **Qualite telephone modeste : aucun gain.** En basse qualite, Roblox ne dessine deja plus ces
+  tout petits objets de loin. Pour un telephone modeste, cette correction ne change rien.
+- Verifie en Play : 2 320 mini fruits, tous caches loin (0 visible), 158 proches intacts (0 reste
+  cache) quand la camera est a 20 studs d'un gobelet. 0 erreur de script.
+- **Ce qui pese encore en qualite telephone** : les fruits entiers (`Body`). `Breakdown` en
+  qualite 3 : les unions d'une tour vue de derriere font 770 000 triangles, et les mini fruits
+  n'y comptent pour rien. Pistes : les cacher loin de la camera (ca se voit : les fruits au sol
+  disparaissent de loin) ou refaire les maillages des fruits plus simples. Pas fait, a decider.
+- Pas verifie : vrai telephone ; gobelets en mouvement dans le vrai jeu (verifie sur les gobelets
+  immobiles de l'apercu).
+
 ## Relancer le test (scripts `tools/perf/`)
 
 Deux scripts, synchronises par Rojo dans `ServerScriptService.DevTools.Perf`, jamais charges par
@@ -315,3 +350,9 @@ A savoir :
 - Un appel `execute_luau` qui se termine remet le type de camera du debut de l'appel : le script
   repose sa camera a chaque image et la rend 0.5 s apres le dernier appel.
 - `Scripts` avec des tours au maximum ne marche pas (le MicroProfiler ne garde qu'une image).
+- **Lancer `Game()` deux fois et garder la 2e mesure.** Vu le 2026-11-27 : la 1re mesure apres
+  `Setup` peut differer de la suivante (vue aerienne en qualite 3 : 614 000 triangles puis
+  901 000 ; dans un etage : 342 000 / 397 puis 321 000 / 334). Cause pas trouvee (les tours
+  viennent d'arriver chez le client). La 2e mesure retombe sur les valeurs de reference.
+- Pour juger UN changement, le mieux est une mesure A/B dans le meme Play (montrer / cacher le
+  groupe, comme `Breakdown`), pas deux Play differents.

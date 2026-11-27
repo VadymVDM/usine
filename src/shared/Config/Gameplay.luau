@@ -206,6 +206,10 @@ local Gameplay = {
 	-- La hauteur compte plus que la distance au sol : un PNJ 2 etages plus haut est derriere des
 	-- plafonds. Distance = racine(dx2 + dz2 + (dy x ce nombre)2).
 	NpcVerticalWeight = 2.5,
+	-- Mini fruit pose sur chaque gobelet (tag FruitModels.MiniFruitTag) : invisible au-dela de
+	-- cette distance camera. 0.3 stud de haut : a 60 studs il fait quelques pixels. Test du
+	-- 2026-11-27 : 980 mini fruits par tour au maximum = jusqu'a 2 300 000 triangles.
+	MiniFruitMaxDistance = 60,
 }
 
 return table.freeze(Gameplay)

@@ -406,6 +406,9 @@ end
 -- JuiceCupSpacing), hauteur CupHeight 1.6 : rien ne depasse dans le gobelet du dessus.
 -- Faces : aucune face commune visible (etages de largeurs differentes, pas de z-fighting).
 local MINI_FRUIT_HEIGHT = 0.3
+-- Tag du mini fruit : c'est le fruit voxel entier (3 300 a 4 500 triangles) reduit a 0.3 stud.
+-- Le client le rend invisible loin de la camera (WorldDetailController, docs/perf-mobile.md).
+FruitModels.MiniFruitTag = "FarHideMiniFruit"
 
 function FruitModels.CreateCup(fruitId: string, anchored: boolean): Model
 	local fruit = getFruit(fruitId)
@@ -463,6 +466,7 @@ function FruitModels.CreateCup(fruitId: string, anchored: boolean): Model
 		weld.Part1 = cup
 		weld.Parent = mini
 	end
+	CollectionService:AddTag(mini, FruitModels.MiniFruitTag)
 	mini.Parent = model
 	return model
 end

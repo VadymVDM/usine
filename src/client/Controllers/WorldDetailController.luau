@@ -14,6 +14,9 @@
 --      de dessin, que la qualite basse n'allege pas. On met Transparency = 1 (en local) sur leurs
 --      pieces et decalcomanies, et on remet la valeur d'avant en s'approchant. Pas
 --      LocalTransparencyModifier : CustomerController, CameraFadeController et Fx/Reveal l'animent.
+--   4. Mini fruits des gobelets (tag FruitModels.MiniFruitTag) : le fruit voxel entier reduit a
+--      0.3 stud, 3 300 a 4 500 triangles chacun, 980 par tour au maximum. Invisibles au-dela de
+--      Gameplay.MiniFruitMaxDistance de la camera (meme moyen que les PNJ : Transparency = 1).
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -31,6 +34,7 @@ local CHECK_SECONDS = 0.3 -- frequence du test de distance des effets de rarete
 local HYSTERESIS = 8 -- studs : evite que l'effet clignote a la limite
 local NPC_HYSTERESIS = 15 -- studs : meme chose pour les PNJ (ils marchent)
 local NPC_HIDES_PER_CHECK = 40 -- PNJ caches au plus par passage (etale le travail a l'arrivee)
+local MINI_HIDES_PER_CHECK = 400 -- mini fruits caches au plus par passage
 local IS_STUDIO = RunService:IsStudio()
 
 local WorldDetailController = {}
@@ -198,6 +202,59 @@ local function updateNpcs()
 	end
 end
 
+-- 4. Mini fruits des gobelets -----------------------------------------------------------------
+
+local miniTracked: { [BasePart]: true } = {}
+local miniHidden: { [BasePart]: number } = {} -- mini fruit cache -> Transparency d'avant
+
+local function showMini(part: BasePart)
+	local transparency = miniHidden[part]
+	if transparency == nil then
+		return
+	end
+	miniHidden[part] = nil
+	-- Seulement si personne d'autre n'y a touche entre-temps
+	if part.Transparency == 1 then
+		part.Transparency = transparency
+	end
+end
+
+local function trackMini(instance: Instance)
+	-- Seulement dans le monde (pas les gobelets des fenetres d'interface)
+	if instance:IsA("BasePart") and instance:IsDescendantOf(Workspace) then
+		miniTracked[instance] = true
+	end
+end
+
+local function untrackMini(instance: Instance)
+	if instance:IsA("BasePart") then
+		miniTracked[instance] = nil
+		showMini(instance) -- un gobelet sorti par le streaming revient avec la meme piece
+	end
+end
+
+local function updateMinis()
+	local camera = Workspace.CurrentCamera
+	if camera == nil then
+		return
+	end
+	local origin = camera.CFrame.Position
+	local near = Gameplay.MiniFruitMaxDistance
+	local far = near + HYSTERESIS
+	local hides = 0
+	for part in miniTracked do
+		local distance = (part.Position - origin).Magnitude
+		local hidden = miniHidden[part] ~= nil
+		if hidden and distance < near then
+			showMini(part)
+		elseif not hidden and distance > far and hides < MINI_HIDES_PER_CHECK and part.Transparency < 1 then
+			hides += 1
+			miniHidden[part] = part.Transparency
+			part.Transparency = 1
+		end
+	end
+end
+
 function WorldDetailController:Init() end
 
 function WorldDetailController:Start()
@@ -228,10 +285,19 @@ function WorldDetailController:Start()
 		trackNpc(item)
 	end
 
+	-- 4. Mini fruits des gobelets
+	local miniTag = FruitModels.MiniFruitTag
+	CollectionService:GetInstanceAddedSignal(miniTag):Connect(trackMini)
+	CollectionService:GetInstanceRemovedSignal(miniTag):Connect(untrackMini)
+	for _, item in CollectionService:GetTagged(miniTag) do
+		trackMini(item)
+	end
+
 	task.spawn(function()
 		while true do
 			updateRarity()
 			updateNpcs()
+			updateMinis()
 			task.wait(CHECK_SECONDS)
 		end
 	end)

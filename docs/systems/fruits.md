@@ -354,6 +354,11 @@ Poids : `BaseWeight (1000) x 0.8^(position-1) x 0.1^(rarete-1)` (calcule au char
 
 ## Problemes connus / a faire
 
+- **Mini fruit du gobelet (2026-11-27)** : c'est le fruit voxel entier reduit a 0.3 stud (3 300 a
+  4 500 triangles). Il porte le tag `FruitModels.MiniFruitTag` ; le client le rend invisible a plus
+  de `Gameplay.MiniFruitMaxDistance` (60 studs) de la camera. Gain en haute qualite seulement.
+  Detail : `docs/perf-mobile.md`.
+
 - Fruits voxel : si `ReplicatedStorage.FruitAssets` n'est pas dans la place (script pas lance ou
   place pas sauvegardee), on revoit les anciennes boules. Relancer le script apres tout changement
   de dessin.
