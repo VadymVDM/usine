@@ -210,6 +210,17 @@ local Gameplay = {
 	-- cette distance camera. 0.3 stud de haut : a 60 studs il fait quelques pixels. Test du
 	-- 2026-11-27 : 980 mini fruits par tour au maximum = jusqu'a 2 300 000 triangles.
 	MiniFruitMaxDistance = 60,
+	-- Fruits entiers (tag FruitModels.FruitPartTag : au sol, dans les caisses, portes, plateaux) :
+	-- invisibles au-dela de FruitMaxDistance de la camera, la hauteur comptant FruitVerticalWeight
+	-- fois plus (comme les PNJ : les etages au-dessus et en dessous sont derriere des plafonds).
+	-- Jamais caches a moins de FruitMinDistance studs en vrai (zoom max de la camera : 128 ; le
+	-- controleur prend aussi zoom max + 30 si c'est plus grand) : les fruits portes par le joueur
+	-- restent toujours visibles. Test du 2026-11-27 : ~400 fruits par tour au maximum, jusqu'a
+	-- 1 400 000 triangles en qualite telephone. A 300 studs un fruit fait ~5 pixels de haut sur un
+	-- ecran de 1080 : captures avant / apres identiques (docs/perf-mobile.md).
+	FruitMaxDistance = 300,
+	FruitVerticalWeight = 2.5,
+	FruitMinDistance = 160,
 }
 
 return table.freeze(Gameplay)

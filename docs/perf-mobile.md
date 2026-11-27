@@ -290,8 +290,115 @@ ne change), triangles / appels de dessin :
   disparaissent de loin) ou refaire les maillages des fruits plus simples. Pas fait.
   **Decide par l'utilisateur le 2026-11-27 : les cacher, mais d'assez loin pour que personne ne
   les voie disparaitre.** Prompt pret pour un nouveau chat : `docs/prompts/perf-fruits-entiers.md`.
+  **Fait a 22 h 40 : voir "Correction du 2026-11-27 (22 h 40)" plus bas.**
 - Pas verifie : vrai telephone ; gobelets en mouvement dans le vrai jeu (verifie sur les gobelets
   immobiles de l'apercu).
+
+## Correction du 2026-11-27 (22 h 40) : fruits entiers invisibles loin de la camera
+
+Combien de fruits dans une vraie tour : l'arbre ne fait tomber des fruits que sur l'etage ou est le
+joueur (`TreeService`, `FloorService.IsLive`), mais **les fruits restent au sol sur les etages qu'il
+quitte**. Au maximum : 30 au sol par etage (`Gameplay.MaxGroundFruits`) x 10 etages + 1 fruit par
+caisse non vide (10 par etage) = **~400 par tour, comme l'apercu**. En jouant normalement, moins
+(le joueur et le Fruit Picker les ramassent). Le profil de test n'a que 2 etages et ~10 fruits.
+
+### Mesure AVANT de coder (A/B dans le meme Play, 4 tours au maximum + la vraie base)
+
+Fruits entiers plus loin que la distance rendus invisibles, rien d'autre ne change. "+ hauteur" =
+la hauteur compte 2.5 fois (comme les PNJ). Qualite 3 (telephone modeste), triangles en moins :
+
+| Vue (total sans rien cacher) | 250 | 300 | 350 | 300 + hauteur | 350 + hauteur | tous caches |
+|---|---|---|---|---|---|---|
+| Tour, dehors, de derriere (1 737 000 / 333) | -1 180 000 | -897 000 | -466 000 | **-1 149 000** | -981 000 | -1 418 000 |
+| Vue aerienne (841 000 / 412) | -467 000 | -458 000 | -211 000 | **-460 000** | -319 000 | -466 000 |
+| Route, le long de la route (~330 000 / 208) | -45 000 | -26 000 | -10 000 | -24 000 | -11 000 | -131 000 |
+| Tour, devant le rez-de-chaussee (149 000 / 167) | -25 000 | -19 000 | 0 | -26 000 | 0 | -56 000 |
+| Dans un etage, fond de carte | 0 | 0 | 0 | 0 | 0 | 0 a -92 000 (fruits proches) |
+
+En qualite 21 : jusqu'a -3 200 000 (vue aerienne) et -2 000 000 (tour de derriere). En qualite 1 :
+-948 000 (tour de derriere, 250 + hauteur). Appels de dessin : -40 a -100 dans ces vues.
+Contrairement aux mini fruits, Roblox dessine les fruits entiers de loin meme en qualite basse
+(`RenderFidelity = Automatic` sur les 100 fruits : ca ne suffit pas).
+
+### Distance choisie : 300 studs, hauteur x 2.5, jamais a moins de 160 studs
+
+- **300 studs** : un fruit de 1.9 stud y fait ~5 pixels de haut sur un ecran de 1080 pixels (FOV 70).
+  C'est la plus grande distance qui garde l'essentiel du gain en qualite 3 : avec la hauteur, 81 %
+  du gain vu de derriere une tour et 99 % en vue aerienne. A 350 + hauteur : 69 % et 68 %.
+- **La hauteur compte 2.5 fois** (`Gameplay.FruitVerticalWeight`) : les etages au-dessus et en
+  dessous sont derriere des plafonds ; les tours ont des murs pleins avec de petites fenetres.
+- **Jamais a moins de 160 studs en vrai** (`Gameplay.FruitMinDistance`, et au moins zoom max de la
+  camera + 30) : le zoom max est 128 (`StarterPlayer`), donc les fruits portes par le joueur ne sont
+  jamais caches. Marge de 15 studs pour ne pas clignoter, 400 fruits caches au plus par passage.
+- **Verifie a l'oeil** : 2 captures derriere une tour (FOV 45 sur la fenetre Studio de 644 pixels de
+  haut = taille en pixels d'un ecran de 1080), avant / apres avoir cache les 1 466 fruits a plus de
+  300 studs : comparaison pixel par pixel, seuls 23 pixels changent, tous dans l'icone animee
+  "Lucky Hour" de l'interface. Rien ne change dans la scene.
+
+### Ce qui a ete fait
+
+`src/client/Controllers/WorldDetailController.luau`, `src/shared/FruitModels.luau`, reglages dans
+`src/shared/Config/Gameplay.luau` :
+
+- `FruitModels.CreateFruit` pose le tag `FruitModels.FruitPartTag` ("FarHideFruit") sur chaque piece
+  du fruit. Le controleur ne suit que les pieces du Workspace (pas les fenetres Index, inventaire,
+  menus).
+- Mini fruits et fruits entiers partagent la meme recette (`PartHider` dans le controleur) :
+  `Transparency = 1` en local, valeur d'avant remise en s'approchant si personne d'autre n'y a
+  touche, piece sortie par le streaming ou detruite remise visible. Nouveau pour les deux : seules
+  les pieces opaques (`Transparency = 0`) sont cachees (une piece deja transparente est animee ou
+  cachee par un autre script : construction d'etage, PNJ cache, gobelets voles), et une piece
+  qu'un autre script remet visible est rendue a ce script.
+- **Camera qui saute** (teleport d'etage, reapparition) : si la camera a bouge de plus de 40 studs
+  depuis le dernier passage, passage tout de suite, avant l'image (`BindToRenderStep`). Sans ca, les
+  objets caches reapparaissaient jusqu'a 0.3 s apres le teleport, sous les yeux du joueur. Sert
+  aussi aux PNJ, aux mini fruits et aux effets de rarete.
+
+### Avant / apres (meme script `tools/perf`, 2e mesure de chaque Play, 4 tours au maximum)
+
+Triangles / appels de dessin sans les ombres :
+
+| Vue | Qualite 21 avant -> apres | Qualite 3 avant -> apres | Qualite 1 avant -> apres |
+|---|---|---|---|
+| Vue aerienne (pire cas) | 3 897 000 / 623 -> 685 000 / 521 | **842 000 / 418 -> 382 000 / 367** | 378 000 / 208 -> 135 000 / 169 |
+| Tour, dehors, de derriere | 2 822 000 / 407 -> 818 000 / 348 | **1 751 000 / 326 -> 615 000 / 282** | 1 114 000 / 217 -> 291 000 / 157 |
+| Route, le long de la route | 618 000 / 322 -> 587 000 / 318 | 332 000 / 209 -> 316 000 / 209 | 258 000 / 188 -> 260 000 / 190 |
+| Tour, devant le rez-de-chaussee | 199 000 / 198 -> 167 000 / 190 | 149 000 / 166 -> 124 000 / 162 | 147 000 / 164 -> 122 000 / 159 |
+| Tour, dans l'etage 1 | 326 000 / 356 -> 325 000 / 340 | 320 000 / 336 -> 323 000 / 338 | 322 000 / 333 -> 322 000 / 334 |
+| Tour, dans un etage du milieu | 253 000 / 292 -> 253 000 / 293 | 250 000 / 287 -> 250 000 / 288 | 245 000 / 283 -> 245 000 / 284 |
+| Route, fond de carte | 138 000 / 129 -> 134 000 / 127 | 91 000 / 104 -> 93 000 / 105 | 80 000 / 99 -> 90 000 / 103 |
+| Vue de jeu normale | 95 000 / 111 -> 115 000 / 112 | 96 000 / 101 -> 101 000 / 105 | 95 000 / 97 -> 100 000 / 97 |
+
+- En qualite telephone, **toutes les vues repassent sous le repere Roblox** (800 000 / 600) : la
+  tour vue de derriere etait a 1 751 000.
+- `Breakdown` apres : les unions de la tour vue de derriere font 287 000 (qualite 21) et 295 000
+  (qualite 3) triangles, contre 770 000 a 858 000 avant.
+- "Vue de jeu normale" : le joueur n'etait pas au meme endroit (tests de ramassage), l'ecart ne
+  vient pas de la correction. Dans un etage : rien ne change (les fruits visibles sont proches).
+- Les chiffres "avant" de ce tableau sont plus bas que le tableau de 21 h 30 (mini fruits caches
+  depuis 22 h, autre Play) : comparer seulement dans un meme tableau.
+
+### Verifie en Play (Studio PC, 1 joueur)
+
+- Avec 4 tours au maximum, camera tenue 2.5 s sur 4 vues : fruits proches 2 a 502 selon la vue,
+  **0 cache** ; fruits loin 1 066 a 1 622, **0 visible**. Mini fruits : 0 proche cache, 0 loin
+  visible.
+- Vrai jeu (profil de test, pas l'apercu) : ramasser les fruits au sol en marchant dessus (plateau
+  10/10 visibles), les porter a 470 studs (plateau 8/8 visibles, les 9 autres fruits de la base
+  caches), revenir par teleport (**9/9 visibles des la 1re image**), les poser sur le pad (11/11
+  visibles), perso 200 studs au-dessus de la base (0/19 visibles) puis retour (19/19 a la 1re
+  image).
+- 0 erreur de script (serveur et client) ; seule erreur du Play : une ligne de test tapee a la main.
+- Cout d'un passage sur ce PC : 0.72 ms pour 1 641 fruits + 2 320 mini fruits (toutes les 0.3 s).
+
+### Pas verifie
+
+- Vrai telephone (FPS, chauffe) ; 2 joueurs.
+- Teleport d'etage du vrai jeu : le profil de test n'a que 2 etages (meme mecanisme verifie en
+  deplacant le perso de 470 studs et de 200 studs vers le haut).
+- Fruits portes par des employes qui marchent (le profil de test n'en a pas).
+- Cout du passage sur un telephone modeste (estime 3 a 5 fois celui du PC, soit 2 a 4 ms toutes les
+  0.3 s avec 4 tours au max) : a surveiller ; on pourrait l'etaler sur plusieurs images.
 
 ## Relancer le test (scripts `tools/perf/`)
 
@@ -321,10 +428,12 @@ si possible) :
    `return require(game.ServerScriptService.DevTools.Perf["perf-server"]:Clone()).EditCheck()`
    (qualite de Studio remise a 21, camera libre, aucun reste).
 
-Comparer aux tableaux de ce fichier. Valeurs de reference apres la correction du 2026-11-27 :
+Comparer aux tableaux de ce fichier. Valeurs de reference apres les corrections du 2026-11-27 :
 
-- Avec 4 tours au maximum : colonne "apres" du tableau ci-dessus.
-- Sans tour (`Setup({})`, profil de test avec sa vraie base de 10 etages), qualite 21 / qualite 3 :
+- Avec 4 tours au maximum : colonne "apres" du tableau de la correction de 22 h 40 (fruits
+  entiers). Ex. qualite 3 : tour de derriere 615 000 / 282, vue aerienne 382 000 / 367.
+- Sans tour (`Setup({})`, mesure de 21 h 30, profil de test avec sa vraie base ; pas remesure a
+  22 h 40, la vraie base n'a que quelques fruits), qualite 21 / qualite 3 :
 
 | Vue | Qualite 21 | Qualite 3 |
 |---|---|---|

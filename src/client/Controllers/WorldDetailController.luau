@@ -17,6 +17,12 @@
 --   4. Mini fruits des gobelets (tag FruitModels.MiniFruitTag) : le fruit voxel entier reduit a
 --      0.3 stud, 3 300 a 4 500 triangles chacun, 980 par tour au maximum. Invisibles au-dela de
 --      Gameplay.MiniFruitMaxDistance de la camera (meme moyen que les PNJ : Transparency = 1).
+--   5. Fruits entiers (tag FruitModels.FruitPartTag : au sol, caisses, portes, plateaux) : ~400 par
+--      tour au maximum, jusqu'a 1 400 000 triangles en qualite telephone. Invisibles au-dela de
+--      Gameplay.FruitMaxDistance, la hauteur comptant FruitVerticalWeight fois plus, jamais a moins
+--      de FruitMinDistance (et du zoom max de la camera) : on ne peut pas les voir disparaitre.
+-- Passage toutes les CHECK_SECONDS, et tout de suite quand la camera saute (teleport d'etage,
+-- reapparition) : un objet cache ne doit pas apparaitre sous les yeux du joueur.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -30,11 +36,16 @@ local Gameplay = require(Shared:WaitForChild("Config"):WaitForChild("Gameplay"))
 local Npcs = require(Shared:WaitForChild("Config"):WaitForChild("Npcs"))
 local FruitModels = require(Shared:WaitForChild("FruitModels"))
 
-local CHECK_SECONDS = 0.3 -- frequence du test de distance des effets de rarete
+local CHECK_SECONDS = 0.3 -- frequence du test de distance
 local HYSTERESIS = 8 -- studs : evite que l'effet clignote a la limite
 local NPC_HYSTERESIS = 15 -- studs : meme chose pour les PNJ (ils marchent)
+local FRUIT_HYSTERESIS = 15 -- studs : meme chose pour les fruits entiers (portes par les PNJ)
 local NPC_HIDES_PER_CHECK = 40 -- PNJ caches au plus par passage (etale le travail a l'arrivee)
 local MINI_HIDES_PER_CHECK = 400 -- mini fruits caches au plus par passage
+local FRUIT_HIDES_PER_CHECK = 400 -- fruits entiers caches au plus par passage
+local ZOOM_MARGIN = 30 -- studs : un fruit a moins de (zoom max + marge) de la camera reste visible
+local CAMERA_JUMP_STUDS = 40 -- la camera a bouge de plus depuis le dernier passage : passage tout de suite
+local JUMP_STEP = "WorldDetailCameraJump"
 local IS_STUDIO = RunService:IsStudio()
 
 local WorldDetailController = {}
@@ -82,12 +93,7 @@ local function untrackRarity(instance: Instance)
 	end
 end
 
-local function updateRarity()
-	local camera = Workspace.CurrentCamera
-	if camera == nil then
-		return
-	end
-	local origin = camera.CFrame.Position
+local function updateRarity(origin: Vector3)
 	local near = Gameplay.RarityFxMaxDistance
 	local far = near + HYSTERESIS
 	for attachment in rarityTracked do
@@ -179,12 +185,7 @@ local function npcMaxDistance(): number
 	return Gameplay.NpcMaxDistance
 end
 
-local function updateNpcs()
-	local camera = Workspace.CurrentCamera
-	if camera == nil then
-		return
-	end
-	local origin = camera.CFrame.Position
+local function updateNpcs(origin: Vector3)
 	local near = npcMaxDistance()
 	local far = near + NPC_HYSTERESIS
 	local weight = Gameplay.NpcVerticalWeight
@@ -202,57 +203,120 @@ local function updateNpcs()
 	end
 end
 
--- 4. Mini fruits des gobelets -----------------------------------------------------------------
+-- 4 et 5. Pieces taguees cachees loin de la camera (mini fruits, fruits entiers) ---------------
+-- Une piece du monde devient invisible (Transparency = 1, en local) quand sa distance a la camera
+-- depasse near + hysteresis ET sa vraie distance depasse minDistance + hysteresis ; elle reprend
+-- sa transparence d'avant sous near, ou sous minDistance. Distance = racine(dx2 + dz2 +
+-- (dy x verticalWeight)2). Seules les pieces opaques (Transparency = 0) sont cachees : une piece
+-- deja transparente est animee ou cachee par un autre script (construction d'etage, PNJ cache,
+-- gobelets voles), on n'y touche pas.
 
-local miniTracked: { [BasePart]: true } = {}
-local miniHidden: { [BasePart]: number } = {} -- mini fruit cache -> Transparency d'avant
+type PartHider = {
+	tracked: { [BasePart]: true },
+	hidden: { [BasePart]: number }, -- piece cachee -> Transparency d'avant
+	near: number,
+	minDistance: number,
+	hysteresis: number,
+	verticalWeight: number,
+	hidesPerCheck: number,
+}
 
-local function showMini(part: BasePart)
-	local transparency = miniHidden[part]
+local function newHider(near: number, hysteresis: number, verticalWeight: number, hidesPerCheck: number): PartHider
+	return {
+		tracked = {},
+		hidden = {},
+		near = near,
+		minDistance = 0,
+		hysteresis = hysteresis,
+		verticalWeight = verticalWeight,
+		hidesPerCheck = hidesPerCheck,
+	}
+end
+
+local miniHider = newHider(Gameplay.MiniFruitMaxDistance, HYSTERESIS, 1, MINI_HIDES_PER_CHECK)
+local fruitHider =
+	newHider(Gameplay.FruitMaxDistance, FRUIT_HYSTERESIS, Gameplay.FruitVerticalWeight, FRUIT_HIDES_PER_CHECK)
+
+local function showPart(hider: PartHider, part: BasePart)
+	local transparency = hider.hidden[part]
 	if transparency == nil then
 		return
 	end
-	miniHidden[part] = nil
+	hider.hidden[part] = nil
 	-- Seulement si personne d'autre n'y a touche entre-temps
 	if part.Transparency == 1 then
 		part.Transparency = transparency
 	end
 end
 
-local function trackMini(instance: Instance)
-	-- Seulement dans le monde (pas les gobelets des fenetres d'interface)
-	if instance:IsA("BasePart") and instance:IsDescendantOf(Workspace) then
-		miniTracked[instance] = true
+local function watchTag(hider: PartHider, tag: string)
+	local function track(instance: Instance)
+		-- Seulement dans le monde (pas les fruits et gobelets des fenetres d'interface)
+		if instance:IsA("BasePart") and instance:IsDescendantOf(Workspace) then
+			hider.tracked[instance] = true
+		end
+	end
+	CollectionService:GetInstanceAddedSignal(tag):Connect(track)
+	CollectionService:GetInstanceRemovedSignal(tag):Connect(function(instance: Instance)
+		if instance:IsA("BasePart") then
+			hider.tracked[instance] = nil
+			-- Une piece sortie par le streaming revient la meme : elle resterait invisible
+			showPart(hider, instance)
+		end
+	end)
+	for _, item in CollectionService:GetTagged(tag) do
+		track(item)
 	end
 end
 
-local function untrackMini(instance: Instance)
-	if instance:IsA("BasePart") then
-		miniTracked[instance] = nil
-		showMini(instance) -- un gobelet sorti par le streaming revient avec la meme piece
+local function updateHider(hider: PartHider, origin: Vector3)
+	local near = hider.near
+	local far = near + hider.hysteresis
+	local minDistance = hider.minDistance
+	local minHide = minDistance + hider.hysteresis
+	local weight = hider.verticalWeight
+	local hides = 0
+	for part in hider.tracked do
+		local offset = part.Position - origin
+		local flat = offset.X * offset.X + offset.Z * offset.Z
+		local distance = math.sqrt(flat + (offset.Y * weight) ^ 2)
+		local straight = math.sqrt(flat + offset.Y * offset.Y)
+		local saved = hider.hidden[part]
+		if saved ~= nil and part.Transparency ~= 1 then
+			-- Un autre script l'a remise visible ou l'anime : on la lui laisse
+			hider.hidden[part] = nil
+			saved = nil
+		end
+		if saved ~= nil then
+			if distance < near or straight < minDistance then
+				showPart(hider, part)
+			end
+		elseif distance > far and straight > minHide and hides < hider.hidesPerCheck and part.Transparency == 0 then
+			hides += 1
+			hider.hidden[part] = part.Transparency
+			part.Transparency = 1
+		end
 	end
 end
 
-local function updateMinis()
+-- Passage complet --------------------------------------------------------------------------------
+
+local lastOrigin: Vector3? = nil
+
+local function updateAll()
 	local camera = Workspace.CurrentCamera
 	if camera == nil then
 		return
 	end
 	local origin = camera.CFrame.Position
-	local near = Gameplay.MiniFruitMaxDistance
-	local far = near + HYSTERESIS
-	local hides = 0
-	for part in miniTracked do
-		local distance = (part.Position - origin).Magnitude
-		local hidden = miniHidden[part] ~= nil
-		if hidden and distance < near then
-			showMini(part)
-		elseif not hidden and distance > far and hides < MINI_HIDES_PER_CHECK and part.Transparency < 1 then
-			hides += 1
-			miniHidden[part] = part.Transparency
-			part.Transparency = 1
-		end
-	end
+	lastOrigin = origin
+	-- Les fruits portes par le joueur ne doivent jamais etre caches, meme camera au zoom max
+	fruitHider.minDistance =
+		math.max(Gameplay.FruitMinDistance, Players.LocalPlayer.CameraMaxZoomDistance + ZOOM_MARGIN)
+	updateRarity(origin)
+	updateNpcs(origin)
+	updateHider(miniHider, origin)
+	updateHider(fruitHider, origin)
 end
 
 function WorldDetailController:Init() end
@@ -285,19 +349,22 @@ function WorldDetailController:Start()
 		trackNpc(item)
 	end
 
-	-- 4. Mini fruits des gobelets
-	local miniTag = FruitModels.MiniFruitTag
-	CollectionService:GetInstanceAddedSignal(miniTag):Connect(trackMini)
-	CollectionService:GetInstanceRemovedSignal(miniTag):Connect(untrackMini)
-	for _, item in CollectionService:GetTagged(miniTag) do
-		trackMini(item)
-	end
+	-- 4. Mini fruits des gobelets, 5. fruits entiers
+	watchTag(miniHider, FruitModels.MiniFruitTag)
+	watchTag(fruitHider, FruitModels.FruitPartTag)
+
+	-- Camera qui saute (teleport d'etage, reapparition, outils de test) : passage avant l'image,
+	-- sinon les objets caches reapparaitraient jusqu'a CHECK_SECONDS plus tard, sous les yeux.
+	RunService:BindToRenderStep(JUMP_STEP, Enum.RenderPriority.Camera.Value + 1, function()
+		local camera = Workspace.CurrentCamera
+		if camera and lastOrigin and (camera.CFrame.Position - lastOrigin).Magnitude > CAMERA_JUMP_STUDS then
+			updateAll()
+		end
+	end)
 
 	task.spawn(function()
 		while true do
-			updateRarity()
-			updateNpcs()
-			updateMinis()
+			updateAll()
 			task.wait(CHECK_SECONDS)
 		end
 	end)

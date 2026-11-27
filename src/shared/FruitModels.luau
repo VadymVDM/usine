@@ -14,6 +14,9 @@ local Fruits = require(script.Parent.Config.Fruits)
 local FruitModels = {}
 
 FruitModels.RarityFxTag = "RarityFx" -- tag CollectionService de l'Attachment des effets de rarete
+-- Tag des pieces d'un fruit entier (CreateFruit). Le corps voxel fait 3 300 a 4 500 triangles :
+-- le client le rend invisible loin de la camera (WorldDetailController, docs/perf-mobile.md).
+FruitModels.FruitPartTag = "FarHideFruit"
 
 FruitModels.FruitSize = 1.9 -- hauteur totale d'un fruit voxel (corps + queue ; 1.5 avant le 2026-11-19 soir)
 FruitModels.CupHeight = 1.6 -- hauteur totale d'un gobelet (couvercle + paille)
@@ -385,6 +388,13 @@ function FruitModels.CreateFruit(fruitId: string, anchored: boolean): Model
 		body = model.PrimaryPart :: BasePart
 	end
 	addRarityFx(model, body, fruit.rarity)
+	-- Tag sur chaque piece (le tag suit les Clone() et la replication). Les fruits des fenetres
+	-- d'interface sont tagues aussi : le client ne suit que ceux du Workspace.
+	for _, item in model:GetDescendants() do
+		if item:IsA("BasePart") then
+			CollectionService:AddTag(item, FruitModels.FruitPartTag)
+		end
+	end
 	return model
 end
 

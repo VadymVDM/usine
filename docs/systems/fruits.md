@@ -358,6 +358,16 @@ Poids : `BaseWeight (1000) x 0.8^(position-1) x 0.1^(rarete-1)` (calcule au char
   4 500 triangles). Il porte le tag `FruitModels.MiniFruitTag` ; le client le rend invisible a plus
   de `Gameplay.MiniFruitMaxDistance` (60 studs) de la camera. Gain en haute qualite seulement.
   Detail : `docs/perf-mobile.md`.
+- **Fruits entiers caches de loin (2026-11-27, 22 h 40)** : `CreateFruit` pose le tag
+  `FruitModels.FruitPartTag` ("FarHideFruit") sur chaque piece du fruit (corps voxel = 3 300 a
+  4 500 triangles). `WorldDetailController` (client) les rend invisibles (`Transparency = 1` en
+  local) au-dela de `Gameplay.FruitMaxDistance` (300 studs) de la camera, la hauteur comptant
+  `FruitVerticalWeight` (2.5) fois plus, et jamais a moins de `FruitMinDistance` (160 studs, plus
+  que le zoom max de la camera : les fruits portes par le joueur restent visibles). Seuls les fruits
+  du Workspace (pas ceux des fenetres Index / inventaire / menus). Une piece deja transparente
+  (animee ou cachee par un autre script) n'est jamais touchee. Une tour au maximum peut vraiment
+  avoir ~400 fruits (30 au sol par etage : ils restent quand le joueur change d'etage, + un fruit
+  par caisse). Gain mesure et captures : `docs/perf-mobile.md`.
 
 - Fruits voxel : si `ReplicatedStorage.FruitAssets` n'est pas dans la place (script pas lance ou
   place pas sauvegardee), on revoit les anciennes boules. Relancer le script apres tout changement

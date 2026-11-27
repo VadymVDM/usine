@@ -1,5 +1,7 @@
 # Prompt : cacher les fruits entiers loin de la caméra (2026-11-27)
 
+**Fait le 2026-11-27 (22 h 40)** : voir `docs/perf-mobile.md`, "Correction du 2026-11-27 (22 h 40)".
+
 Un prompt = un nouveau chat. Suite du travail de performance mobile du 2026-11-27
 (`docs/perf-mobile.md`). Décision d'Adam : « on va les cacher, mais seulement d'un peu plus loin,
 comme ça on est sûr que plus personne ne peut les voir ».
