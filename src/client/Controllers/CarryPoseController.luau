@@ -6,9 +6,8 @@
 --   * arbre niveau 1 dans les mains (attribut JOUEUR HoldingSapling, SaplingController, 2026-11-22) :
 --     bras tendus devant, un peu plus bas (Config/Intro.HoldArmDegrees).
 --   * ramassage d'un fruit (Fruit Picker R15, 2026-11-27 : attributs PickStart / PickTime poses par
---     NpcRig.Pick) : il plie les genoux, penche le buste, tend le bras droit jusqu'au sol, puis se
---     releve en montant le fruit vers le plateau. Les pieds restent au sol (hanches baissees de
---     la longueur de jambe x (1 - cos angle)) ; avec un plateau garni la tete reste droite.
+--     NpcRig.Pick) : il reste debout (accroupi retire le 2026-11-27, demande utilisateur), tend le
+--     bras droit vers le fruit, puis le monte vers le plateau.
 --   * depot a l'etagere (Fruit Picker R15, 2026-11-27 : DumpStart / DumpTime, NpcRig.Dump) : il
 --     pousse le plateau vers l'avant, penche la tete (le plateau, soude a la tete, bascule vers les
 --     caisses) en pliant un peu les genoux ; les fruits partent a Npcs.DumpReleaseAt, puis il
@@ -63,13 +62,9 @@ type Rig = {
 	picking: boolean,
 }
 
--- Geste de ramassage (R15) : angles au plus bas
-local PICK_SQUAT = math.rad(58) -- cuisses vers l'avant (genoux plies de 2x)
-local PICK_LEAN = math.rad(18) -- bassin penche en avant
-local PICK_WAIST = math.rad(22) -- buste penche en plus
-local PICK_REACH = math.rad(62) -- bras droit vers l'avant (par rapport au buste)
+-- Geste de ramassage (R15) : il reste debout (accroupi retire le 2026-11-27), seul le bras droit bouge
+local PICK_REACH = math.rad(62) -- bras droit vers l'avant, vers le fruit
 local PICK_ELBOW = math.rad(12)
-local PICK_LOOK = math.rad(12) -- tete qui regarde le fruit (sans plateau garni)
 -- Depot a l'etagere (R15) : au moment ou les fruits partent
 local DUMP_ARMS = math.rad(100) -- bras qui poussent le plateau vers l'avant
 local DUMP_NECK = math.rad(30) -- tete (et plateau) penchee vers les caisses
@@ -226,43 +221,22 @@ local function gestureProgress(model: Model, name: string): number?
 	return if p >= 0 and p < 1 then p else nil
 end
 
--- Pose R15 du ramassage a la progression p. `trayHeld` : plateau deja garni (tete gardee droite).
--- Renvoie l'angle du bras droit (le gauche suit rig.angle comme d'habitude).
-local function applyPick(body: Body, p: number, trayHeld: boolean, carryAngle: number): number
+-- Pose R15 du ramassage a la progression p : il reste debout (plus d'accroupi depuis le 2026-11-27,
+-- demande utilisateur), seul le bras droit bouge. Renvoie l'angle du bras droit (le gauche suit
+-- rig.angle comme d'habitude).
+local function applyPick(body: Body, p: number, carryAngle: number): number
 	local grab, tray = Npcs.PickGrabAt, Npcs.PickTrayAt
-	-- Accroupi : descend jusqu'a la prise, tient un instant, remonte avant que le fruit arrive au plateau
+	-- Coude un peu plie jusqu'a la prise, tient un instant, se retend avant que le fruit arrive au plateau
 	local hold = 0.04
-	local crouch = if p < grab then smooth(p / grab) else 1 - smooth((p - grab - hold) / (tray - grab - hold))
-	local squat, lean, waist = PICK_SQUAT * crouch, PICK_LEAN * crouch, PICK_WAIST * crouch
-	if body.root then
-		local drop = body.legLength * (1 - math.cos(squat))
-		setTransform(body.root, CFrame.new(0, -drop, 0) * CFrame.Angles(-lean, 0, 0))
-	end
-	if body.waist then
-		setTransform(body.waist, CFrame.Angles(-waist, 0, 0))
-	end
-	if body.neck then
-		local head = if trayHeld then lean + waist else -PICK_LOOK * crouch
-		setTransform(body.neck, CFrame.Angles(head, 0, 0))
-	end
-	for _, hip in body.hips do
-		setTransform(hip, CFrame.Angles(squat + lean, 0, 0))
-	end
-	for _, knee in body.knees do
-		setTransform(knee, CFrame.Angles(-2 * squat, 0, 0))
-	end
-	for _, ankle in body.ankles do
-		setTransform(ankle, CFrame.Angles(squat, 0, 0))
-	end
+	local bend = if p < grab then smooth(p / grab) else 1 - smooth((p - grab - hold) / (tray - grab - hold))
 	if body.rightElbow then
-		setTransform(body.rightElbow, CFrame.Angles(PICK_ELBOW * crouch, 0, 0))
+		setTransform(body.rightElbow, CFrame.Angles(PICK_ELBOW * bend, 0, 0))
 	end
-	-- Bras droit : vers le fruit (compense le buste penche), puis monte vers le plateau
-	local reach = PICK_REACH + lean + waist
+	-- Bras droit : vers le fruit, puis monte vers le plateau
 	if p < grab then
-		return carryAngle + (reach - carryAngle) * smooth(p / grab)
+		return carryAngle + (PICK_REACH - carryAngle) * smooth(p / grab)
 	end
-	return reach + (TRAY_ANGLE - reach) * smooth((p - grab) / (tray - grab))
+	return PICK_REACH + (TRAY_ANGLE - PICK_REACH) * smooth((p - grab) / (tray - grab))
 end
 
 -- Pose R15 du depot a l'etagere a la progression p. Renvoie l'angle des deux bras.
@@ -405,7 +379,7 @@ function CarryPoseController.Start()
 					local body = rig.body
 					if body then
 						rig.picking = true
-						rightAngle = applyPick(body, pick, target ~= 0, angle)
+						rightAngle = applyPick(body, pick, angle)
 					end
 				elseif dump then
 					if rig.body == nil then

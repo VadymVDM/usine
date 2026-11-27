@@ -241,8 +241,10 @@ Register, on comprend pas a quoi ca sert" ; "quand on ameliore, on ne voit pas d
   tete) et bras leves dessous (`CarryPoseController`) : verifie en Play.
   - **Ramassage** (`NpcRig.Pick`) : il s'arrete a `Gameplay.PickerReach` (2.1) studs du fruit, du
     cote d'ou il arrive (`NpcRig.ReachPoint` ; avant : il marchait SUR le fruit puis pivotait d'un
-    coup), se tourne en douceur, puis geste de `PickerPickSeconds` (0.65 s) / vitesse : genoux plies,
-    buste penche, bras droit au sol. A `Npcs.PickGrabAt` le fruit quitte le sol (`TakeFruit`) et une
+    coup), se tourne en douceur, puis geste de `PickerPickSeconds` (0.65 s) / vitesse : il reste
+    **debout**, bras droit tendu vers le fruit puis vers le plateau (l'accroupi, genoux plies et buste
+    penche, est retire depuis le 2026-11-27, demande : "enleve l'animation qui fait se baisser le
+    fruit picker"). A `Npcs.PickGrabAt` le fruit quitte le sol (`TakeFruit`) et une
     copie est soudee a sa main droite ; a `Npcs.PickTrayAt` elle arrive sur le plateau (`TrayFruits`).
   - **Depot** (`NpcRig.Dump`) : a l'etagere il se tourne vers les caisses (centre de
     `Production.Bins`), pousse le plateau vers l'avant en penchant la tete (le plateau, soude a la

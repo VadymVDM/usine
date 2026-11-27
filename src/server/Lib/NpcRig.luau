@@ -579,8 +579,8 @@ end
 
 -- Fruit Picker R15 (2026-11-27) : geste de ramassage d'un fruit au sol, en `seconds`. Le serveur
 -- pose seulement l'heure de depart (attributs PickStart / PickTime, horloge GetServerTimeNow) :
--- chaque client dessine la pose (accroupi, buste penche, bras droit au sol puis vers le plateau,
--- CarryPoseController). Ici : il se tourne en douceur vers le fruit, a Npcs.PickGrabAt la main
+-- chaque client dessine la pose (debout, bras droit vers le fruit puis vers le plateau,
+-- CarryPoseController ; plus d'accroupi depuis le 2026-11-27). Ici : il se tourne en douceur vers le fruit, a Npcs.PickGrabAt la main
 -- touche le fruit -> `grab()` le retire du sol et renvoie son id ; une copie suit la main droite
 -- jusqu'a Npcs.PickTrayAt, puis `toTray()` le pose sur le plateau. Bloque pendant le geste.
 function NpcRig.Pick(npc: Npc, fruitPos: Vector3, seconds: number, grab: () -> string?, toTray: (string) -> ())
