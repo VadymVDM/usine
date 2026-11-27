@@ -22,6 +22,12 @@ local Sounds: { [string]: SoundDef } = {
 	-- Sale : un client achete une boisson -> caisse enregistreuse "ka-ching" (2026-11-19, demande
 	-- utilisateur ; avant : le pop grave). Joue a la position du client.
 	Sale = { id = "rbxassetid://120891770644830", volume = 1, pitchJitter = 0.04 }, -- "cash-register-sound-fx" (1.04 s)
+	-- Clients contents (2026-11-27, demande : "effets sonores contents satisfaisants quand on leur
+	-- rapporte les jus"). Creator Store sous licence (ProSoundEffects, APM), verifies charges dans
+	-- Studio ; PAS ecoutes (a valider a l'oreille, faciles a remplacer ici). CustomerController.
+	CustomerHappy = { id = "rbxassetid://9126073001", volume = 1, pitchJitter = 0.03 }, -- "Synth Sparkle Tone High Pitch Bell Tone Ding 4" (1.2 s) : client servi (la note monte si les ventes s'enchainent)
+	CustomerSip = { id = "rbxassetid://9113861348", volume = 1, pitchJitter = 0.1 }, -- "Comic Slurp 1" (1.4 s) : il goute son jus en repartant
+	CustomersCheer = { id = "rbxassetid://1841221347", volume = 1 }, -- "Yeah" (voix d'enfants, APM, 2.9 s) : des jus arrivent sur le comptoir vide alors qu'ils attendaient
 	-- Paid : le joueur paie un achat (pad de machine, tuile de panneau, etage, menu Upgrades).
 	-- Envoye par MoneyService.TrySpend (remote Feedback "Paid"), joue par CashController (2026-11-20).
 	Paid = { id = "rbxassetid://100813529228543", volume = 1, pitchJitter = 0.04 }, -- "coins / purchasing" (Creator Store, blocky_53)

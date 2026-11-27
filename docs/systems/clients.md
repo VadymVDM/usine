@@ -38,6 +38,14 @@ et vrai pass Robux non testes)
 > - **Vente sans client pret au comptoir** : elle attend le prochain client qui arrive au comptoir
 >   (2 par place au plus), sinon "+$" et son seuls. Plus de client pose d'un coup au comptoir
 >   (avant, au rez-de-chaussee : apparition ou teleportation au comptoir).
+> - **Sons contents** (2026-11-27 soir, demande : "effets sonores contents satisfaisants quand on
+>   leur rapporte les jus" ; ecoutes et valides par Adam en Play : "le son est parfait") :
+>   client servi = ka-ching (`Sale`) + ding scintillant `CustomerHappy` (la note monte de 5 % par
+>   vente enchainee en moins de 1.5 s, 8 crans au plus ; 1 ding / 0.1 s par etage) + `CustomerSip`
+>   ("slurp" cartoon 0.55 s apres, 1 / 0.3 s par etage). Jus poses sur le comptoir vide alors que
+>   des clients attendaient au comptoir depuis au moins 1 s : ils passent a une bulle contente et,
+>   sur la base du joueur seulement, `CustomersCheer` ("Yeah" d'enfants, 1 fois / 8 s par etage).
+>   Ids et sources dans `Config/Sounds.luau` (ProSoundEffects, APM : sous licence Roblox).
 > - Boucle sur `Heartbeat` (avant `RenderStepped`) : continue quand l'image n'est pas dessinee.
 > - Au plus `CustomerMaxPerFloor` (48) clients dessines au rez-de-chaussee ; test a 6 ventes / s :
 >   28 clients au plus.
@@ -209,7 +217,8 @@ Collect est verifie a chaque arrivee (`UserOwnsGamePassAsync`).
 `Config/Upgrades.luau` (CustomerSpeed, CustomerCount), `Config/Gameplay.luau`
 (`CounterCupLayersMax`, `MoneyStacks`, `MoneyBillsMax`, `MoneyBillsPerDoubling`, `SaleMaxSpots`, `IncomeWindowSeconds`, `IncomeMinSeconds`, `PadTitles`, `PadActionSeconds`,
 `PromptTexts`, `Messages`), `Config/Npcs.luau`, `Config/Shop.luau` (pass AutoCollect : prix 149 A
-VALIDER, `passId` 0), `Config/Sounds.luau` (Sale, CashPop ; CashBig retire le 2026-11-20).
+VALIDER, `passId` 0), `Config/Sounds.luau` (Sale, CashPop, CustomerHappy, CustomerSip,
+CustomersCheer ; CashBig retire le 2026-11-20).
 
 ## Tests (Studio)
 
