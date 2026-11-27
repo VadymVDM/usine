@@ -39,10 +39,9 @@ local Gameplay = {
 		SpeedBoostOn = "Waiter Speed x10 is active!",
 		BillboardOn = "Billboard is active! 2X sell price!",
 		JuiceTableFull = "Juice table is full!",
-		-- Pass Thief (2026-11-23) : {n}, {name}, {seconds} remplaces par ThiefService
+		-- Pass Thief (2026-11-23) : {n}, {name} remplaces par ThiefService
 		StealDone = "You stole {n} juices from {name}!",
 		StealVictim = "{name} stole {n} juices from you! Your insurance refunded everything.",
-		StealWait = "You can rob {name} again in {seconds}s!",
 		StealNothing = "No juice to steal here!",
 	}),
 
@@ -53,9 +52,9 @@ local Gameplay = {
 	StealPromptDistance = 14, -- portee du prompt Steal (studs ; le comptoir est long)
 	StealPendingSeconds = 180, -- la "photo" reste valable ce temps apres l'appui sur E (achat lent)
 	StealRefreshSeconds = 0.5, -- frequence de mise a jour des prompts Steal (jus presents ou non)
-	-- Avec le pass : E = prendre ses mains pleines de jus. La victime ne perd rien (seul le voleur
-	-- voit les gobelets disparaitre). Une fois par victime par :
-	StealCooldown = 60, -- secondes
+	-- Avec le pass : E = prendre ses mains pleines de jus, sans limite de temps (pass "UNLIMITED",
+	-- 2026-11-27 : l'ancien StealCooldown de 60 s par victime est supprime). La victime ne perd rien
+	-- (seul le voleur voit les gobelets disparaitre).
 	StealHideSeconds = 60, -- duree pendant laquelle les gobelets voles restent caches chez le voleur
 
 	-- Pads d'action (2026-11-19 : on marche dessus, pas de touche E). Titres affiches au-dessus.

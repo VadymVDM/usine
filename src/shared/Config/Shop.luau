@@ -102,7 +102,7 @@ Shop.Passes = {
 	-- Take Juices (apres le Waiter), Billboard dans la cour (99 R$ comme la capture de reference).
 	{ key = "SpeedBoost", title = "WAITER SPEED x10 (All Floors)", lines = { "10x waiter speed", "Permanent" }, icon = "Shoe", color = Color3.fromRGB(0, 120, 255), color2 = Color3.fromRGB(0, 230, 255), price = 149, passId = 2092415019, giftProductId = 3734927704 },
 	{ key = "Billboard", title = "BILLBOARD", lines = { "2x sell price", "Permanent" }, icon = "Cash", color = Color3.fromRGB(255, 120, 0), color2 = Color3.fromRGB(255, 220, 40), price = 99, passId = 2093464945, giftProductId = 3734927718 },
-	{ key = "Thief", title = "THIEF", lines = { "Steal ready drinks", "from other stands" }, icon = "Thief", color = Color3.fromRGB(90, 0, 200), color2 = Color3.fromRGB(195, 77, 255), price = 149, passId = 2097082802, giftProductId = 3734927725, tag = "OP" },
+	{ key = "Thief", title = "THIEF (UNLIMITED)", lines = { "Steal ready drinks", "from other stands" }, icon = "Thief", color = Color3.fromRGB(90, 0, 200), color2 = Color3.fromRGB(195, 77, 255), price = 149, passId = 2097082802, giftProductId = 3734927725, tag = "OP" },
 	{ key = "RebirthMaster", title = "REBIRTH MASTER", lines = { "Keep your tree", "level on rebirth" }, icon = "Rebirth", color = Color3.fromRGB(255, 0, 122), color2 = Color3.fromRGB(255, 138, 216), price = 199, passId = 2096880861, giftProductId = 3734927736 },
 } :: { Pass }
 

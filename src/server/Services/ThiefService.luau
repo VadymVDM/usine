@@ -4,9 +4,10 @@
 -- et comptoir (Counter.CounterTopArea). Le prompt n'apparait que chez les AUTRES joueurs
 -- (attribut "ForOthers", PromptController), et seulement quand il y a des jus a voler sur l'etage
 -- vivant de la victime (attribut "Active").
---   * Avec le pass : E = ses mains pleines de jus (gobelets du haut), une fois par victime par
---     Gameplay.StealCooldown ; la victime ne perd rien ("assurance", message) et seul le voleur voit
---     les gobelets disparaitre (Feedback "StolenCups").
+--   * Avec le pass : E = ses mains pleines de jus (gobelets du haut), SANS limite de temps (pass
+--     "UNLIMITED", demande utilisateur du 2026-11-27 : plus de delai de 60 s par victime) ; seules
+--     les mains pleines et l'anti-spam d'appui limitent. La victime ne perd rien ("assurance",
+--     message) et seul le voleur voit les gobelets disparaitre (Feedback "StolenCups").
 --   * Sans le pass : E = fenetre d'achat Roblox du pass. Les jus vises sont "photographies" A
 --     L'APPUI SUR E (ids, positions, modeles) : si l'achat aboutit (possession reverifiee par
 --     Lib/GamePass) dans les Gameplay.StealPendingSeconds, le voleur recoit CES jus, meme si la table
@@ -68,8 +69,6 @@ end
 
 local floors: { [Model]: FloorSteal } = {}
 local pending: { [Player]: Pending } = {}
--- Dernier vol de chaque voleur, par victime (UserId) : une fois par victime par StealCooldown.
-local lastSteal: { [Player]: { [number]: number } } = {}
 
 function ThiefService.Owns(player: Player): boolean
 	return player:GetAttribute(ATTRIBUTE) == true
@@ -92,28 +91,12 @@ local function peek(floor: Model, source: Source, max: number): ({ string }, { V
 	return CustomerService.PeekCounter(floor, max)
 end
 
--- Secondes a attendre avant de revoler cette victime (0 = possible).
-local function waitLeft(player: Player, victimId: number): number
-	local history = lastSteal[player]
-	local last = history and history[victimId]
-	if last == nil then
-		return 0
-	end
-	return math.max(0, Gameplay.StealCooldown - (os.clock() - last))
-end
-
 -- Donne les jus au voleur et previent les deux joueurs. Renvoie le nombre donne.
 local function give(player: Player, victimId: number, victimName: string, ids: { string }, from: { Vector3 }, models: { Model }): number
 	local given = ProductionService.GiveJuices(player, ids, from, models)
 	if given <= 0 then
 		return 0
 	end
-	local history = lastSteal[player]
-	if history == nil then
-		history = {}
-		lastSteal[player] = history
-	end
-	history[victimId] = os.clock()
 	local count = tostring(given)
 	NotifyService.Notify(player, fill(MESSAGES.StealDone, { n = count, name = victimName }))
 	local victim = Players:GetPlayerByUserId(victimId)
@@ -123,13 +106,8 @@ local function give(player: Player, victimId: number, victimName: string, ids: {
 	return given
 end
 
--- Avec le pass : vol immediat (ses mains pleines).
+-- Avec le pass : vol immediat (ses mains pleines), a chaque appui sur E.
 local function stealNow(player: Player, floor: Model, victim: Player, source: Source)
-	local wait = waitLeft(player, victim.UserId)
-	if wait > 0 then
-		NotifyService.Notify(player, fill(MESSAGES.StealWait, { name = victim.DisplayName, seconds = tostring(math.ceil(wait)) }), true)
-		return
-	end
 	local room = ProductionService.GetHandRoom(player)
 	if room <= 0 then
 		NotifyService.Notify(player, MESSAGES.HandsFull, true)
@@ -324,7 +302,6 @@ function ThiefService:Start()
 	end
 	Players.PlayerRemoving:Connect(function(player: Player)
 		pending[player] = nil
-		lastSteal[player] = nil
 	end)
 	GamePass.OnPurchased(function(player: Player, id: number) -- possession reverifiee
 		if passId > 0 and id == passId then

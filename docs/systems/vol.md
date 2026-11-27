@@ -1,11 +1,11 @@
 # Systeme : Vol de boissons (pass Thief)
 
-**Statut :** en cours (touche E refaite le 2026-11-27 ; prompt teste a 1 joueur dans Studio ; vol pas teste a 2 joueurs)
+**Statut :** en cours (touche E refaite le 2026-11-27, vol sans limite de temps le meme jour ; prompt teste a 1 joueur dans Studio ; vol pas teste a 2 joueurs)
 **Derniere mise a jour :** 2026-11-27
 
 ## Role
 
-Pass Robux "Thief" (149 R$, `Shop.Passes`, aussi dans la boutique). Dans la base d'un autre joueur,
+Pass Robux "Thief" (149 R$, `Shop.Passes`, titre en jeu "THIEF (UNLIMITED)", aussi dans la boutique). Dans la base d'un autre joueur,
 en regardant les boissons de sa **table a jus** ou de son **comptoir**, le joueur voit un prompt
 **E "Steal"**. Avec le pass : il vole tout de suite. Sans le pass : la fenetre d'achat Roblox s'ouvre,
 et les boissons visees sont gardees de cote ("photo") pendant qu'il paie.
@@ -37,8 +37,10 @@ et les boissons visees sont gardees de cote ("photo") pendant qu'il paie.
 - **Appui sur E** (`Triggered`, verifie par le serveur) : pas sa propre base, victime presente, etage
   vivant, joueur a portee (`PlayerCheck.CanReach`), 0.4 s minimum entre deux appuis.
   - **Avec le pass** : ses mains pleines (place libre = `JuiceCarry` - jus deja portes), parmi les
-    gobelets du haut de la table ou du comptoir ; une fois par victime toutes les `StealCooldown` s
-    (60 s). Mains pleines / rien a voler / trop tot : message rouge.
+    gobelets du haut de la table ou du comptoir, **a chaque appui sur E, sans limite de temps**
+    (pass "UNLIMITED"). Limites : mains pleines et 0.4 s entre deux appuis. Mains pleines / rien a
+    voler : message rouge. (Jusqu'au 2026-11-27 : une fois par victime toutes les 60 s, ce qui
+    bloquait E juste apres l'achat ; supprime a la demande de l'utilisateur.)
   - **Sans le pass** (au plus une fenetre toutes les `ThiefPromptCooldown` = 2 s) :
     1. **photo** des jus vises A L'APPUI SUR E : les gobelets du haut, autant que le joueur peut en
        porter mains vides (`GetHandCapacity`) ; ids, positions et modeles gardes sur le serveur ;
@@ -71,10 +73,11 @@ Aucune : Roblox garde le pass. La photo et les delais sont en memoire (oublies a
 ## Configuration
 
 - `Gameplay.ThiefPromptCooldown` (2 s), `StealPromptDistance` (14), `StealPendingSeconds` (180),
-  `StealRefreshSeconds` (0.5), `StealCooldown` (60 s), `StealHideSeconds` (60 s).
+  `StealRefreshSeconds` (0.5), `StealHideSeconds` (60 s). (`StealCooldown` supprime le 2026-11-27.)
 - Textes : `PromptTexts.StealAction` ("Steal"), `StealTableObject`, `StealCounterObject` ;
-  messages `StealDone`, `StealVictim`, `StealWait`, `StealNothing`.
-- `Shop.Passes` cle `Thief` : `passId` 2097082802 (verifie le 2026-11-23 : "Thief", 149 R$, en vente).
+  messages `StealDone`, `StealVictim`, `StealNothing` (`StealWait` supprime).
+- `Shop.Passes` cle `Thief` : titre "THIEF (UNLIMITED)", `passId` 2097082802 (verifie le 2026-11-23 :
+  "Thief", 149 R$, en vente). Le nom du pass SUR ROBLOX (fenetre d'achat) est toujours "Thief".
 
 ## Problemes connus / a faire
 
@@ -84,7 +87,8 @@ Aucune : Roblox garde le pass. La photo et les delais sont en memoire (oublies a
 - Le createur n'a jamais le pass (Lib/GamePass) : il voit toujours la fenetre d'achat, et l'achat
   n'est jamais confirme pour lui (la photo n'est donc pas testable avec son compte). Pour tester le
   vol avec le pass : activer Thief dans le panneau admin, ou un autre compte.
-- Le vol cree des jus (la victime ne perd rien) : argent en plus pour le voleur, limite par ses
-  mains et 60 s par victime. A surveiller dans l'economie.
+- Le vol cree des jus (la victime ne perd rien) : argent en plus pour le voleur, limite seulement
+  par ses mains (et le trajet jusqu'a son comptoir) depuis la fin du delai de 60 s. A surveiller
+  dans l'economie : un voleur peut remplir ses mains a chaque aller-retour.
 - Les gobelets caches chez le voleur sont les MODELES photographies : si la victime vend / bouge ses
   gobelets pendant les 60 s, d'autres gobelets peuvent rester visibles ou cachés (effet visuel seul).
