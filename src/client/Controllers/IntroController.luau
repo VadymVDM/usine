@@ -1,11 +1,16 @@
 --!strict
 -- Cinematique d'ouverture (2026-11-22), jouee UNE fois pour un profil neuf : le serveur
 -- (IntroService) pose l'attribut joueur "IntroPending" ; a la fin on envoie IntroDone.
--- Histoire (~24 s) : il marche dans la foret, voit l'arbre DE LOIN ("!"), "Wow!" bras en l'air, court
+-- Histoire (~27 s) : plan d'ouverture sur le paysage (foret, montagnes, volcan de jus), il marche
+-- dans la foret, voit l'arbre DE LOIN ("!"), "Wow!" bras en l'air, court
 -- jusqu'a lui, reflechit ("?"), voit la pelle plantee ("!"), l'arrache, creuse 3 fois (lever,
 -- enfoncer avec le pied, soulever la terre, la jeter sur le tas), replante la pelle ; l'arbre tombe et
 -- devient l'arbre niveau 1 qui vole dans ses mains ; il le brandit au-dessus de sa tete ; l'usine.
 -- Pas de Skip (retire le 2026-11-22 a la demande de l'utilisateur).
+-- 2026-11-27 ("plus realiste, avec des montagnes en fond comme sur la map") : fond de carte dans le
+-- decor, plan d'ouverture, lumiere du matin + fond flou sur les gros plans (Intro.Mood, remis comme
+-- avant a la fin), marche et course qui suivent la distance (les pieds ne glissent plus : jambes
+-- posees par un petit calcul hanche / genou / cheville).
 -- Tout est local, chez ce joueur seulement :
 --   * decor ReplicatedStorage.IntroSet clone a Config/Intro.SetOrigin (loin de la carte), detruit a la fin ;
 --   * acteur = copie de son personnage (Archivable), sans scripts ni Animator, racine ancree ; il est
@@ -21,6 +26,7 @@
 -- Jamais de Neon. Doc : docs/systems/cinematique.md
 
 local CollectionService = game:GetService("CollectionService")
+local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -103,6 +109,10 @@ type Rig = {
 	joints: { [string]: Joint },
 	head: BasePart?,
 	headTop: number, -- haut de la tete au repos (repere de la racine)
+	hipHeight: number, -- hanche au-dessus du sol, debout
+	thigh: number, -- hanche -> genou (R6 : toute la jambe)
+	shin: number, -- genou -> cheville (R6 : 0, pas de genou)
+	ankleHeight: number, -- cheville au-dessus du sol, pied a plat (R6 : 0)
 }
 
 local JOINTS = {
@@ -118,6 +128,9 @@ local JOINTS = {
 	LeftKnee = { "", "", "LeftLowerLeg", "LeftKnee" },
 	RightElbow = { "", "", "RightLowerArm", "RightElbow" },
 	LeftElbow = { "", "", "LeftLowerArm", "LeftElbow" },
+	-- Chevilles (R15) : le pied reste a plat quand il est pose, pointe vers le bas quand il pousse
+	RightAnkle = { "", "", "RightFoot", "RightAnkle" },
+	LeftAnkle = { "", "", "LeftFoot", "LeftAnkle" },
 }
 
 local function jointRotation(joint: Instance): CFrame?
@@ -205,13 +218,46 @@ local function makeRig(model: Model): Rig?
 	local cf, size = model:GetBoundingBox()
 	local head = model:FindFirstChild("Head")
 	local headPart = if head and head:IsA("BasePart") then head else nil
+	local rootHeight = root.Position.Y - (cf.Position.Y - size.Y / 2)
+	-- Hauteur de la racine, pieds au sol : mesuree sur la pose de repos (chaine des articulations).
+	-- La boite englobante, elle, voit la pose d'animation du moment de la copie (genoux un peu
+	-- plies) : trop courte de ~0.17 stud, les pieds s'enfoncaient dans le sol (mesure le 2026-11-27).
+	local lowest = math.huge
+	for _, name in { "RightFoot", "LeftFoot", "Right Leg", "Left Leg" } do
+		local part = model:FindFirstChild(name)
+		if part and part:IsA("BasePart") then
+			lowest = math.min(lowest, rest(part).Position.Y - part.Size.Y / 2)
+		end
+	end
+	if lowest < -0.5 then
+		rootHeight = -lowest
+	end
+	-- Mesures de la jambe (marche et course : le pied est pose par calcul)
+	-- La jambe va de la hanche a la CHEVILLE : le pied, a plat, est juste sous la cheville. (Viser
+	-- la semelle au bout du tibia faisait glisser le pied pose de ~1 stud / s, mesure le 2026-11-27.)
+	local hip, knee, ankle = joints.RightHip, joints.RightKnee, joints.RightAnkle
+	local hipHeight = math.max(if hip then hip.pivot.Y + rootHeight else rootHeight, 0.5)
+	local thigh, shin, ankleHeight = hipHeight, 0, 0
+	if hip and knee then
+		thigh = math.max((hip.pivot - knee.pivot).Magnitude, 0.1)
+		if ankle then
+			shin = math.max((knee.pivot - ankle.pivot).Magnitude, 0.1)
+			ankleHeight = math.max(ankle.pivot.Y + rootHeight, 0)
+		else
+			shin = math.max(knee.pivot.Y + rootHeight, 0.1)
+		end
+	end
 	return {
 		model = model,
 		root = root,
-		rootHeight = root.Position.Y - (cf.Position.Y - size.Y / 2),
+		rootHeight = rootHeight,
 		joints = joints,
 		head = headPart,
 		headTop = if headPart then rest(headPart).Position.Y + headPart.Size.Y / 2 else 2.5,
+		hipHeight = hipHeight,
+		thigh = thigh,
+		shin = shin,
+		ankleHeight = ankleHeight,
 	}
 end
 
@@ -244,6 +290,8 @@ type Pose = {
 	lk: number,
 	re: number, -- coude droit plie (R15)
 	le: number,
+	rf: number, -- cheville droite : + = pointe du pied vers le haut (R15)
+	lf: number,
 }
 
 local function newPose(): Pose
@@ -263,8 +311,13 @@ local function newPose(): Pose
 		lk = 0,
 		re = 0,
 		le = 0,
+		rf = 0,
+		lf = 0,
 	}
 end
+
+-- Champs des jambes : presque pas lisses pendant la marche et la course (sinon le pied pose glisse)
+local LEG_FIELDS = { rl = true, ll = true, rk = true, lk = true, rf = true, lf = true }
 
 local function waistRotation(p: Pose): CFrame
 	return CFrame.fromEulerAnglesYXZ(-p.bend, p.twist, 0)
@@ -281,6 +334,80 @@ local function applyPose(rig: Rig, p: Pose)
 	setJoint(rig, "LeftKnee", CFrame.Angles(-p.lk, 0, 0))
 	setJoint(rig, "RightElbow", CFrame.Angles(p.re, 0, 0)) -- l'avant-bras monte vers l'avant
 	setJoint(rig, "LeftElbow", CFrame.Angles(p.le, 0, 0))
+	setJoint(rig, "RightAnkle", CFrame.Angles(p.rf, 0, 0))
+	setJoint(rig, "LeftAnkle", CFrame.Angles(p.lf, 0, 0))
+end
+
+---------------------------------------------------------------------------------------------
+-- Marche et course (2026-11-27) : on dit ou est chaque pied (devant la hanche, au-dessus du sol) et
+-- un petit calcul donne l'angle de la hanche et le pli du genou. Le pied pose recule exactement a la
+-- vitesse du corps : il ne glisse plus. R6 (pas de genou) : la jambe pointe juste vers le pied.
+
+type Foot = { x: number, y: number, pitch: number } -- x devant la hanche, y au-dessus du sol, pitch : pointe du pied (+ = haut)
+
+-- Reglages pour une jambe de 1.62 stud (hanche -> cheville d'un avatar R15 normal) ; mis a l'echelle
+-- de la vraie jambe de l'acteur (`scale`).
+local REF_LEG = 1.62
+local WALK_LIFT = 0.34 -- hauteur du pied qui avance (studs)
+local WALK_HEEL = 0.2 -- le talon se leve a la fin de l'appui (le pied pousse sur la pointe)
+local RUN_LAND, RUN_OFF, RUN_LIFT = 0.6, -1.1, 0.95 -- course : pied pose devant, quitte le sol derriere, monte haut
+local RUN_HEEL = 0.35
+
+-- Angle de la hanche (vers l'avant) et pli du genou pour que la cheville soit a (forward, down) de la hanche
+local function solveLeg(rig: Rig, forward: number, down: number): (number, number)
+	local a, b = rig.thigh, rig.shin
+	local line = math.atan2(forward, math.max(down, 0.05))
+	if b < 0.15 then
+		return line, 0
+	end
+	local d = math.clamp(math.sqrt(forward * forward + down * down), math.abs(a - b) + 0.05, (a + b) * 0.999)
+	local knee = math.pi - math.acos(math.clamp((a * a + b * b - d * d) / (2 * a * b), -1, 1))
+	local inner = math.acos(math.clamp((a * a + d * d - b * b) / (2 * a * d), -1, 1))
+	return line + inner, knee -- la cuisse passe devant la ligne hanche-pied : le genou pointe vers l'avant
+end
+
+-- Marche. u = part du cycle (0..1) ; le pied est pose de 0.25 a 0.75 (il recule de +half a -half),
+-- puis il revient en l'air. Pointe relevee a la pose (talon d'abord), baissee quand il quitte le sol.
+local function walkFoot(u: number, half: number, scale: number): Foot
+	local s = (u - 0.25) % 1
+	if s < 0.5 then
+		local k = s / 0.5
+		local heel = smooth((k - 0.7) / 0.3) -- fin de l'appui : le talon se leve
+		return { x = half * (1 - 2 * k), y = WALK_HEEL * scale * heel, pitch = 0.22 * math.max(0, 1 - k / 0.2) - 0.33 * heel }
+	end
+	local v = (s - 0.5) / 0.5
+	return {
+		x = half * (2 * smooth(v) - 1),
+		y = (WALK_HEEL * (1 - smooth(v * 3)) + WALK_LIFT * math.sin(math.pi * v)) * scale,
+		pitch = -0.33 * (1 - smooth(v * 2.5)) - 0.2 * math.sin(math.pi * math.min(v * 1.6, 1)) * (1 - v) + 0.22 * smooth((v - 0.6) / 0.4),
+	}
+end
+
+-- Course. Le pied est pose pendant `duty` du cycle (court : il y a un temps en l'air), de `land`
+-- devant a `off` derriere (le talon se leve a la fin) ; puis il monte haut et la jambe revient devant.
+local function runFoot(u: number, duty: number, land: number, off: number, scale: number): Foot
+	u %= 1
+	if u < duty then
+		local k = u / duty
+		local heel = smooth((k - 0.55) / 0.45)
+		return { x = lerp(land, off, k), y = RUN_HEEL * scale * heel, pitch = -0.6 * heel }
+	end
+	local v = (u - duty) / (1 - duty)
+	return {
+		x = lerp(off, land, smooth(v)),
+		y = (RUN_HEEL * (1 - smooth(v * 3)) + RUN_LIFT * math.sin(math.pi * v ^ 0.75)) * scale,
+		pitch = lerp(-0.6, 0.15, smooth(v * 1.5)),
+	}
+end
+
+-- Regle les jambes de la pose pour que les pieds soient ou on veut. lift : racine montee / baissee.
+-- w = 0..1 : melange avec la position debout (l'allure entre et sort en douceur).
+local function placeFeet(rig: Rig, p: Pose, right: Foot, left: Foot, lift: number, w: number)
+	local hip = rig.hipHeight - rig.ankleHeight + lift * w -- hanche au-dessus de la cheville d'un pied pose
+	local a, k = solveLeg(rig, right.x * w, hip - right.y * w)
+	p.rl, p.rk, p.rf = a, k, k - a + right.pitch * w -- cheville : pied a plat, puis la pointe
+	a, k = solveLeg(rig, left.x * w, hip - left.y * w)
+	p.ll, p.lk, p.lf = a, k, k - a + left.pitch * w
 end
 
 -- Angles (swing, raise) pour qu'un bras pointe dans la direction `dir` (repere de la racine),
@@ -341,8 +468,11 @@ local function cleanActor(actor: Model)
 		local unwanted = item:IsA("BaseScript") or item:IsA("Animator") or item:IsA("Sound")
 		if unwanted or item:IsA("ProximityPrompt") or item:IsA("BillboardGui") then
 			item:Destroy()
-		elseif item:IsA("Motor6D") then
-			item.Transform = CFrame.identity -- pas de reste de l'animation du vrai personnage
+		elseif item:IsA("Motor6D") or item:IsA("AnimationConstraint") then
+			-- Pas de reste de l'animation du vrai personnage. Les avatars R15 de 2026 ont des
+			-- AnimationConstraint : sans cette remise a zero, l'articulation Root gardait le bassin
+			-- abaisse de l'animation (0.09 a 0.17 stud) et les pieds s'enfoncaient dans le sol.
+			(item :: any).Transform = CFrame.identity
 		end
 	end
 	local all = actor:GetDescendants()
@@ -704,6 +834,79 @@ local function plantedFrame(tip: Vector3, lean: Vector3, amount: number): CFrame
 end
 
 ---------------------------------------------------------------------------------------------
+-- Lumiere de cinema (2026-11-27, Config/Intro.Mood) : soleil du matin, image un peu plus chaude,
+-- fond flou sur les gros plans. Local (ce joueur seulement) et rendu a la fin : chaque valeur
+-- changee est notee puis remise. Low Quality (ombres coupees par SettingsController) : ni flou ni
+-- rayons. Atmosphere.Density / Haze / Glare ne sont PAS touches : Low Quality les sauvegarde et les
+-- remet lui-meme (deux scripts qui "rendent" la meme valeur se marcheraient dessus).
+
+type Mood = { restore: () -> (), dof: DepthOfFieldEffect? }
+local activeMood: Mood? = nil -- rendue meme si la cinematique plante
+
+local function applyMood(): Mood
+	local mood = Intro.Mood
+	local saved: { { inst: Instance, prop: string, value: any } } = {}
+	local made: { Instance } = {}
+	local function set(inst: Instance, prop: string, value: any)
+		table.insert(saved, { inst = inst, prop = prop, value = (inst :: any)[prop] });
+		(inst :: any)[prop] = value
+	end
+	local lowQuality = not Lighting.GlobalShadows
+	set(Lighting, "ClockTime", mood.ClockTime)
+	set(Lighting, "GeographicLatitude", mood.GeographicLatitude)
+	set(Lighting, "Brightness", mood.Brightness)
+	set(Lighting, "ColorShift_Top", mood.ColorShiftTop)
+	local atmosphere = Lighting:FindFirstChildOfClass("Atmosphere")
+	if atmosphere then
+		set(atmosphere, "Color", mood.AtmosphereColor)
+		set(atmosphere, "Decay", mood.AtmosphereDecay)
+	end
+	local grade = Instance.new("ColorCorrectionEffect")
+	grade.Name = "IntroGrade"
+	grade.Contrast = mood.Contrast
+	grade.Saturation = mood.Saturation
+	grade.TintColor = mood.Tint
+	grade.Parent = Lighting
+	table.insert(made, grade)
+	local dof: DepthOfFieldEffect? = nil
+	if not lowQuality then
+		local rays = Lighting:FindFirstChildOfClass("SunRaysEffect")
+		if rays then
+			set(rays, "Intensity", mood.SunRaysIntensity)
+			set(rays, "Spread", mood.SunRaysSpread)
+		end
+		local effect = Instance.new("DepthOfFieldEffect")
+		effect.Name = "IntroDof"
+		effect.Enabled = false
+		effect.NearIntensity = 0
+		effect.FarIntensity = 0
+		effect.InFocusRadius = mood.FocusRadius
+		effect.Parent = Lighting
+		table.insert(made, effect)
+		dof = effect
+	end
+	local restored = false
+	return {
+		dof = dof,
+		restore = function()
+			if restored then
+				return
+			end
+			restored = true
+			for i = #saved, 1, -1 do
+				local item = saved[i]
+				pcall(function()
+					(item.inst :: any)[item.prop] = item.value
+				end)
+			end
+			for _, inst in made do
+				inst:Destroy()
+			end
+		end,
+	}
+end
+
+---------------------------------------------------------------------------------------------
 -- La cinematique
 
 local function waitForAppearance(character: Model)
@@ -832,6 +1035,11 @@ local function play()
 		if set then
 			set:Destroy()
 		end
+		-- Lumiere du jeu remise sous le blanc, avant de dessiner l'usine
+		if activeMood then
+			activeMood.restore()
+			activeMood = nil
+		end
 		local humanoid = character:FindFirstChildOfClass("Humanoid")
 		camera.FieldOfView = 70
 		local live = player.Character
@@ -892,6 +1100,33 @@ local function play()
 	local actorRig: Rig = rig
 	local setModel: Model = set
 	gripDrop = math.clamp(3 - actorRig.rootHeight, -2, 1)
+
+	-- Lumiere de cinema (sous le blanc du debut) ; rendue dans finish()
+	local mood = applyMood()
+	activeMood = mood
+	-- Fumee du volcan deja la au 1er plan (sinon le panache met 10 s a se former) : des bouffees
+	-- "deja vieilles" posees le long du panache (taille et transparence de leur age), qui finissent
+	-- leur vie normalement. (ParticleEmitter:FastForward est reserve a Roblox.) Pas en Low Quality.
+	local volcano = setModel:FindFirstChild("Backdrop") and (setModel :: any).Backdrop:FindFirstChild("Volcano")
+	local smoke = volcano and volcano:FindFirstChild("Smoke", true)
+	local smokeSource = smoke and smoke.Parent
+	if smoke and smoke:IsA("ParticleEmitter") and smokeSource and smokeSource:IsA("BasePart") and Lighting.GlobalShadows then
+		local life = smoke.Lifetime.Max
+		local speed = (smoke.Speed.Min + smoke.Speed.Max) / 2
+		local sizes = smoke.Size.Keypoints
+		local size0, size1 = sizes[1].Value, sizes[#sizes].Value
+		for age = 1.2, life - 1.5, 1.2 do
+			local k = age / life
+			local puff = smoke:Clone()
+			puff.Rate = 0
+			puff.Lifetime = NumberRange.new(life - age)
+			puff.Size = NumberSequence.new(lerp(size0, size1, k), size1)
+			puff.Transparency = NumberSequence.new(if k < 0.6 then lerp(0.1, 0.35, k / 0.6) else lerp(0.35, 1, (k - 0.6) / 0.4), 1)
+			local where = smokeSource.Position + Vector3.yAxis * (speed * age) + smoke.Acceleration * (age * age / 2)
+			puff.Parent = holderPart(volcano :: Instance, "SmokePuff", Vector3.one, CFrame.new(where))
+			puff:Emit(2)
+		end
+	end
 
 	-- Pieces du decor
 	local bigTree = setModel:FindFirstChild("BigTree") :: Model?
@@ -971,41 +1206,67 @@ local function play()
 		birds = sound
 	end
 
-	-- Position de l'acteur (repere du decor, y = 0 au sol), direction et allure
+	-- Position de l'acteur (repere du decor, y = 0 au sol), direction et allure.
+	-- Marche et course suivent la DISTANCE parcourue (2026-11-27) : `phase` avance de pi a chaque pas
+	-- (un nombre entier de pas par trajet), `stride` = longueur d'un cycle (2 pas), `weight` = l'allure
+	-- entre et sort en douceur. `id` : numero du trajet (bruits de pas).
 	type Gait = "idle" | "walk" | "run"
+	type Move = { gait: Gait, id: number, phase: number, weight: number, stride: number }
+	local IDLE: Move = { gait = "idle", id = 0, phase = 0, weight = 0, stride = 1 }
+	local function moving(gait: Gait, id: number, dist: number, k: number, weight: number): Move
+		local wanted = if gait == "run" then Intro.RunStride else Intro.WalkStride
+		local steps = math.max(1, math.round(dist / (wanted / 2) + 0.2)) -- plutot un pas de plus que des pas trop grands
+		return { gait = gait, id = id, phase = math.pi * steps * k, weight = weight, stride = 2 * dist / steps }
+	end
+	local function edge(t: number, from: number, to: number): number
+		return smooth(math.min((t - from) / 0.25, (to - t) / 0.25, 1))
+	end
+	local walkDist = (Intro.NoticeSpot - Intro.ActorStart).Magnitude
+	local runDist = (Intro.ActorStop - Intro.NoticeSpot).Magnitude
+	local shovelDist = (grabSpot - Intro.ActorStop).Magnitude
+	local carryDist = (Intro.DigSpot - grabSpot).Magnitude
+	local WALK_BRAKE = 0.92 -- part du trajet a vitesse constante, puis il ralentit jusqu'a l'arret
 	local function turn(a: CFrame, b: CFrame, k: number): CFrame
 		return a.Rotation:Lerp(b.Rotation, k)
 	end
-	local function actorBase(t: number): (CFrame, Gait)
+	local function actorBase(t: number): (CFrame, Move)
 		if t < TIMES.notice then
-			local k = t / TIMES.notice
-			-- ralentit un peu juste avant de s'arreter
-			k = if k > 0.85 then 0.85 + (1 - (1 - (k - 0.85) / 0.15) ^ 2) * 0.15 else k
-			return walkDir.Rotation + Intro.ActorStart:Lerp(Intro.NoticeSpot, k), "walk"
+			-- vitesse constante, puis freinage doux sur la fin (vitesse nulle a l'arret, sans a-coup)
+			local u = math.max(t, 0) / TIMES.notice
+			local speed = 2 / (1 + WALK_BRAKE)
+			local k = speed * u
+			if u > WALK_BRAKE then
+				k -= speed * (u - WALK_BRAKE) ^ 2 / (2 * (1 - WALK_BRAKE))
+			end
+			local move = moving("walk", 1, walkDist, k, edge(t, -1, TIMES.notice))
+			return walkDir.Rotation + Intro.ActorStart:Lerp(Intro.NoticeSpot, k), move
 		elseif t < TIMES.run then
 			local k = between(t, TIMES.notice + 0.15, TIMES.notice + 0.5)
-			return turn(walkDir, noticeLook, k) + Intro.NoticeSpot, "idle"
+			return turn(walkDir, noticeLook, k) + Intro.NoticeSpot, IDLE
 		elseif t < TIMES.arrive then
 			local u = linear(t, TIMES.run, TIMES.arrive)
 			local k = 0.6 * (1 - (1 - u) ^ 1.6) + 0.4 * u -- depart rapide, freine un peu a l'arrivee
 			local rot = turn(noticeLook, runDir, between(t, TIMES.run, TIMES.run + 0.2))
-			return rot + Intro.NoticeSpot:Lerp(Intro.ActorStop, k), "run"
+			local move = moving("run", 2, runDist, k, edge(t, TIMES.run - 0.1, TIMES.arrive + 0.1))
+			return rot + Intro.NoticeSpot:Lerp(Intro.ActorStop, k), move
 		elseif t < TIMES.toShovel then
 			local k = between(t, TIMES.arrive, TIMES.arrive + 0.5)
-			return turn(runDir, toTree, k) + Intro.ActorStop, "idle"
+			return turn(runDir, toTree, k) + Intro.ActorStop, IDLE
 		elseif t < TIMES.pull then
-			local k = linear(t, TIMES.toShovel, TIMES.pull)
+			local k = smooth(linear(t, TIMES.toShovel, TIMES.pull))
 			local rot = turn(toTree, faceShovel, between(t, TIMES.toShovel, TIMES.toShovel + 0.3))
-			return rot + Intro.ActorStop:Lerp(grabSpot, smooth(k)), "walk"
+			local move = moving("walk", 3, shovelDist, k, edge(t, TIMES.toShovel, TIMES.pull))
+			return rot + Intro.ActorStop:Lerp(grabSpot, k), move
 		elseif t < TIMES.carry then
-			return faceShovel.Rotation + grabSpot, "idle"
+			return faceShovel.Rotation + grabSpot, IDLE
 		elseif t < TIMES.digStart then
-			local k = linear(t, TIMES.carry, TIMES.digStart)
+			local k = smooth(linear(t, TIMES.carry, TIMES.digStart))
 			local rot = turn(faceShovel, flatLook(grabSpot, Intro.DigSpot), between(t, TIMES.carry, TIMES.carry + 0.2))
 			rot = turn(rot, digLook, between(t, TIMES.digStart - 0.25, TIMES.digStart))
-			return rot + grabSpot:Lerp(Intro.DigSpot, smooth(k)), "walk"
+			local move = moving("walk", 4, carryDist, k, edge(t, TIMES.carry, TIMES.digStart))
+			return rot + grabSpot:Lerp(Intro.DigSpot, k), move
 		end
-		return digLook.Rotation + Intro.DigSpot, "idle"
+		return digLook.Rotation + Intro.DigSpot, IDLE
 	end
 
 	-- Repere de l'acteur pour la camera (hauteur du centre, sans rebond)
@@ -1080,52 +1341,73 @@ local function play()
 	-- Pose de l'acteur a l'instant t (+ rebond vertical). Les bras qui tiennent quelque chose sont
 	-- regles ensuite (reach) dans step().
 	local holdAngle = math.rad(Intro.HoldArmDegrees)
-	local function poseAt(t: number, gait: Gait): (Pose, number)
+	local legLength = actorRig.thigh + actorRig.shin
+	local standReach = actorRig.hipHeight - actorRig.ankleHeight -- hanche -> cheville, debout
+	local legScale = math.clamp(legLength / REF_LEG, 0.5, 1.6)
+	local function poseAt(t: number, move: Move): (Pose, number)
 		local p = newPose()
 		local lift = 0
-		if gait == "walk" then
-			-- Marche (refaite le 2026-11-23) : la jambe qui avance plie le genou, les bras balancent
-			-- coudes un peu plies et legerement ecartes, petit rebond, tete qui compense.
-			local phase = t * math.pi * 2 * Intro.StepsPerSecond
-			local swing = math.sin(phase)
-			local moving = math.cos(phase) -- > 0 : la jambe droite avance (genou plie)
-			p.rl = swing * 0.6
-			p.ll = -swing * 0.6
-			p.rk = 0.12 + math.max(0, moving) * 0.8
-			p.lk = 0.12 + math.max(0, -moving) * 0.8
-			p.ra = -swing * 0.5
-			p.la = swing * 0.5
+		local w = move.weight
+		local u = (move.phase / (math.pi * 2)) % 1 -- part du cycle (2 pas)
+		if move.gait == "walk" then
+			-- Marche (2026-11-27) : les pieds sont poses par calcul (voir walkFoot / placeFeet), le pied
+			-- d'appui ne glisse pas ; le corps descend un peu quand les jambes sont ecartees. Bras qui
+			-- balancent a l'oppose des jambes, coudes un peu plies, epaules qui tournent a l'oppose du bassin.
+			local half = math.min(move.stride / 4, legLength * 0.7)
+			local right, left = walkFoot(u, half, legScale), walkFoot(u + 0.5, half, legScale)
+			local planted = if (u - 0.25) % 1 < 0.5 then right.x else left.x
+			lift = math.min(0, math.sqrt(math.max((legLength * 0.985) ^ 2 - planted ^ 2, 0.04)) - standReach)
+			placeFeet(actorRig, p, right, left, lift, w)
+			lift *= w
+			local swing = math.sin(move.phase) -- + : jambe droite devant
+			p.ra = -swing * 0.42 * w
+			p.la = swing * 0.42 * w
 			p.rr = 0.07
 			p.lr = 0.07
-			p.re = 0.25 + math.max(0, -swing) * 0.35 -- le bras qui passe devant plie davantage
-			p.le = 0.25 + math.max(0, swing) * 0.35
-			p.bend = 0.05
-			p.twist = swing * 0.1 -- epaules qui balancent avec les pas
-			p.roll = -swing * 0.04
-			lift = math.abs(moving) * 0.18
-			p.head = -0.03 + (1 - math.abs(moving)) * 0.04 -- la tete reste stable pendant le rebond
-		elseif gait == "run" then
-			-- course : grands pas genoux tres plies, buste en avant, bras plies a angle droit qui pompent
-			local phase = (t - TIMES.run) * math.pi * 2 * Intro.RunStepsPerSecond
-			local swing = math.sin(phase)
-			local moving = math.cos(phase)
-			p.rl = swing * 0.95
-			p.ll = -swing * 0.95
-			p.rk = 0.25 + math.max(0, moving) * 1.3
-			p.lk = 0.25 + math.max(0, -moving) * 1.3
-			p.ra = 0.2 - swing * 0.85
-			p.la = 0.2 + swing * 0.85
-			p.re = 1.4
-			p.le = 1.4
+			p.re = 0.2 + math.max(0, -swing) * 0.3 * w -- le bras qui passe devant plie davantage
+			p.le = 0.2 + math.max(0, swing) * 0.3 * w
+			p.bend = 0.05 * w
+			p.twist = -swing * 0.09 * w
+			p.roll = -swing * 0.03 * w
+			p.head = -0.02 * w
+			if move.id == 1 then
+				-- il regarde la foret autour de lui en marchant (puis droit devant avant de voir l'arbre)
+				local curious = between(t, 0.4, 1.2) * (1 - between(t, TIMES.notice - 1.3, TIMES.notice - 0.6))
+				p.yaw = math.sin(t * 1.35 + 0.6) * 0.45 * curious
+				p.head += (0.1 + math.sin(t * 0.9) * 0.06) * curious
+			end
+		elseif move.gait == "run" then
+			-- Course (2026-11-27) : grandes foulees avec un temps en l'air (pied pose court, talon qui
+			-- monte haut derriere), le corps s'ecrase a l'appui et decolle entre deux pas ; buste en
+			-- avant, bras plies a angle droit qui pompent.
+			local land, off = RUN_LAND * legScale, RUN_OFF * legScale
+			local duty = math.clamp((land - off) / move.stride, 0.15, 0.45)
+			local right, left = runFoot(u, duty, land, off, legScale), runFoot(u + 0.5, duty, land, off, legScale)
+			local half = (u * 2) % 1 -- un pas
+			local ground = duty * 2
+			lift = if half < ground
+				then (-0.18 - 0.2 * math.sin(math.pi * half / ground)) * legScale
+				else (-0.18 + 0.38 * math.sin(math.pi * (half - ground) / (1 - ground))) * legScale
+			placeFeet(actorRig, p, right, left, lift, w)
+			lift *= w
+			local swing = math.cos(move.phase) -- + : jambe droite devant (elle se pose a u = 0)
+			p.ra = (0.2 - swing * 0.8) * w
+			p.la = (0.2 + swing * 0.8) * w
+			p.re = 1.4 * w
+			p.le = 1.4 * w
 			p.rr = 0.15
 			p.lr = 0.15
-			p.bend = 0.28
-			p.twist = swing * 0.14
-			p.head = 0.15
-			lift = math.abs(moving) * 0.4
+			p.bend = 0.3 * w
+			p.twist = -swing * 0.13 * w
+			p.head = 0.17 * w
 		else
-			-- respiration (on voit qu'il est vivant)
+			-- Debout : respiration, poids qui passe doucement d'une jambe a l'autre, bras detendus
 			p.bend = math.sin(t * 2.4) * 0.02
+			p.twist = math.sin(t * 0.9) * 0.02
+			p.rr = 0.05
+			p.lr = 0.05
+			p.re = 0.12
+			p.le = 0.12
 		end
 
 		if t >= TIMES.notice and t < TIMES.wow then
@@ -1252,7 +1534,8 @@ local function play()
 		end
 		return (origin * CFrame.new(v)).Position
 	end
-	local function cameraAt(t: number): (CFrame, number)
+	-- Rend aussi le flou du fond voulu par le plan (0 = net)
+	local function cameraAt(t: number): (CFrame, number, number)
 		local shots = Intro.Shots
 		local index = 1
 		for i, shot in shots do
@@ -1265,13 +1548,18 @@ local function play()
 		local pos = shotPoint(a, t, "pos")
 		local look = shotPoint(a, t, "look")
 		local fov = a.fov or 60
+		local blur = a.blur or 0
 		if b and not b.cut and b.t > a.t then
 			local k = between(t, a.t, b.t)
+			if a.ease == "slow" then
+				k = smooth(k) -- grand mouvement de grue : depart et arrivee tres doux
+			end
 			pos = pos:Lerp(shotPoint(b, t, "pos"), k)
 			look = look:Lerp(shotPoint(b, t, "look"), k)
 			fov = lerp(fov, b.fov or fov, k)
+			blur = lerp(blur, b.blur or 0, k)
 		end
-		return CFrame.lookAt(pos, look), fov
+		return CFrame.lookAt(pos, look), fov, blur
 	end
 
 	-- Mottes de terre : sur la lame (soulevee), puis lancees en arc sur le tas
@@ -1365,23 +1653,17 @@ local function play()
 			sparkles(setModel, head.Position + Vector3.new(0, 1.5, 0), SPARKLE_GOLD, 30)
 		end
 	end)
-	-- Pas dans l'herbe (2026-11-23) : un son par pas, une des 4 variantes au hasard (jamais 2 fois la meme)
+	-- Pas dans l'herbe (2026-11-23) : un son par pas, une des 4 variantes au hasard (jamais 2 fois la meme).
+	-- Plus doux quand la camera est loin (plan d'ouverture vu du ciel).
 	local lastStep = 0
 	local function footstep(volume: number, pitch: number)
 		local pick = math.random(1, 3)
 		lastStep = if pick >= lastStep then pick + 1 else pick
-		playSound(`IntroGrass{lastStep}`, Intro.StepVolume * volume, pitch)
+		local away = (camera.CFrame.Position - actorRig.root.Position).Magnitude
+		playSound(`IntroGrass{lastStep}`, Intro.StepVolume * volume * math.clamp(16 / away, 0.15, 1), pitch)
 	end
-	local function walkSteps(from: number, to: number)
-		for stepAt = from, to, 1 / (Intro.StepsPerSecond * 2) do
-			at(stepAt, function()
-				footstep(1, 1)
-			end)
-		end
-	end
-	walkSteps(0.2, TIMES.notice - 0.1) -- marche tranquille
-	walkSteps(TIMES.toShovel + 0.15, TIMES.pull - 0.1) -- vers la pelle
-	walkSteps(TIMES.carry + 0.15, TIMES.digStart - 0.1) -- vers le pied de l'arbre
+	-- Les pas de la marche et de la course sonnent quand le pied se pose (2026-11-27) : voir
+	-- `strikes` dans step(), cale sur l'animation et plus sur l'horloge.
 	-- Petits pas en plus (2026-11-23) : il s'arrete net, se tourne, recule, s'avance
 	for _, def in
 		{
@@ -1430,16 +1712,31 @@ local function play()
 	at(TIMES.wow + 0.63, function()
 		playSound("IntroLand")
 	end)
-	-- Course : petits nuages de poussiere a chaque pas, gros nuage au freinage
+	-- Course : gros nuage au depart et au freinage (petits nuages a chaque pas : voir `strikes`)
 	at(TIMES.run, function()
 		dustBurst(setModel, feet(), 6, 2)
 		playSound("IntroWhoosh", Intro.WhooshVolume * 0.7, 0.9) -- il demarre en trombe
 	end)
-	for step = TIMES.run + 0.16, TIMES.arrive - 0.1, 1 / (Intro.RunStepsPerSecond * 2) do
-		at(step, function()
-			dustBurst(setModel, feet(), 2, 1)
-			footstep(1.2, 1.15) -- pas plus forts et plus rapides en courant
-		end)
+	-- Un pied se pose : bruit de pas (et poussiere en courant). Marche : le pied droit se pose a
+	-- phase = pi / 2, le gauche a 3 pi / 2 ; course : a 0 et pi.
+	local strikeMove, strikeIndex = 0, 0
+	local function strikes(move: Move)
+		if move.gait == "idle" then
+			strikeMove = 0
+			return
+		end
+		local index = math.floor((move.phase - (if move.gait == "walk" then math.pi / 2 else 0)) / math.pi)
+		if move.id ~= strikeMove then
+			strikeMove, strikeIndex = move.id, index
+		elseif index > strikeIndex then
+			strikeIndex = index
+			if move.gait == "run" then
+				dustBurst(setModel, feet(), 2, 1)
+				footstep(1.2, 1.15) -- pas plus forts en courant
+			else
+				footstep(1, 1)
+			end
+		end
 	end
 	at(TIMES.arrive + 0.05, function()
 		playSound("IntroSkid", 0.8, 1.2) -- freinage dans l'herbe
@@ -1608,10 +1905,11 @@ local function play()
 				end
 			end
 		end
-		local base, gait = actorBase(t)
-		local pose, lift = poseAt(t, gait)
+		local base, move = actorBase(t)
+		local pose, lift = poseAt(t, move)
 		local rootCf = origin * (base + Vector3.new(0, actorRig.rootHeight + lift, 0))
 		actorRig.root.CFrame = rootCf
+		strikes(move)
 
 		-- Pelle : placee, puis les mains vont dessus (droite sur la poignee, gauche plus bas)
 		if shovel then
@@ -1658,13 +1956,15 @@ local function play()
 		lastFrame = frameAt
 		local held = handsOn > 0.5 or overhead > 0.5
 		local follow = 1 - math.exp(-dt / math.max(if held then 0.015 else Intro.PoseSmoothing, 1e-3))
+		-- jambes : presque pas lissees quand il marche ou court (le pied pose doit rester ou il est)
+		local legFollow = if move.gait == "idle" then follow else 1 - math.exp(-dt / 0.012)
 		local target = pose :: any
 		local shown = smoothed :: any
 		if shown == nil then
 			smoothed = table.clone(pose)
 		else
 			for field, value in target do
-				shown[field] = lerp(shown[field], value, follow)
+				shown[field] = lerp(shown[field], value, if LEG_FIELDS[field] then legFollow else follow)
 			end
 		end
 		applyPose(actorRig, smoothed or pose)
@@ -1718,10 +2018,20 @@ local function play()
 			end
 		end
 
-		local cf, fov = cameraAt(t)
+		local cf, fov, blur = cameraAt(t)
 		-- Fin : la camera s'approche peu a peu de sa tete pendant le fondu au blanc (2026-11-23)
 		local zoom = Intro.HeadZoom
 		local head = actorRig.head
+		-- Fond flou des gros plans : la mise au point suit sa tete
+		local dof = mood.dof
+		if dof then
+			dof.Enabled = blur > 0.01
+			if dof.Enabled then
+				local subject = if head then head.Position else actorRig.root.Position
+				dof.FarIntensity = blur
+				dof.FocusDistance = (cf.Position - subject).Magnitude
+			end
+		end
 		if head and t >= zoom.start then
 			local k = between(t, zoom.start, TIMES.stop)
 			local face = head.Position + Vector3.new(0, 0.15, 0)
@@ -1790,6 +2100,10 @@ function IntroController.Start()
 			if activeLock then
 				unlockPlayer(activeLock)
 				activeLock = nil
+			end
+			if activeMood then
+				activeMood.restore()
+				activeMood = nil
 			end
 			local gui = player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild("IntroGui")
 			if gui then

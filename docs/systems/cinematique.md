@@ -1,11 +1,12 @@
 # Systeme : Cinematique d'ouverture (profil neuf)
 
-**Statut :** fonctionne (playtest Studio PC a 1 joueur le 2026-11-22, version ~20 s sans Skip ; version ralentie ~24 s pas encore rejouee ; telephone, manette et 2 joueurs pas testes)
+**Statut :** fonctionne (version ~27 s du 2026-11-27 : fond de carte, plan d'ouverture, lumiere du matin + fond flou, marche et course refaites ; rejouee en entier en Play Studio PC a 1 joueur, R15 ; telephone, manette, R6 et 2 joueurs pas testes)
 **Derniere mise a jour :** 2026-11-27
 
 ## Role
 
-Un profil NEUF (`IntroSeen == false` et `Setup == 0`) voit UNE fois une petite histoire de ~24 s :
+Un profil NEUF (`IntroSeen == false` et `Setup == 0`) voit UNE fois une petite histoire de ~27 s :
+la camera part du ciel (foret, montagnes, volcan de jus) et descend jusqu'a lui ;
 son personnage marche dans une foret calme, voit DE LOIN l'arbre niveau 10 de l'etage 1 charge de
 fruits, fait "Wow!" bras en l'air et court jusqu'a lui, reflechit ("?"), voit une pelle plantee ("!"),
 l'arrache, creuse, l'arbre tombe et devient un petit objet qui vole dans ses mains (comme dans
@@ -26,7 +27,27 @@ attend `IntroPending` du serveur, puis coupe tant que `IntroPending` ou `IntroPl
 | `src/client/Controllers/IntroController.luau` | client | Joue la cinematique (decor clone, acteur anime en code, camera, bulles) ; attribut local `IntroPlaying` pendant l'intro (lu par le tutoriel) |
 | `src/client/Controllers/SaplingController.luau` | client | Arbre niveau 1 devant les joueurs qui ont `HoldingSapling` (chacun le voit chez soi, pour tous les joueurs) |
 | `src/client/Controllers/CarryPoseController.luau` | client | Bras tendus devant (60 deg) pour `HoldingSapling` |
-| `tools/build-map/02m-intro-set.luau` | Studio | Construit `ReplicatedStorage.IntroSet` (dans le .rbxl, hors Rojo, place v236) |
+| `tools/build-map/02m-intro-set.luau` | Studio | Construit `ReplicatedStorage.IntroSet` (dans le .rbxl, hors Rojo). Depuis le 2026-11-27 : sol de 2040 studs, chemin jusqu'a la crete, `Props` (18 buissons, 44 fleurs, 14 cailloux), `Backdrop` = le fond de la carte en plus petit (voir "Decor") |
+| `docs/references/cinematique/` | doc | Captures du Play (ouverture, marche, gros plan flou, chute de l'arbre) |
+
+## Decor (2026-11-27 : "plus realiste, avec des montagnes en fond comme sur la map")
+
+`IntroSet` = 2 621 pieces (avant 1 279), toutes ancrees, sans collision ni CanTouch. Repere : pied du
+grand arbre = origine, la marche va vers +X, les cameras sont cote +Z.
+
+| Partie | Quoi |
+|---|---|
+| `Ground`, `Path`, `Clearing` | Herbe a studs de 2040 de cote (elle va au pied des montagnes), chemin de terre de la crete a la clairiere |
+| `Forest` | 228 arbres copies de la carte (meme tirage qu'avant). 36 projettent une ombre (ceux a moins de 46 studs du chemin et de la clairiere), les autres non |
+| `Props` | Buissons et cailloux derriere le chemin (jamais entre la camera et lui), fleurs basses des deux cotes et autour de la clairiere. Places libres : cameras posees (`Intro.Shots` en repere "Set"), pelle, trou, zone de chute |
+| `Backdrop` | Le fond de `09-mountains` a l'echelle 0.4 et plus pres (meme taille a l'ecran) : crete en gradins a 190 studs sur les 4 cotes, 180 grands arbres simples (3 pieces) entre la foret et la crete, 20 montagnes a facettes en 2 anneaux (600 et 880 studs ; base verte, roche grise, neige), volcan de jus a (536, -475) avec 5 coulees, fumee et 5 fruits geants |
+
+- Le volcan est place pour etre vu dans le plan d'ouverture et derriere l'arbre qui tombe.
+- Le 1er plan de `Intro.Shots` sert aussi au script : les arbres sur la route de la camera
+  d'ouverture sont retires (2), sans toucher au tirage du reste.
+- Trois tirages separes (foret + fruits, petits details, fond) : retoucher l'un ne deplace pas les autres.
+- Apres un changement de `Config/Intro` qui touche le decor (`ActorStart`, 1er plan, `Times.open`) :
+  relancer `require(game.ServerScriptService.DevTools.BuildMap["02m-intro-set"]:Clone())` en mode Edit.
 
 ## Fonctionnement
 
@@ -44,35 +65,64 @@ attend `IntroPending` du serveur, puis coupe tant que `IntroPending` ou `IntroPl
      (mains sur le manche de la pelle, bras en V, arbre brandi) : direction depuis l'epaule, position
      de repos des epaules calculee par la chaine des articulations, buste penche / tourne compris ;
      les poses de pelle sont corrigees pour la vraie hauteur du personnage (`gripDrop`) ;
-   - camera `Scriptable` (plans `Intro.Shots`, glissement doux ou coupe), bandes noires.
+   - camera `Scriptable` (plans `Intro.Shots`, glissement doux ou coupe), bandes noires ;
+   - **lumiere de cinema** (`Intro.Mood`, 2026-11-27), posee sous le blanc du debut et remise sous
+     le blanc de la fin : soleil du matin (`ClockTime` 9.2, latitude 50 : a ~40 degres, cote camera
+     et devant lui, donc ombres longues et visages eclaires), `Brightness`, `ColorShift_Top` dore,
+     couleur de la brume, rayons du soleil, un `ColorCorrectionEffect` "IntroGrade" (contraste,
+     saturation, teinte chaude) et un `DepthOfFieldEffect` "IntroDof" : **fond flou sur les gros
+     plans** (champ `blur` de chaque plan, la mise au point suit sa tete), net sur les plans larges.
+     Chaque valeur changee est notee puis remise (aussi si la cinematique plante). En **Low
+     Quality** (ombres coupees) : ni flou ni rayons. `Atmosphere.Density / Haze / Glare` ne sont
+     jamais touches (Low Quality les sauvegarde et les remet lui-meme) ;
+   - fumee du volcan : des bouffees "deja vieilles" sont posees le long du panache au debut, sinon
+     il mettrait 10 s a se former (`ParticleEmitter:FastForward` est reserve a Roblox).
 3. Deroule (`Intro.Times`, secondes, refait le 2026-11-22 : "il le voit de loin et apres il court" ;
    ralenti le meme jour : "les changements de scene sont trop rapides" -> chaque plan de camera dure
-   au moins ~1.2 s, avant certains duraient 0.3 s ou 0.6 s. Les temps de `Intro.Shots` sont ecrits avec
-   `Intro.Times` : changer un temps deplace aussi la camera) :
-   - 0-2.6 : marche tranquille sur le chemin (de cote), oiseaux ; il ralentit ;
-   - 2.6 : il s'arrete net, gros plan de face, "!", leve la tete d'un coup (double prise), coup de
+   au moins ~1.2 s. Le 2026-11-27 : plan d'ouverture de 3 s, tout le reste decale de 2.2 s. Les
+   temps de `Intro.Shots` sont ecrits avec `Intro.Times` : changer un temps deplace aussi la camera) :
+   - 0-3 : **ouverture**. Camera au-dessus de la foret : montagnes, volcan de jus qui fume et ses
+     5 fruits, le grand arbre dans sa clairiere. Elle descend en douceur (`ease = "slow"`) jusqu'a
+     cote de lui ; il marche deja sur le chemin et regarde la foret autour de lui ;
+   - 3-4.8 : marche tranquille vue de cote, oiseaux ; il ralentit ;
+   - 4.8 : il s'arrete net, gros plan de face, "!", leve la tete d'un coup (double prise), coup de
      zoom ; l'arbre commence a **scintiller** ;
-   - 3.8-5.6 : derriere lui, **l'arbre au loin** au bout du chemin, zoom lent, son "chime" ;
-   - 5.6 : gros plan de face, petite prise d'elan puis saut, **bras tendus en V au-dessus de la tete**,
+   - 6.0-7.8 : derriere lui, **l'arbre au loin** au bout du chemin, zoom lent, son "chime" ;
+   - 7.8 : gros plan de face, petite prise d'elan puis saut, **bras tendus en V au-dessus de la tete**,
      mains qui tremblent, "Wow!", etoiles, coup de zoom ;
-   - 7.1-8.7 : **il court** (grands pas, buste en avant, bras qui pompent, poussiere a chaque pas),
-     travelling de cote ; 8.7 : il freine (poussiere), contre-plongee derriere lui, il leve la tete ;
-   - 10.1 : trois-quarts, main sous le menton, "?" ;
-   - 11.4 : "!", la tete se tourne vers **la pelle plantee** a cote (elle scintille), il la montre ;
-   - 12.6-14.2 : il va a la pelle, tend les mains, l'**arrache du sol** (terre, poussiere, secousse,
+   - 9.3-10.9 : **il court** (grandes foulees, buste en avant, bras qui pompent, poussiere a chaque
+     pas), travelling de cote ; 10.9 : il freine (poussiere), contre-plongee derriere lui, il leve la tete ;
+   - 12.3 : trois-quarts, main sous le menton, "?" ;
+   - 13.6 : "!", la tete se tourne vers **la pelle plantee** a cote (elle scintille), il la montre ;
+   - 14.8-16.4 : il va a la pelle, tend les mains, l'**arrache du sol** (terre, poussiere, secousse,
      "pop", etincelles), la prend en main ;
-   - 14.2-18.4 : il va pres de l'arbre (hors des racines) ; 3 coups, mains sur le manche (droite en
+   - 16.4-20.6 : il va pres de l'arbre (hors des racines) ; 3 coups, mains sur le manche (droite en
      haut, gauche plus bas) : lever, enfoncer (le pied droit appuie sur la lame, terre + poussiere +
      secousse, le trou grandit), soulever une **motte de terre sur la lame**, buste tourne, la **jeter
      en arc sur le tas** (qui grandit a l'atterrissage) ;
-   - 18.4 : il replante la pelle a sa gauche (elle reste dans le plan large) ;
-   - 18.5-20.4 : l'arbre tombe (plan large), **grosse secousse**, poussiere, **les fruits sautent et
-     roulent** ; il met les mains pres du visage (surpris) ; 20.4 : l'arbre disparait en poussiere ;
-   - 20.4-21.1 : l'arbre niveau 1 tourne en flottant au-dessus du trou et **brille** (plan de face) ;
-   - 21.1 : il saute en arc dans les mains, rebond "gelee" ; 21.4 : il le **brandit au-dessus de sa
-     tete** (grosse gerbe d'etincelles, son "level up", petits sauts) ; 22.1 : il le redescend devant lui ;
-   - 22.5-24.1 : fondu blanc plus long (1.2 s, puis blanc tenu un instant) ; puis l'usine (le blanc
+   - 20.6 : il replante la pelle a sa gauche (elle reste dans le plan large) ;
+   - 20.7-22.6 : l'arbre tombe (plan large, **le volcan apparait derriere**), **grosse secousse**,
+     poussiere, **les fruits sautent et roulent** ; il met les mains pres du visage (surpris) ;
+     22.6 : l'arbre disparait en poussiere ;
+   - 22.6-23.3 : l'arbre niveau 1 tourne en flottant au-dessus du trou et **brille** (plan de face) ;
+   - 23.3 : il saute en arc dans les mains, rebond "gelee" ; 23.6 : il le **brandit au-dessus de sa
+     tete** (grosse gerbe d'etincelles, son "level up", petits sauts) ; 24.3 : il le redescend devant lui ;
+   - 24.7-26.3 : fondu blanc plus long (1.2 s, puis blanc tenu un instant) ; puis l'usine (le blanc
      s'efface en 1 s), etincelles autour de l'arbre dans les mains.
+   - **Marche et course (2026-11-27)** : l'animation suit la DISTANCE parcourue, plus le temps. On
+     dit ou est chaque pied (devant la hanche, au-dessus du sol : `walkFoot`, `runFoot`) et un petit
+     calcul donne la hanche, le genou et la cheville (`solveLeg`, `placeFeet`). Le pied pose recule
+     exactement a la vitesse du corps : il ne glisse plus. Le corps descend quand les jambes sont
+     ecartees ; talon qui se leve a la fin de l'appui ; en course, un temps en l'air entre deux
+     pas. Un nombre entier de pas par trajet. Les bruits de pas (et la poussiere en courant) partent
+     quand un pied se pose (`strikes`), plus sur l'horloge ; ils sont plus doux quand la camera est loin.
+     Marche plus lente qu'avant (3.75 studs / s au lieu de 4.6) : les jambes d'un avatar Roblox sont
+     courtes (1.6 stud de la hanche a la cheville), un pas de plus de ~1.7 stud ecrase le corps au sol.
+   - **Pieds au sol (2026-11-27)** : les avatars R15 de 2026 ont des `AnimationConstraint` ; la
+     copie gardait l'animation du vrai personnage sur l'articulation `Root` (bassin abaisse de 0.09
+     a 0.17 stud) et les pieds s'enfoncaient dans le sol pendant toute la cinematique. `cleanActor`
+     remet aussi les `AnimationConstraint` a zero, et la hauteur de la racine est mesuree sur la pose
+     de repos (chaine des articulations), plus sur la boite englobante.
    - Les angles des articulations sont lisses (`PoseSmoothing`, 0.07 s) : pas de saut entre deux
      poses ; presque pas de lissage quand les mains tiennent la pelle ou l'arbre (sinon elles
      quittent le manche). Epaules qui balancent un peu a la marche et a la course.
@@ -112,8 +162,13 @@ est faux chez eux : vrai pour le profil de test).
 
 `src/shared/Config/Intro.luau` : `SetOrigin`, `ActorStart`, `ActorStop`, `DigSpot`, `HoleOffset`,
 `PileOffset`, `TreeSpot`, `ItemSpot`, `TreeLevel`, `TreeFruits`, `SaplingLevel`, `SaplingScale`,
-`ShovelScale`, `StepsPerSecond`, `RunStepsPerSecond`, `NoticeSpot`, `ShovelSpot`, `ShovelReach`,
-`ShovelDepth`, `ShovelRestSide`, `HoldOffset`, `HoldArmDegrees`, `Times`, `Digs`, `Shots`, fondus,
+`ShovelScale`, `WalkStride`, `RunStride` (longueur d'un cycle de 2 pas, en studs ; remplacent
+`StepsPerSecond` et `RunStepsPerSecond` le 2026-11-27), `NoticeSpot`, `ShovelSpot`, `ShovelReach`,
+`ShovelDepth`, `ShovelRestSide`, `HoldOffset`, `HoldArmDegrees`, `Times`, `Digs`, `Shots` (champs
+`ease = "slow"` : grand mouvement tres doux ; `blur` : flou du fond, 0 a 1), `Mood` (lumiere de
+cinema : `ClockTime`, `GeographicLatitude`, `Brightness`, `ColorShiftTop`, `AtmosphereColor`,
+`AtmosphereDecay`, `SunRaysIntensity`, `SunRaysSpread`, `Contrast`, `Saturation`, `Tint`,
+`FocusRadius`), fondus,
 `AppearanceWaitSeconds`, `PoseSmoothing`, `ExitCameraDistance`, `ExitCameraHeight`,
 `ArrivalSweepSteps`, `ArrivalMinHold`, `ArrivalMaxWait`, `ArrivalSmoothFrames`, `ArrivalSmoothFrameSeconds`, volumes
 (`SoundVolume` 0.4 pour les bruitages, `BirdsVolume` 0.3 : plus doux que dans le jeu ; `StepVolume`,
@@ -164,6 +219,22 @@ Revoir la cinematique : panneau admin > Player > **Replay Intro** (ou, cote serv
 - Figer la cinematique a une seconde (Studio seulement, pour des captures) : attribut joueur
   `IntroFreezeAt` = nombre (ex. 12.3). Avancer seulement : les evenements deja passes ne se rejouent
   pas (mettre 24 pour finir, puis rejouer avec `IntroPending`). Retirer l'attribut ensuite.
+- **Version ~27 s (2026-11-27, Play Studio PC, 1 joueur, R15, Rojo synchronise)** :
+  - rejouee en entier en temps reel : 28.2 s du declenchement a la fin (blanc d'arrivee compris),
+    60 images / s, 0 image de plus de 50 ms pendant la cinematique (pire : 20 ms), copie du decor
+    au debut : 87 ms sous le blanc ; aucune erreur de script dans la sortie ;
+  - a la fin : `ClockTime` 12, latitude 23.5, `Brightness` 2.4, `ColorShift_Top` noir, couleurs
+    de la brume et rayons du soleil revenus a leurs valeurs ; `IntroDof`, `IntroGrade`, `IntroSet`
+    et `IntroGui` supprimes ; camera `Custom` sur le Humanoid ;
+  - pieds (temps fige a `IntroFreezeAt`, mesure sur la cheville) : debout, semelles a 0.00 du sol
+    (avant : -0.13 a -0.17) ; marche de 1.0 a 4.4 s, 42 mesures : le pied pose bouge de 0.002 stud
+    en moyenne entre deux mesures (0.044 au pire), contre ~1 stud / s avant ; vitesse 3.9 studs / s ;
+  - captures figees dans `docs/references/cinematique/` : ouverture (volcan, 5 fruits, fumee deja
+    la), marche de cote, gros plan "Wow" avec le fond flou, chute de l'arbre avec le volcan derriere.
+  - Pas mesure : la course (le pied touche le sol trop peu de temps pour la methode : 2 mesures).
+  - Attention pendant un test MCP : un appel `execute_luau` qui dure pendant la fin de la
+    cinematique remet le type de camera du debut de l'appel (`Scriptable`) : remettre `Custom` a la
+    main. Ce n'est pas le jeu.
 - Version ~20 s (2026-11-22, 2e refonte) : captures figees de chaque moment (marche, "!", arbre au
   loin, Wow bras en V, course, pelle arrachee, lame dans le trou, motte sur la lame, jet sur le tas,
   pelle replantee + chute, arbre brandi) ; passage complet en temps reel 19.9 s, camera `Custom` et
@@ -179,6 +250,17 @@ Revoir la cinematique : panneau admin > Player > **Replay Intro** (ou, cote serv
 
 ## Problemes connus / a faire
 
+- **27 s sans Skip** pour un joueur qui vient d'arriver : c'est long (choix de l'utilisateur de ne
+  pas avoir de Skip). A surveiller dans les stats de premiere session.
+- Version du 2026-11-27 pas vue sur telephone : le decor a double (2 621 pieces, copie de 87 ms sur
+  PC, plus sur un telephone, sous le blanc) ; a faible qualite graphique Roblox coupe de lui-meme le
+  flou, les ombres et ce qui est loin (les montagnes a 600-880 studs peuvent disparaitre).
+- Marche et course en R6 : la jambe pointe vers le pied (pas de genou ni de cheville), pas teste.
+  Avatars tres grands ou tres petits : reglages mis a l'echelle de la jambe, pas testes.
+- Trajets courts (vers la pelle, vers l'arbre) : 2 pas chacun, juges seulement sur le calcul.
+- `IntroSet` (2 621 pieces) reste dans `ReplicatedStorage` de tous les joueurs, meme ceux qui ne
+  verront jamais la cinematique. Piste si la memoire compte sur telephone : le supprimer cote
+  client quand `IntroPending` est faux.
 - Arrivee (2026-11-27, Play Studio PC, intro rejouee) : blanc tenu 0.62 s, pire image pendant le
   blanc 76 ms (a-coup qui etait visible avant, maintenant cache). En Studio, rejouee = usine deja
   dessinee une fois : le vrai premier lancement (cache vide, telephone, connexion lente) n'est pas
