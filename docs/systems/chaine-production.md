@@ -2,7 +2,7 @@
 
 **Statut :** en cours (boucle complete en playtest Studio le 2026-11-19 : E sur les fruits ->
 inventaire -> etagere -> mixeur -> table a jus -> mains -> comptoir ; 2 joueurs et telephone non testes)
-**Derniere mise a jour :** 2026-11-20 (animation des fruits sur le tapis ; le tapis prend les fruits les plus rares d'abord ; etagere contre le mur)
+**Derniere mise a jour :** 2026-11-27 (le tapis emporte le joueur ; animation des fruits sur le tapis ; le tapis prend les fruits les plus rares d'abord ; etagere contre le mur)
 
 ## Role
 
@@ -128,6 +128,12 @@ bras tendus) et les pose sur le pad "Drop Juices" du comptoir (voir `clients.md`
     (1.6 s) x (2.2 / vitesse)^0.6, au moins `ConveyorTravelMin` (0.75 s). Le serveur pose sur
     `Production` les attributs `ConveyorTravel` (meme duree pour l'animation) et `ConveyorRate`
     (les lattes du tapis defilent plus vite, LevelLookController).
+  - **Le tapis emporte le joueur** (2026-11-27) : un joueur qui monte sur le tapis (pente `Belt` ou
+    rangee `RowBelt`) avance tout seul dans le sens des lattes, a la meme vitesse qu'elles
+    (2.5 + 1.6 x `ConveyorRate` studs / s : 6 au niveau 1, ~15 au niveau 10). Fait cote client par
+    LevelLookController (`AssemblyLinearVelocity` des bandes, pieces ancrees) : chaque client le pose
+    sur tous les tapis qu'il voit, donc tout le monde est emporte sur n'importe quel tapis. Tapis
+    arrete (base libre, usine pas construite) : vitesse 0.
     Au-dessus du bol (au-dessus du panneau du mixeur) : "3/5" (WorldLabel) + pastille "!" quand il est plein.
   - **Mixer (E)** : prompt "Blender / Blend" sur le panneau (`Panel`), actif si le mixeur est
     possede, ne tourne pas et a au moins 1 fruit. Serveur : proprietaire de la base, distance

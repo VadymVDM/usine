@@ -11,6 +11,9 @@
 --     panneau HideWhenLocked) : cache (achat du mixeur seulement par E sur la machine) ;
 --   * lattes du tapis (Production.Conveyor, pieces "Slat") : elles defilent, plus vite quand le tapis
 --     est ameliore (attribut ConveyorRate de Production, pose par ProductionService).
+--   * bandes du tapis (Production.Conveyor, pieces "Belt" et "RowBelt") : vitesse de surface
+--     (AssemblyLinearVelocity, sens = LookVector de la piece, comme les lattes) egale a la vitesse
+--     des lattes ; un joueur qui monte dessus est emporte. Tapis arrete (pas de ConveyorRate) : 0.
 -- Depuis le 2026-11-21 (usine a construire) : un panneau qui apparait (HideWhenLocked : mixeur
 -- achete, Fruit Picker embauche, etape FREE faite) et un pad de decor (Pad avec LookId, ex. Waiter
 -- Speed x10) apparaissent en "pop" (Fx/Reveal) au lieu du fondu, dans SA base.
@@ -43,6 +46,8 @@ type BaseLook = {
 	parts: { [string]: { LookPart } }, -- id -> pieces
 	boards: { { tile: Model, board: Model } },
 	slats: { Slat },
+	belts: { BasePart }, -- bandes du tapis qui emportent les joueurs
+	beltSpeed: number, -- derniere vitesse posee sur les bandes (studs / s)
 	production: Instance?,
 	slatOffset: number,
 	known: { [string]: number }, -- dernier niveau vu par id (fondu seulement quand il monte)
@@ -214,6 +219,9 @@ local function addItem(look: BaseLook, item: Instance): string?
 			return id
 		elseif item.Name == "Slat" and item.Parent and item.Parent.Name == "Conveyor" then
 			table.insert(look.slats, { part = item, base = item.CFrame })
+		elseif (item.Name == "Belt" or item.Name == "RowBelt") and item.Parent and item.Parent.Name == "Conveyor" then
+			table.insert(look.belts, item)
+			look.beltSpeed = -1 -- reposer la vitesse au prochain pas (piece arrivee par streaming)
 		end
 	elseif item:IsA("Model") and item:GetAttribute("UpgradeId") ~= nil and item.Parent and item.Parent:IsA("Model") then
 		local board = item.Parent :: Model
@@ -255,6 +263,8 @@ local function register(floor: Model, base: Model)
 		parts = {},
 		boards = {},
 		slats = {},
+		belts = {},
+		beltSpeed = -1,
 		production = floor:FindFirstChild("Production"),
 		slatOffset = 0,
 		known = {},
@@ -316,18 +326,26 @@ local function step(dt: number)
 	local parts: { BasePart } = {}
 	local cframes: { CFrame } = {}
 	for _, look in looks do
-		local first = look.slats[1]
-		if first == nil or camDistance(first.base.Position) > FX_DISTANCE then
-			continue
-		end
 		if look.production == nil or look.production.Parent == nil then
 			look.production = look.base:FindFirstChild("Production") -- streaming : arrive tard
 		end
 		local rate = look.production and look.production:GetAttribute("ConveyorRate")
-		if type(rate) ~= "number" then
-			continue -- base libre : le tapis ne tourne pas
+		-- Tapis arrete (base libre, usine pas encore construite) : vitesse 0
+		local speed = if type(rate) == "number" then SLAT_SPEED_BASE + SLAT_SPEED_PER_RATE * rate else 0
+		-- Bandes : le joueur qui marche dessus est emporte dans le sens des lattes
+		if speed ~= look.beltSpeed then
+			look.beltSpeed = speed
+			for _, belt in look.belts do
+				if belt.Parent then
+					belt.AssemblyLinearVelocity = belt.CFrame.LookVector * speed
+				end
+			end
 		end
-		look.slatOffset = (look.slatOffset + dt * (SLAT_SPEED_BASE + SLAT_SPEED_PER_RATE * rate)) % SLAT_SPACING
+		local first = look.slats[1]
+		if speed == 0 or first == nil or camDistance(first.base.Position) > FX_DISTANCE then
+			continue
+		end
+		look.slatOffset = (look.slatOffset + dt * speed) % SLAT_SPACING
 		for _, slat in look.slats do
 			table.insert(parts, slat.part)
 			table.insert(cframes, slat.base + slat.base.LookVector * look.slatOffset)
