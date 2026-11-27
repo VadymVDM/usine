@@ -1,12 +1,17 @@
 --!strict
--- Bouton "Rojo Unlock" du plugin UsineTools (barre "Usine").
+-- Boutons "Rojo Shared" et "Rojo Unlock" du plugin UsineTools (barre "Usine").
 --
 -- Dans une place Team Create, le plugin Rojo pose un verrou a chaque Connect :
 -- ServerStorage.__Rojo_SessionLock (ObjectValue, Value = le joueur dont Rojo est connecte).
 -- Tant que ce joueur est dans la session, Connect echoue chez l'autre :
 -- "Could not sync because user 'X' is already syncing". Rojo ne rend le verrou qu'au Disconnect.
 --
--- Ce bouton vide le verrou : on peut alors faire Rojo > Connect. Rojo ne relit jamais le verrou une
+-- "Rojo Shared" (on/off, choix d'Adam le 2026-11-27) : tant qu'il est allume, le verrou est vide des
+-- que Rojo le prend, donc les deux devs peuvent rester connectes en meme temps. Reglage range dans la
+-- place (attribut UsineRojoShared sur ServerStorage) : le meme pour tout le monde. Il suffit qu'un seul
+-- Studio de la session ait ce plugin pour que ca marche.
+--
+-- "Rojo Unlock" : vide le verrou une fois, pour prendre la main. Rojo ne relit jamais le verrou une
 -- fois connecte, donc le Rojo de l'autre reste connecte. Pour le prevenir, le bouton laisse une marque
 -- (attribut) sur le verrou ; chez l'autre, ce module affiche un bandeau "Disconnect" (s'il a ce plugin).
 --
@@ -19,8 +24,10 @@ local ServerStorage = game:GetService("ServerStorage")
 
 local RojoLock = {}
 
--- Nom fixe dans le plugin Rojo. Champ public seulement pour pouvoir tester sur un faux verrou.
+-- Nom fixe dans le plugin Rojo. Champs publics seulement pour pouvoir tester sur un faux verrou.
 RojoLock.LockName = "__Rojo_SessionLock"
+-- Attribut de ServerStorage : true = mode partage (verrou vide en continu)
+RojoLock.SharedAttribute = "UsineRojoShared"
 -- Marque laissee sur le verrou : "<UserId de celui qui perd le verrou>|<pseudo de celui qui le prend>|<os.time()>"
 RojoLock.MarkAttribute = "UsineUnlock"
 local BANNER_NAME = "UsineRojoUnlockBanner"
@@ -41,6 +48,21 @@ local function holderOf(lock: ObjectValue): Player?
 		return value
 	end
 	return nil
+end
+
+function RojoLock.IsShared(): boolean
+	return ServerStorage:GetAttribute(RojoLock.SharedAttribute) == true
+end
+
+function RojoLock.SetShared(on: boolean)
+	ServerStorage:SetAttribute(RojoLock.SharedAttribute, if on then true else nil)
+end
+
+-- Mode partage : vide le verrou (sans marque ni bandeau). Rojo le croit alors libre a chaque Connect.
+local function clearIfShared(lock: Instance)
+	if RojoLock.IsShared() and lock:IsA("ObjectValue") and lock.Value ~= nil then
+		lock.Value = nil
+	end
 end
 
 -- Vide le verrou s'il appartient a quelqu'un d'autre. Renvoie le message a afficher et true si le
@@ -132,6 +154,11 @@ local function watch(lock: Instance)
 		return
 	end
 	watched[lock] = true
+	-- Mode partage : Rojo vient de prendre le verrou (Connect) -> on le vide aussitot
+	lock:GetPropertyChangedSignal("Value"):Connect(function()
+		clearIfShared(lock)
+	end)
+	clearIfShared(lock)
 	lock:GetAttributeChangedSignal(RojoLock.MarkAttribute):Connect(function()
 		local mark = lock:GetAttribute(RojoLock.MarkAttribute)
 		local me = Players.LocalPlayer
@@ -156,9 +183,45 @@ function RojoLock.Watch()
 			watch(child)
 		end
 	end)
+	-- Mode partage allume (ici ou chez l'autre) : vider tout de suite le verrou en place
+	ServerStorage:GetAttributeChangedSignal(RojoLock.SharedAttribute):Connect(function()
+		local current = ServerStorage:FindFirstChild(RojoLock.LockName)
+		if current then
+			clearIfShared(current)
+		end
+	end)
 end
 
 function RojoLock.Start(toolbar: PluginToolbar)
+	local shared = toolbar:CreateButton(
+		"RojoShared",
+		"Team Create: on = both devs can stay connected to Rojo at the same time. Always git pull before Connect.",
+		"rbxasset://textures/ui/icon_friends_16.png",
+		"Rojo Shared"
+	)
+	shared.ClickableWhenViewportHidden = true
+	local function refreshShared()
+		shared:SetActive(RojoLock.IsShared())
+	end
+	shared.Click:Connect(function()
+		local on = not RojoLock.IsShared()
+		RojoLock.SetShared(on)
+		if on then
+			warn(
+				"[Rojo Shared] ON for everyone in this place: both devs can Rojo > Connect at the same time. "
+					.. "Always git pull before Connect, and read Rojo's change list before Accept."
+			)
+		else
+			print("[Rojo Shared] OFF: Rojo's normal lock is back (one dev connected at a time).")
+		end
+		refreshShared()
+	end)
+	ServerStorage:GetAttributeChangedSignal(RojoLock.SharedAttribute):Connect(refreshShared)
+	refreshShared()
+	if RojoLock.IsShared() then
+		print("[Rojo Shared] ON in this place: both devs can stay connected to Rojo.")
+	end
+
 	local button = toolbar:CreateButton(
 		"RojoUnlock",
 		"Team Create: free the Rojo lock held by the other dev, so you can do Rojo > Connect",

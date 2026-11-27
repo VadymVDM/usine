@@ -13,7 +13,7 @@ seulement au Play (BaseService, FloorService, TreeService, WorkerService...).
 
 | Fichier | Cote | Role |
 |---|---|---|
-| `tools/studio-plugin/` (`plugin.project.json`, `Main.server.luau`) | plugin Studio local | Bouton "Factory Preview" (onglet Plugins, barre "Usine") : construit / supprime l'apercu avec le script de la place (`ServerScriptService.DevTools.PreviewFactory`), sans en garder de copie (2026-11-27). Le meme plugin a aussi le bouton "Rojo Unlock" (`RojoLock.luau`, doc : `docs/travailler-a-deux.md`) |
+| `tools/studio-plugin/` (`plugin.project.json`, `Main.server.luau`) | plugin Studio local | Bouton "Factory Preview" (onglet Plugins, barre "Usine") : construit / supprime l'apercu avec le script de la place (`ServerScriptService.DevTools.PreviewFactory`), sans en garder de copie (2026-11-27). Le meme plugin a aussi les boutons "Rojo Shared" et "Rojo Unlock" (`RojoLock.luau`, doc : `docs/travailler-a-deux.md`) |
 | `tools/build-map/preview-factory.luau` | Studio, synchronise par Rojo dans `ServerScriptService.DevTools.PreviewFactory` (jamais charge par le jeu) | Construit `Workspace._Preview` : base + 10 etages "tout achete" + arbres + fruits + PNJ. `REMOVE = true` : supprime l'apercu |
 | `src/server/Lib/FloorAssembly.luau` | serveur (reutilise) | Assemble chaque etage (variantes `Only<Tag>`), meme code que FloorService |
 | `src/server/Lib/TreeBuilder.luau` | serveur (reutilise) | Arbre de chaque etage au niveau max |

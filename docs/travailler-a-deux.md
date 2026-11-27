@@ -12,12 +12,15 @@ Decide le 2026-11-27. Deux devs : **VadymVDM** et **Natixe**.
 - **Chacun code dans sa propre place.** C'est ce que conseille la doc de Rojo (Recommended
   Workflows : "each programmer on a project have their own place to work in"). Deux Rojo connectes
   en meme temps dans la meme place Team Create s'ecrasent le code l'un de l'autre.
+- **Exception choisie par Adam le 2026-11-27 (18:20) : mode "Rojo Shared".** Bouton on/off du plugin
+  Usine : les deux restent connectes a Rojo dans la place partagee, en suivant ses 4 regles (section
+  "Rojo a deux en meme temps" plus bas). Le risque ci-dessus reste vrai si on les oublie.
 
 ## Les deux places
 
 | Place | Sert a | Rojo |
 |---|---|---|
-| Place partagee (Team Create, dans le cloud) | construire la carte, tester ensemble, publier | pas connecte en continu : seulement pour "mettre le code a jour" (plus bas) |
+| Place partagee (Team Create, dans le cloud) | construire la carte, tester ensemble, publier | pas connecte en continu : seulement pour "mettre le code a jour" (plus bas), sauf en mode Rojo Shared |
 | Place perso : `places/<pseudo>.rbxl` (fichier sur ton PC) | coder et tester ton code | connecte pendant que tu codes |
 
 Les `.rbxl` sont ignores par Git (`.gitignore`) : ta place perso reste sur ton PC.
@@ -54,8 +57,8 @@ cloud). Celui qui est seul peut donc travailler directement dedans, Rojo connect
 1. `git pull --rebase` **avant** de connecter Rojo. Sinon Rojo remet dans la place une vieille version
    du code et efface ce que l'autre y avait synchronise.
 2. `start-rojo.bat`, ouvrir la place partagee, Rojo > Connect (mode Edit), accepter.
-3. Si l'autre est connecte (son avatar en haut a droite de Studio) : Rojo > Disconnect et passer
-   dans sa place perso pour coder (section "Chaque jour").
+3. Si l'autre est connecte (son avatar en haut a droite de Studio) : soit passer dans sa place perso
+   pour coder (section "Chaque jour"), soit rester ensemble avec le mode **Rojo Shared** (plus bas).
 
 **En partant**
 1. Code : commit + `git push`.
@@ -67,6 +70,27 @@ cloud). Celui qui est seul peut donc travailler directement dedans, Rojo connect
 C'est le verrou de Rojo dans Team Create : a chaque Connect, le plugin Rojo ecrit son joueur dans
 `ServerStorage.__Rojo_SessionLock`, et ne le rend qu'au Disconnect. Tant que l'autre est dans la
 session avec Rojo connecte (ou s'il a oublie Disconnect), ton Connect est refuse.
+
+### Rojo a deux en meme temps : bouton "Rojo Shared"
+
+Onglet Plugins > barre "Usine" > **Rojo Shared** (on/off). Allume : le plugin vide le verrou des que
+Rojo le prend, donc les deux peuvent faire Rojo > Connect et rester connectes.
+
+- Reglage range dans la place (attribut `UsineRojoShared` sur `ServerStorage`, sauvegarde avec la
+  place) : allume pour tout le monde. Message dans la Sortie a chaque changement.
+- Il suffit qu'**un seul** Studio de la session ait le plugin UsineTools a jour (le verrou est partage
+  par Team Create). Seul dans la place : rien a faire, Rojo marche comme avant.
+- **Les 4 regles** (sinon on s'ecrase le code dans la place ; dans Git, rien n'est perdu) :
+  1. `git pull --rebase` **avant** chaque Rojo > Connect.
+  2. Au Connect, Rojo montre la liste des changements (Accept / Abort). S'il veut supprimer ou
+     modifier un fichier sur lequel tu n'as pas travaille (le travail de l'autre, pas encore tire) :
+     **Abort**, `git pull`, reconnecter.
+  3. Jamais le meme fichier en meme temps : dans la place, le dernier enregistre gagne.
+  4. Envoyer souvent (commit + push), et l'autre tire souvent : chaque Rojo ne connait que les
+     fichiers de son PC.
+- Pour revenir au verrou normal (un seul connecte a la fois) : re-cliquer **Rojo Shared**.
+
+### Prendre la main une fois : bouton "Rojo Unlock"
 
 - **Le mieux** : demander a l'autre de faire Rojo > Disconnect.
 - **S'il n'est pas la** : onglet Plugins > barre "Usine" > bouton **Rojo Unlock**, puis Rojo > Connect.
@@ -103,7 +127,8 @@ Une seule personne a la fois, et on previent l'autre.
   sauvegarde alors que status.roblox.com est vert : fermer **toutes** les fenetres Studio et rouvrir
   la place (session Studio bloquee ; c'est ce qui a debloque le 2026-11-27).
 - Maintenant : les changements de carte faits dans la place partagee arrivent chez l'autre en direct.
-  Rojo connecte dans la place partagee ecrit aussi chez l'autre : Connect, accepter, Disconnect.
+  Rojo connecte dans la place partagee ecrit aussi chez l'autre : Connect, accepter, Disconnect
+  (ou mode Rojo Shared et ses 4 regles).
 
 ## La carte
 

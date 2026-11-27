@@ -13,7 +13,7 @@ Lire `AGENTS.md` a la racine pour les regles de travail.
 | [references/](references/) | Captures de reference (style, boutique, ecran de retour) |
 | [prompts/](prompts/) | Prompts de demarrage des nouveaux chats (ex. phase 1 en ultracode) |
 | [architecture.md](architecture.md) | Organisation du code et de Rojo |
-| [travailler-a-deux.md](travailler-a-deux.md) | Travail a deux : Git, une place Rojo par personne, place partagee Team Create, bouton "Rojo Unlock" (erreur "is already syncing") |
+| [travailler-a-deux.md](travailler-a-deux.md) | Travail a deux : Git, une place Rojo par personne, place partagee Team Create, boutons "Rojo Shared" (deux connectes a Rojo en meme temps) et "Rojo Unlock" (erreur "is already syncing") |
 | [journal/](journal/) | Journal de bord, un fichier par jour |
 
 ## Systemes
