@@ -2,7 +2,45 @@
 
 **Statut :** en cours (fonctionne en playtest Studio a 1 joueur le 2026-11-19 ; 2 joueurs, telephone
 et vrai pass Robux non testes)
-**Derniere mise a jour :** 2026-11-27 (clients en R15 : marche / course des joueurs, cheveux bien places)
+**Derniere mise a jour :** 2026-11-27 soir (vraies files d'attente, bulles emoji, arrivee et depart au loin)
+
+> **Vraies files d'attente (2026-11-27 soir, demande : "vraies queues plus naturelles, emojis
+> au-dessus de leurs tetes en boule, disparaitre et apparaitre plus loin")** - tout dans
+> `CustomerController` (client seulement, le serveur n'a pas change) :
+> - **Rez-de-chaussee** : une vraie file par place du comptoir (avant : 1 client au comptoir + 1
+>   derriere). Longueur `Npcs.CustomerLineLength` selon le nombre de places (5, 4, 4, 3, 3), +-1 au
+>   hasard, retiree toutes les 8 a 18 s. Ecart avec celui de devant au hasard (`CustomerLineGap`
+>   2.8 a 3.5 studs), petit decalage de cote (`CustomerLineJitter`), regard pas tout a fait droit.
+>   Files en **eventail** (6 degres de plus par file vers l'exterieur) : 5 files droites a 5 studs
+>   faisaient une masse. Bout de file limite (reste a 4.5 studs de la voie des departs).
+> - **Arrivee** : en fondu (`CustomerFadeInSeconds` 1 s), loin sur le trottoir cote route
+>   (`CustomerSpawnFar` 70 studs avec peu de clients -> 30 avec beaucoup), marche jusqu'au bout de
+>   SA file. Traversee du trottoir a 3.2 studs au moins d'un lampadaire. Jamais au-dela du bout de
+>   la route (`Map.Road.Asphalt`). Une arrivee toutes les 0.3 a 0.9 s (`CustomerSpawnGap`), vers la
+>   file la plus en retard.
+> - **La file avance en accordeon** : chacun part 0.12 a 0.22 s apres celui de devant, en marchant
+>   plus doucement (55 % de la vitesse). Ceux qui attendent regardent autour d'eux de temps en temps.
+> - **Depart** : le client servi longe le comptoir (entre le comptoir et le premier rang) jusqu'au
+>   bord des files, descend vers la rue en suivant l'eventail, part dans l'herbe entre le trottoir
+>   et les bases (`CustomerLeaveFar` 55 -> 20 studs) et disparait en fondu sur les 10 derniers studs.
+> - **Etages 2+** : la file de la terrasse est une vraie file (memes ecarts au hasard ; avant :
+>   clients espaces pour remplir toute la terrasse). Arrivee de loin par le trottoir. Le premier
+>   attend a 3.5 studs de la porte de l'ascenseur. Client servi : longe le comptoir vers
+>   l'ascenseur, attend a cote de la porte (12 au plus, sinon fondu a la porte comme avant), monte
+>   dans la cabine quand elle est en haut, redescend, sort cote terrasse, contourne la cage et part
+>   dans la rue (fondu au loin). Personne a monter mais des clients attendent en haut : la cabine
+>   monte a vide les chercher.
+> - **Bulles emoji** (`Fx/EmojiBubble`) : boule blanche a contour fonce + 2 petites bulles de
+>   pensee, apparait avec un rebond. Au comptoir, comptoir vide : 🥤 avec pastille rouge "?" (remplace
+>   la bulle texte "Juice?"). Clients qui attendent : une bulle de temps en temps (`Waiting` :
+>   🥤😋🤤🍹🧃🤔🎵👀... ; `Impatient` si comptoir vide ou plus de 25 s : ⏳😤😒🥱😴), 4 + 1 par place
+>   au plus en meme temps. Client servi : bulle contente (😍😋🤩❤️👍✨😄) 1.8 s.
+> - **Vente sans client pret au comptoir** : elle attend le prochain client qui arrive au comptoir
+>   (2 par place au plus), sinon "+$" et son seuls. Plus de client pose d'un coup au comptoir
+>   (avant, au rez-de-chaussee : apparition ou teleportation au comptoir).
+> - Boucle sur `Heartbeat` (avant `RenderStepped`) : continue quand l'image n'est pas dessinee.
+> - Au plus `CustomerMaxPerFloor` (48) clients dessines au rez-de-chaussee ; test a 6 ventes / s :
+>   28 clients au plus.
 
 > **Clients en R15 (2026-11-27, demande : "passer TOUS les PNJ en R15, comme les joueurs")** : les
 > modeles `NpcTemplates.Customer1..8` sont des rigs R15 (`NpcRig.Prepare`). `CustomerController`
@@ -35,8 +73,8 @@ et vrai pass Robux non testes)
 > - **Etages 2+** : file en SERPENTIN dans toute la longueur de la terrasse (2026-11-20, retour de
 >   test : "la terrasse ne sert a rien") : 4 allees nord-sud entre des cordes rouges
 >   (`Annex.Terrace.QueuePath.Point1..8`, le client lit Point1..N) -> `ElevatorEntry`. Taille de la
->   file = 10 + 6 x emplacements (max 40, `QUEUE_*` dans CustomerController) ; ecart entre deux
->   clients = longueur du chemin / 40 : plus il y a de clients (Customers), plus la terrasse se remplit.
+>   file = 10 + 6 x emplacements (max 40, `QUEUE_*` dans CustomerController) ; ~~ecart entre deux
+>   clients = longueur du chemin / 40~~ (2026-11-27 soir : vraie file, ecarts 2.8 a 3.5 studs, voir en haut).
 >   Jusqu'a 40 clients R15 dessines en plus : a surveiller sur telephone, cabine animee en local (`Annex.ElevatorBase.Cabin`, sinon cabine simple creee
 >   par le client), sortie sur le balcon, place reservee a l'embarquement ; depart : retour a la
 >   sortie de l'ascenseur et fondu.
@@ -54,7 +92,8 @@ un jus et laissent son prix sur la table a argent ; le joueur encaisse en se ten
 | Fichier | Cote | Role |
 |---|---|---|
 | `src/server/Services/CustomerService.luau` | serveur | Comptoir (prompt E), minuteur des ventes, tas de billets, encaissement, pad Robux Auto Collect. Seul a modifier le comptoir et le tas |
-| `src/client/Controllers/CustomerController.luau` | client | Clients R15 dessines par chaque client (file d'attente, prise du gobelet, "+$", depart) |
+| `src/client/Controllers/CustomerController.luau` | client | Clients R15 dessines par chaque client (vraies files, arrivee / depart au loin, ascenseur, prise du gobelet, "+$", bulles emoji) |
+| `src/client/Fx/EmojiBubble.luau` | client | Bulle ronde avec un emoji au-dessus d'un client (rebond a l'apparition, pastille "?") |
 | `src/client/Controllers/CashController.luau` | client | Billets 2D qui volent un par un du tas jusqu'au montant d'argent du HUD (bas gauche) ; a chaque billet un pop plus aigu, le HUD compte et rebondit, "+$X" a droite du montant ; ding a la fin |
 | `src/client/Controllers/MoneyHudController.luau` | client | Montant du HUD : compte en montant (Hold / Release pendant l'encaissement), rebond (Bump) ; voir `argent.md` |
 | `src/server/Lib/NpcRig.luau` | serveur | Fabrique les modeles R15 des clients (`ReplicatedStorage.NpcTemplates.Customer1..8`) |
@@ -102,11 +141,12 @@ un jus et laissent son prix sur la table a argent ; le joueur encaisse en se ten
   fruit) va sur le tas d'argent. Le serveur envoie `WorldFx` "Sale" { spot, fruit, amount } a tous
   et pose sur la base `CustomerSlots` (places actives) et `CounterJuices` (jus au comptoir).
 - **Clients (client seulement, aucune charge serveur)** : pour chaque base avec proprietaire a moins
-  de `CustomerRenderDistance` (220) : un client "devant" chaque place active et un client "qui
-  attend" derriere (`CustomerQueueGap`). Ils arrivent de `Markers.CustomerEntry` (trottoir) en
-  marchant (animations R15 des joueurs, marche + course melangees : `Util/R15Walk`), regardent le comptoir, bulle "Juice?" si le comptoir est vide.
+  de `CustomerRenderDistance` (220) : au rez-de-chaussee, une vraie file par place active (voir le
+  bloc "Vraies files d'attente" en haut) ; etages 2+ : file de la terrasse, puis au balcon un client
+  "devant" chaque place et un "qui attend" derriere (`CustomerQueueGap`). Animations R15 des joueurs
+  (marche + course melangees : `Util/R15Walk`). Bulle 🥤 + "?" si le comptoir est vide.
   Sur "Sale" : le gobelet vole dans ses mains (bras tendus, `CarryPose`), "+$5" monte au-dessus de
-  lui, il repart sur le trottoir et disparait ; celui qui attend avance.
+  lui avec une bulle contente, il repart et disparait au loin ; la file avance.
 - **Tas d'argent** : de vraies liasses de billets (vert clair) et des pieces sur le tapis rouge de
   la table (`Counter.MoneyPile`) : 12 piles, +4 billets a chaque fois que le montant double, 60 max.
   Montant au-dessus ("$1.2K"). **Encaisser** : se tenir sur le **pad "Collect Cash"** (jaune,
@@ -189,6 +229,13 @@ game.ServerStorage.Debug.Call:Invoke("Customer", "Do", "<Nom>", "SetAutoCollect"
   jeu long (valeur stable ?). Le chiffre ne compte que les ventes, pas l'argent encaisse.
 - Les clients sont dessines par chaque client : deux joueurs ne voient pas exactement le meme
   client au meme moment (la vente, elle, est la meme pour tous).
+- Vraies files (2026-11-27 soir) : logique verifiee en Play (positions, ventes en attente, depart
+  au loin, ascenseur aller-retour, charge) mais **pas vue en mouvement** : Studio etait reduit
+  (aucune image dessinee). Bulles et eventail vus seulement sur un echantillon fixe en mode Edit.
+  A regarder en jeu : naturel des files, lampadaires, telephone (jusqu'a ~30 clients R15 de plus).
+- La police emoji se charge a la premiere bulle : la toute premiere peut etre vide un instant.
+- Avec beaucoup de ventes (5 places, Faster Customers haut), les arrivees ne suivent pas :
+  beaucoup de ventes en "+$" seul (voulu : pas de teleportation, nombre de clients limite).
 - Equilibrage : avec 1 place, 1 vente / 1.8 s (2026-11-20 : 2.5 s = exactement l'arbre niveau 1, les
   premiers "Upgrade Tree" ne rapportaient rien) ; More Customers 150 $ ; a revoir en jeu reel.
 - Non teste : 2 joueurs, telephone, achat reel du pass.

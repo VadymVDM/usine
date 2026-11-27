@@ -50,7 +50,8 @@ return MoneyService
 - `src/shared/Vendor/` : librairies externes en `.rbxm` (TopbarPlus, licence MIT).
 - `src/gui/*.rbxm` : interfaces (ScreenGui) en binaire, sans script ; la logique est dans `src/client/Controllers/`.
 - `src/client/Fx/` : modules d'effets cote client, pas charges par `Main` (requis par les
-  controleurs) : `Jelly` = deformation "gelee" + ressorts (mixeur, arbre, machines).
+  controleurs) : `Jelly` = deformation "gelee" + ressorts (mixeur, arbre, machines) ;
+  `EmojiBubble` = bulle ronde avec un emoji au-dessus d'un client (CustomerController).
 - `src/server/Vendor/` : librairies serveur en source (ProfileStore, Apache 2.0, voir
   `NOTICE-ProfileStore.md`). Pas charge par `Main` (seuls les ModuleScripts de `Services/` le sont).
 - `src/shared/Util/` : petites fonctions partagees (`NumberFormat`, `TextUtil`, `WorldLabel` = textes 3D "n/max",

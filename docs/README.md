@@ -30,7 +30,7 @@ Un fichier par systeme dans `systems/`, a partir de [systems/_TEMPLATE.md](syste
 | Tour d'etages et escalier (10 etages, 10 raretes par etage) | [systems/tour-etages.md](systems/tour-etages.md) | code (lots 0 a 6, 2026-11-20), en test chez l'utilisateur |
 | Carte, bases et attribution (usine) | [systems/carte-bases.md](systems/carte-bases.md) | fonctionne (usine refaite le 2026-11-19 ; a tester a 2 joueurs) |
 | Chaine de production (arbre, ramassage E, inventaire, etagere, mixeur, jus) | [systems/chaine-production.md](systems/chaine-production.md) | en cours (boucle complete en playtest le 2026-11-19) |
-| Comptoir, clients R15 et tas d'argent | [systems/clients.md](systems/clients.md) | en cours (fonctionne en playtest a 1 joueur) |
+| Comptoir, clients R15 et tas d'argent | [systems/clients.md](systems/clients.md) | en cours (vraies files + bulles emoji + arrivee / depart au loin le 2026-11-27 : logique testee en Play, mouvement pas encore vu a l'ecran) |
 | Machines, ameliorations et employes R15 | [systems/ameliorations-employes.md](systems/ameliorations-employes.md) | en cours (pad de l'arbre, panneaux Conveyor / Juice Table / Customers, mixeurs a 5 niveaux, decor par niveau ; 3 employes) |
 | Ameliorations du joueur (bouton UPGRADE : vitesse, fruits et jus portes) | [systems/ameliorations-joueur.md](systems/ameliorations-joueur.md) | fonctionne (achats testes en playtest PC le 2026-11-20 ; telephone pas teste) |
 | Dons (urne + tableau TOP DONORS, recus Robux) | [systems/dons.md](systems/dons.md) | en cours (coin + fenetre testes en Studio ; produits Robux a creer, vrai don pas teste) |

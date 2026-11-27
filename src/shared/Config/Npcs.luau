@@ -48,8 +48,33 @@ local Npcs = {
 
 	-- Clients (dessines par chaque client, voir CustomerController)
 	CustomerWalkSpeed = 10,
-	CustomerQueueGap = 3.2, -- studs entre un client au comptoir et celui qui attend derriere
+	CustomerQueueGap = 3.2, -- etages 2+ (balcon) : studs entre un client au comptoir et celui qui attend derriere
 	CustomerRenderDistance = 220, -- au-dela, pas de clients dessines pour cette base
+	-- Vraies files d'attente (2026-11-27, demande : "vraies queues plus naturelles, apparaitre et
+	-- disparaitre plus loin"). Rez-de-chaussee : une file par place du comptoir ; etages 2+ : la file
+	-- en serpentin de la terrasse.
+	CustomerLineLength = table.freeze({ 5, 4, 4, 3, 3 }), -- clients par file (selon le nombre de places), +-1 au hasard
+	CustomerLineGap = table.freeze({ 2.8, 3.5 }), -- ecart avec le client de devant (au hasard, studs)
+	CustomerLineJitter = 0.35, -- decalage de cote max dans une file (studs)
+	CustomerSpawnGap = table.freeze({ 0.3, 0.9 }), -- secondes entre deux arrivees (au hasard)
+	-- Apparition / depart le long de la rue : distance (studs) avec peu de clients -> beaucoup de clients
+	CustomerSpawnFar = table.freeze({ 70, 30 }),
+	CustomerLeaveFar = table.freeze({ 55, 20 }),
+	CustomerFadeInSeconds = 1, -- apparition en fondu (au loin, en marchant)
+	CustomerFadeOutStuds = 10, -- disparition en fondu sur les X derniers studs du depart
+	CustomerMaxPerFloor = 48, -- rez-de-chaussee : clients dessines au plus pour une base
+	-- Bulles rondes avec un emoji au-dessus des clients qui attendent (Fx/EmojiBubble)
+	CustomerEmojiEvery = table.freeze({ 4, 12 }), -- secondes entre deux essais de bulle par client
+	CustomerEmojiSeconds = 2.2, -- duree d'une bulle
+	CustomerEmojiMax = 4, -- bulles en meme temps par etage (+ 1 par place du comptoir)
+	CustomerImpatientSeconds = 25, -- au-dela (ou comptoir vide), emojis d'impatience
+	CustomerHappySeconds = 1.8, -- bulle contente apres l'achat
+	CustomerEmojis = table.freeze({
+		Want = "🥤", -- au comptoir, comptoir vide (avec une pastille "?") : il faut poser des jus
+		Waiting = table.freeze({ "🥤", "😋", "🤤", "🍹", "🧃", "🤔", "🎵", "👀", "😊", "🍊", "🍓", "🍉" }),
+		Impatient = table.freeze({ "⏳", "😤", "😒", "🥱", "😴", "⌛" }),
+		Happy = table.freeze({ "😍", "😋", "🤩", "❤️", "👍", "✨", "😄" }),
+	}),
 
 	-- Employes : nom affiche au-dessus (anglais), couleur du tablier / de la casquette
 	Employees = table.freeze({
