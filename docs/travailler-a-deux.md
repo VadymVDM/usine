@@ -61,6 +61,27 @@ cloud). Celui qui est seul peut donc travailler directement dedans, Rojo connect
 2. Studio : Fichier > Sauvegarder sur Roblox (force la sauvegarde de la carte), puis Rojo > Disconnect.
 3. Prevenir l'autre en une ligne : ce qui a change (code et carte).
 
+## Rojo dit "Could not sync because user 'X' is already syncing"
+
+C'est le verrou de Rojo dans Team Create : a chaque Connect, le plugin Rojo ecrit son joueur dans
+`ServerStorage.__Rojo_SessionLock`, et ne le rend qu'au Disconnect. Tant que l'autre est dans la
+session avec Rojo connecte (ou s'il a oublie Disconnect), ton Connect est refuse.
+
+- **Le mieux** : demander a l'autre de faire Rojo > Disconnect.
+- **S'il n'est pas la** : onglet Plugins > barre "Usine" > bouton **Rojo Unlock**, puis Rojo > Connect.
+  - Le bouton vide le verrou s'il appartient a quelqu'un d'autre. S'il est libre ou deja a toi, il le
+    dit dans la Sortie et ne touche a rien.
+  - **Attention** : ca ne debranche pas le Rojo de l'autre (Rojo ne relit jamais le verrou une fois
+    connecte). Tant qu'il ne fait pas Disconnect, ses fichiers peuvent encore ecraser les tiens dans la
+    place. Le bouton laisse donc une marque sur le verrou (attribut `UsineUnlock`) : chez l'autre, un
+    **bandeau rouge** s'affiche en haut de la vue 3D ("X took over Rojo... Click Rojo > Disconnect"),
+    avec un bouton OK. Il faut qu'il ait le plugin UsineTools a jour.
+  - Code : `tools/studio-plugin/RojoLock.luau` (installe avec Factory Preview par `start-rojo.bat` ;
+    apres une mise a jour, rouvrir la place). Verifie dans le code du plugin Rojo 7.7.1
+    (`plugin/src/App/init.lua`).
+- Sans le bouton (barre de commande de Studio, mode Edit) :
+  `game.ServerStorage.__Rojo_SessionLock.Value = nil` (meme effet, sans prevenir l'autre).
+
 ## Mettre le code dans la place partagee (tester ensemble, publier)
 
 Une seule personne a la fois, et on previent l'autre.

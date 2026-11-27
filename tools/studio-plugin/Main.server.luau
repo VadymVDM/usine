@@ -1,8 +1,11 @@
 --!strict
--- Plugin Studio "UsineTools" : bouton "Factory Preview" (onglet Plugins, barre "Usine").
--- 1er clic : construit Workspace._Preview avec tools/build-map/preview-factory.luau (meme fichier,
--- copie dans le plugin a l'installation). 2e clic : supprime l'apercu.
--- Installe ou mis a jour par start-rojo.bat (rojo build --plugin). Doc : docs/systems/apercu-edit.md
+-- Plugin Studio "UsineTools" (onglet Plugins, barre "Usine"), deux boutons :
+-- - "Factory Preview" : 1er clic, construit Workspace._Preview avec tools/build-map/preview-factory.luau
+--   (meme fichier, copie dans le plugin a l'installation) ; 2e clic, supprime l'apercu.
+--   Doc : docs/systems/apercu-edit.md
+-- - "Rojo Unlock" (RojoLock.luau) : retire le verrou Rojo de l'autre dev dans Team Create.
+--   Doc : docs/travailler-a-deux.md
+-- Installe ou mis a jour par start-rojo.bat (rojo build --plugin).
 
 local RunService = game:GetService("RunService")
 
@@ -22,6 +25,16 @@ local button = toolbar:CreateButton(
 	"Factory Preview"
 )
 button.ClickableWhenViewportHidden = true
+
+-- Bouton "Rojo Unlock" + bandeau si l'autre nous prend le verrou. Protege : une erreur ici ne doit
+-- pas empecher Factory Preview de marcher.
+local lockOk, lockErr = pcall(function()
+	local RojoLock = require(script.Parent:WaitForChild("RojoLock") :: ModuleScript) :: any
+	RojoLock.Start(toolbar)
+end)
+if not lockOk then
+	warn("[Rojo Unlock] failed to start:", lockErr)
+end
 
 local busy = false
 
