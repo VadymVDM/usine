@@ -51,6 +51,8 @@ Ces regles s'appliquent a tout agent (Claude Code, Codex, Cursor...). Les suivre
   - `src/client/`  -> `StarterPlayerScripts.Client` (`Controllers/` : un ModuleScript par systeme client)
   - `src/shared/`  -> `ReplicatedStorage.Shared`    (config, types, utilitaires partages)
   - `src/gui/`     -> `StarterGui`
+  - `tools/build-map/preview-factory.luau` -> `ServerScriptService.DevTools.PreviewFactory` (outil de
+    Studio pour le bouton Factory Preview, jamais charge par le jeu)
 - Workspace (carte, machines placees a la main) et ServerStorage ne sont pas geres par Rojo :
   ils vivent dans le fichier .rbxl. Ne pas ajouter de mapping pour eux sans en discuter.
 - Ne jamais activer Script Sync de Studio et Rojo sur les memes scripts.

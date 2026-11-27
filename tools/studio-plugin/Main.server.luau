@@ -1,7 +1,9 @@
 --!strict
 -- Plugin Studio "UsineTools" (onglet Plugins, barre "Usine"), deux boutons :
--- - "Factory Preview" : 1er clic, construit Workspace._Preview avec tools/build-map/preview-factory.luau
---   (meme fichier, copie dans le plugin a l'installation) ; 2e clic, supprime l'apercu.
+-- - "Factory Preview" : 1er clic, construit Workspace._Preview avec le script de la PLACE
+--   (ServerScriptService.DevTools.PreviewFactory = tools/build-map/preview-factory.luau, synchronise
+--   par Rojo comme le reste du code) ; 2e clic, supprime l'apercu. Le plugin n'en garde pas de copie :
+--   une copie restait perimee tant qu'on ne rouvrait pas la place (2026-11-27).
 --   Doc : docs/systems/apercu-edit.md
 -- - "Rojo Unlock" (RojoLock.luau) : retire le verrou Rojo de l'autre dev dans Team Create.
 --   Doc : docs/travailler-a-deux.md
@@ -15,7 +17,6 @@ if not RunService:IsEdit() then
 end
 
 local PREVIEW_NAME = "_Preview"
-local factory = script.Parent:WaitForChild("PreviewFactory") :: ModuleScript
 
 local toolbar = plugin:CreateToolbar("Usine")
 local button = toolbar:CreateButton(
@@ -47,6 +48,7 @@ end
 local REQUIRED = {
 	{ "ReplicatedStorage", "Shared" },
 	{ "ServerScriptService", "Server" },
+	{ "ServerScriptService", "DevTools", "PreviewFactory" },
 	{ "StarterPlayer", "StarterPlayerScripts", "Client" },
 	{ "ServerStorage", "BaseTemplate" },
 	{ "ServerStorage", "FloorTemplate" },
@@ -70,12 +72,19 @@ local function build()
 	local missing = missingPart()
 	if missing then
 		warn(
-			`[Factory Preview] {missing} not found. Open the shared place, or your own place with Rojo connected.`
+			`[Factory Preview] {missing} not found. Sync the code with Rojo (git pull, then Rojo > Connect), or open the shared place.`
 		)
 		return
 	end
+	local devTools = game:GetService("ServerScriptService"):FindFirstChild("DevTools")
+	local factory = devTools and devTools:FindFirstChild("PreviewFactory")
+	if not (factory and factory:IsA("ModuleScript")) then
+		warn("[Factory Preview] ServerScriptService.DevTools.PreviewFactory is not a ModuleScript.")
+		return
+	end
 	print("[Factory Preview] building... (a few seconds)")
-	-- Copie fraiche a chaque clic : require garde en cache le resultat du premier appel
+	-- Copie fraiche a chaque clic (require garde en cache le resultat du premier appel), rangee dans
+	-- le plugin : rien n'est ajoute ni retire dans la place
 	local copy = factory:Clone()
 	copy.Parent = script.Parent
 	local ok, result = pcall(require, copy)

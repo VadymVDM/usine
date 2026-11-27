@@ -41,7 +41,8 @@ la sauvegarde des joueurs ou a 2 joueurs, utiliser la place partagee.
    **Seulement le code de `src/`** (et il se voit surtout au Play). Ce qui est dans `Workspace` ou
    `ServerStorage` ne passe jamais par Git ni Rojo (voir "La carte" plus bas).
 6. Pour voir toute l'usine en mode Edit : onglet Plugins > bouton **Factory Preview**
-   (installe par `start-rojo.bat` ; rouvrir la place apres une mise a jour du bouton).
+   (installe par `start-rojo.bat`). Il lit le script d'apercu dans la place
+   (`ServerScriptService.DevTools`, synchronise par Rojo) : toujours a jour, sans rouvrir la place.
    Doc : `docs/systems/apercu-edit.md`.
 
 ## Quand un seul des deux travaille

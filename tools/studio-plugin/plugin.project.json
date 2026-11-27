@@ -7,9 +7,6 @@
     },
     "RojoLock": {
       "$path": "RojoLock.luau"
-    },
-    "PreviewFactory": {
-      "$path": "../build-map/preview-factory.luau"
     }
   }
 }

@@ -23,6 +23,12 @@
       "$ignoreUnknownInstances": true,
       "Server": {
         "$path": "src/server"
+      },
+      "DevTools": {
+        "$className": "Folder",
+        "PreviewFactory": {
+          "$path": "tools/build-map/preview-factory.luau"
+        }
       }
     },
     "StarterPlayer": {

@@ -15,7 +15,9 @@
 --     chevrons (vers le pad Collect Cash), liasse Lucky Cash ; logo du proprietaire en haut de la tour.
 -- Archivable = false sur _Preview : jamais sauvegarde dans la place, jamais copie dans le Play.
 -- Relancer pour reconstruire. REMOVE = true : supprime l'apercu.
--- Lancer via MCP execute_luau (Edit) ou la barre de commande de Studio.
+-- Synchronise par Rojo dans ServerScriptService.DevTools.PreviewFactory (jamais charge par le jeu) :
+-- c'est cette copie que lance le bouton "Factory Preview" (tools/studio-plugin).
+-- Ou le lancer via MCP execute_luau (Edit) ou la barre de commande de Studio.
 -- Doc : docs/systems/apercu-edit.md
 
 local FLOORS = 10

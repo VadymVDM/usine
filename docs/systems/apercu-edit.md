@@ -13,8 +13,8 @@ seulement au Play (BaseService, FloorService, TreeService, WorkerService...).
 
 | Fichier | Cote | Role |
 |---|---|---|
-| `tools/studio-plugin/` (`plugin.project.json`, `Main.server.luau`) | plugin Studio local | Bouton "Factory Preview" (onglet Plugins, barre "Usine") : construit / supprime l'apercu. Embarque `preview-factory.luau`. Le meme plugin a aussi le bouton "Rojo Unlock" (`RojoLock.luau`, doc : `docs/travailler-a-deux.md`) |
-| `tools/build-map/preview-factory.luau` | Studio (hors Rojo) | Construit `Workspace._Preview` : base + 10 etages "tout achete" + arbres + fruits + PNJ. `REMOVE = true` : supprime l'apercu |
+| `tools/studio-plugin/` (`plugin.project.json`, `Main.server.luau`) | plugin Studio local | Bouton "Factory Preview" (onglet Plugins, barre "Usine") : construit / supprime l'apercu avec le script de la place (`ServerScriptService.DevTools.PreviewFactory`), sans en garder de copie (2026-11-27). Le meme plugin a aussi le bouton "Rojo Unlock" (`RojoLock.luau`, doc : `docs/travailler-a-deux.md`) |
+| `tools/build-map/preview-factory.luau` | Studio, synchronise par Rojo dans `ServerScriptService.DevTools.PreviewFactory` (jamais charge par le jeu) | Construit `Workspace._Preview` : base + 10 etages "tout achete" + arbres + fruits + PNJ. `REMOVE = true` : supprime l'apercu |
 | `src/server/Lib/FloorAssembly.luau` | serveur (reutilise) | Assemble chaque etage (variantes `Only<Tag>`), meme code que FloorService |
 | `src/server/Lib/TreeBuilder.luau` | serveur (reutilise) | Arbre de chaque etage au niveau max |
 | `src/shared/FruitModels.luau`, `Util/MachineModels.luau`, `Config/*` | partage (reutilise) | Fruits, gobelets, machines, niveaux max |
@@ -26,11 +26,17 @@ seulement au Play (BaseService, FloorService, TreeService, WorkerService...).
 
 - **Le plus simple : le bouton.** Onglet Plugins > "Factory Preview" (mode Edit). 1er clic : construit
   l'apercu (environ 15 s). 2e clic : le supprime. Messages dans la fenetre Sortie (`[Factory Preview]`).
-  - Installe / mis a jour par `start-rojo.bat` (`rojo build ... --plugin UsineTools.rbxm` dans le
-    dossier Plugins local de Studio). Studio ne recharge pas un plugin deja charge : apres une mise a
-    jour, **rouvrir la place** (ou lancer `start-rojo.bat` avant d'ouvrir Studio).
-  - Si la place n'a pas ce qu'il faut (`ReplicatedStorage.Shared`, `ServerStorage.BaseTemplate`,
-    `Workspace.Map.BaseSlots`...), le bouton ne fait rien et l'ecrit dans la Sortie (pas de blocage).
+  - **Toujours a jour sans rouvrir la place (2026-11-27)** : a chaque clic, le bouton lance une copie
+    fraiche de `ServerScriptService.DevTools.PreviewFactory`, que Rojo synchronise depuis
+    `tools/build-map/preview-factory.luau` comme le reste du code. Modifier l'apercu = modifier ce
+    fichier, Rojo connecte (ou `git pull` puis Rojo > Connect), cliquer.
+  - Le plugin lui-meme (`Main`, `RojoLock`) est installe / mis a jour par `start-rojo.bat`
+    (`rojo build ... --plugin UsineTools.rbxm` dans le dossier Plugins local de Studio). Studio ne
+    recharge pas un plugin deja charge (verifie le 2026-11-27) : apres une modif de `Main` ou de
+    `RojoLock` seulement, **rouvrir la place**.
+  - Si la place n'a pas ce qu'il faut (`ReplicatedStorage.Shared`, `ServerScriptService.DevTools.PreviewFactory`,
+    `ServerStorage.BaseTemplate`, `Workspace.Map.BaseSlots`...), le bouton ne fait rien et l'ecrit dans
+    la Sortie (pas de blocage).
 - Sinon : lancer `tools/build-map/preview-factory.luau` en mode Edit (MCP `execute_luau`, ou coller le
   fichier dans la barre de commande). Il remplace l'ancien apercu s'il existe. Environ 13 500 pieces.
 - Ce qui est montre (etat "tout achete", comme un joueur au max) :
@@ -57,8 +63,8 @@ seulement au Play (BaseService, FloorService, TreeService, WorkerService...).
   qu'il demande lui-meme. `FloorAssembly` lisait donc une vieille `Config/Floors` (l'apercu montrait
   encore l'escalier du dernier etage). Corrige : l'outil passe `freshRequire(Config.Floors)` a
   `FloorAssembly.Build`. Meme risque pour les autres modules reutilises (TreeBuilder, MachineModels...) :
-  si l'apercu ne suit pas une modif, rouvrir la place. Le bouton embarque l'outil : apres
-  `rojo build ... --plugin`, rouvrir la place pour charger la nouvelle version.
+  si l'apercu ne suit pas une modif, rouvrir la place. L'outil lui-meme n'a plus ce souci : le bouton
+  le lit dans la place a chaque clic (`DevTools`).
 
 ## Remotes
 
@@ -78,14 +84,13 @@ En tete du script : `FLOORS` (10), `SLOT` (1), `REMOVE`. Le reste vient de la Co
   par Team Create (verifie le 2026-11-27 : construit dans une fenetre, absent dans une 2e fenetre de la
   meme place). D'ou le bouton.
 - Le bouton ne s'allume pas visiblement quand l'apercu existe (`SetActive` peu visible) : a revoir si genant.
-- **Le bouton peut construire une vieille version** (vu le 2026-11-27 : ancienne fleche du tuto et PNJ
-  R6). Il embarque une copie de `preview-factory.luau` faite au lancement de `start-rojo.bat` (12:45),
-  et Studio garde en memoire le plugin charge a l'ouverture de la place. Verifie : plugin reconstruit
-  a 18:12, clic a 18:13 = toujours l'ancienne copie. Donc apres une modif de l'apercu : relancer
-  `start-rojo.bat` (ou `rojo build tools/studio-plugin/plugin.project.json --plugin UsineTools.rbxm`)
-  ET rouvrir la place. En attendant : lancer `preview-factory.luau` par MCP `execute_luau` (toujours
-  la version du disque). Piste pour en finir : un plugin qui lit le script dans la place (synchronise
-  par Rojo comme le reste du code) au lieu d'en garder une copie.
+- Corrige le 2026-11-27 : le bouton construisait une vieille version (ancienne fleche du tuto, PNJ R6).
+  Il embarquait une copie de `preview-factory.luau` faite au lancement de `start-rojo.bat` (12:45), et
+  Studio garde le plugin charge jusqu'a la reouverture de la place (plugin reconstruit a 18:12, clic a
+  18:13 = toujours l'ancienne copie). Maintenant le plugin n'a plus de copie : il lit le script dans la
+  place (`DevTools`).
+- `ServerScriptService.DevTools.PreviewFactory` part aussi dans le jeu publie : jamais charge (Main ne
+  charge que `Services/`), jamais envoye aux clients (ServerScriptService).
 - Retouches a la main a reporter dans le moule (FloorTemplate / BaseTemplate) : pas fait. Attention :
   les scripts `tools/build-map/02*` recreent le moule et effaceraient ces retouches.
 - Pas montres (passagers ou lies a un joueur) : bulles d'attente des clients, textes "+$" des ventes,
