@@ -14,6 +14,7 @@ Lire `AGENTS.md` a la racine pour les regles de travail.
 | [prompts/](prompts/) | Prompts de demarrage des nouveaux chats (ex. phase 1 en ultracode) |
 | [architecture.md](architecture.md) | Organisation du code et de Rojo |
 | [travailler-a-deux.md](travailler-a-deux.md) | Travail a deux : Git, une place Rojo par personne, place partagee Team Create, boutons "Rojo Shared" (deux connectes a Rojo en meme temps) et "Rojo Unlock" (erreur "is already syncing") |
+| [perf-mobile.md](perf-mobile.md) | Mesures de performance mobile (triangles, appels de dessin, particules), causes et pistes |
 | [journal/](journal/) | Journal de bord, un fichier par jour |
 
 ## Systemes
