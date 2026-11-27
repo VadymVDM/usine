@@ -60,7 +60,9 @@ Une seule personne a la fois, et on previent l'autre.
   (murs `Map.Bounds` a 800 dans la fenetre de Natixe, a 80 dans une fenetre ouverte apres).
 - Consequence : chaque Studio a sa propre copie. Un changement de carte n'existe pour l'autre
   qu'apres **Fichier > Sauvegarder sur Roblox**, et **le dernier qui sauvegarde ecrase l'autre**.
-- A faire : activer Team Create (bouton "Collaborer" en haut a droite de Studio). En attendant :
+- A faire : activer Team Create : **Fenetre > Collaboration > Collaborateurs live > Activer** (le
+  bouton "Sauvegarder" du panneau "Collaborer" ne l'active pas). Essai du 2026-11-27 refuse par Roblox
+  ("serveur occupe"), a refaire. En attendant :
   une seule personne modifie la carte a la fois, sauvegarde sur Roblox, previent l'autre, qui
   ferme et rouvre la place.
 
