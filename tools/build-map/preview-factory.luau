@@ -155,7 +155,7 @@ local function buildRig(outfit: any, shirtColor: Color3): Model?
 			end
 		end
 		local ok, rig = pcall(function()
-			return Players:CreateHumanoidModelFromDescription(desc, Enum.HumanoidRigType.R6)
+			return Players:CreateHumanoidModelFromDescription(desc, Enum.HumanoidRigType.R15)
 		end)
 		desc:Destroy()
 		if ok and rig then
@@ -190,11 +190,13 @@ local function weld(rig: Model, name: string, size: Vector3, offset: CFrame, to:
 end
 
 local function dressEmployee(rig: Model, title: string, color: Color3)
-	local torso = rig:FindFirstChild("Torso") :: BasePart?
+	-- Meme tablier que NpcRig.dressEmployee (R15 depuis le 2026-11-27 : sur UpperTorso)
+	local torso = rig:FindFirstChild("UpperTorso") :: BasePart?
 	local head = rig:FindFirstChild("Head") :: BasePart?
 	if torso then
-		weld(rig, "Apron", Vector3.new(1.6, 1.7, 0.1), CFrame.new(0, -0.1, -0.55), torso, color)
-		weld(rig, "ApronStrap", Vector3.new(1.6, 0.18, 0.12), CFrame.new(0, 0.75, -0.56), torso, Color3.new(1, 1, 1))
+		local top, front, apronHeight = torso.Size.Y / 2, torso.Size.Z / 2, 1.35
+		weld(rig, "Apron", Vector3.new(1.6, apronHeight, 0.1), CFrame.new(0, top - 0.2 - apronHeight / 2, -(front + 0.05)), torso, color)
+		weld(rig, "ApronStrap", Vector3.new(1.6, 0.18, 0.12), CFrame.new(0, top - 0.25, -(front + 0.06)), torso, Color3.new(1, 1, 1))
 	end
 	if head then
 		weld(rig, "Cap", Vector3.new(1.25, 0.4, 1.25), CFrame.new(0, 0.62, 0), head, color)
@@ -242,7 +244,7 @@ for i, outfit in Npcs.CustomerOutfits do
 end
 
 -- Pose un PNJ debout sur `ground` (point au sol), tourne vers `facing` (direction).
--- Les pieds (bas des jambes R6) sont poses sur le sol : le pivot du rig et sa boite englobante
+-- Les pieds (bas des pieds R15) sont poses sur le sol : le pivot du rig et sa boite englobante
 -- ne sont pas fiables (accessoires mal charges = boite de 20 studs de haut, vu le 2026-11-27).
 local function placeNpc(template: Model?, ground: Vector3, facing: Vector3?, parent: Instance)
 	if template == nil then
@@ -255,7 +257,7 @@ local function placeNpc(template: Model?, ground: Vector3, facing: Vector3?, par
 	end
 	rig:PivotTo(CFrame.lookAt(ground, ground + dir.Unit))
 	local lowest = math.huge
-	for _, name in { "Left Leg", "Right Leg" } do
+	for _, name in { "LeftFoot", "RightFoot" } do
 		local leg = rig:FindFirstChild(name)
 		if leg and leg:IsA("BasePart") then
 			lowest = math.min(lowest, leg.Position.Y - leg.Size.Y / 2)

@@ -95,7 +95,7 @@ clients, le serveur s'effondre. Regle :
 
 - **Le serveur calcule chaque etage avec des nombres** (fruits par seconde, jus, ventes, argent)
   a partir de ses ameliorations et employes. C'est cette meme formule qui sert aux gains hors ligne.
-- **Les choses visibles** (fruits qui tombent, employes R6 qui marchent, clients, gobelets) ne
+- **Les choses visibles** (fruits qui tombent, employes R15 qui marchent, clients, gobelets) ne
   sont creees **que sur l'etage ou se trouve le proprietaire** (et eventuellement celui juste
   en dessous). Quand il change d'etage, on les retire de l'ancien et on les cree sur le nouveau.
 - Un etage pas encore automatise (pas d'employes) ne produit rien quand le joueur n'y est pas :
@@ -284,7 +284,7 @@ dernier etage". Rien dans le modele `FloorTemplate` ne change, tout se fait a l'
   est le joueur (hauteur du personnage) : `FloorService.IsLive(floor)`, `GetLiveFloor(player)`,
   `OnLiveFloorChanged(cb(player, old, new))`, attribut de base `ActiveFloor`.
 - **Seul l'etage actif est dessine** : l'arbre ne fait tomber des fruits que la (`TreeService`), les
-  employes R6 n'existent que la (`WorkerService` les retire / recree au changement d'etage ; ce qu'ils
+  employes R15 n'existent que la (`WorkerService` les retire / recree au changement d'etage ; ce qu'ils
   portaient est perdu, au plus 6), les clients ne sont dessines que la (`WorldFx "Sale"` seulement pour
   l'etage actif ; client : `CustomerController`). Les fruits au sol, caisses, jus et comptoirs des
   autres etages restent (rien n'est perdu).

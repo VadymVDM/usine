@@ -38,7 +38,7 @@ s'ouvre des l'arrivee, sans attendre la fin (il ne precharge que ses propres ima
    (streaming : 0.6 s sans nouvelle piece, 8 s max) puis `PreloadAsync` sans limite sur :
    Workspace, Lighting (ciel), **tout ReplicatedStorage** (fruits voxel `FruitAssets`, PNJ
    `NpcTemplates`, sons `Shared/Assets`), et une instance "porteuse" par id pour : les sons de
-   `Config/Sounds`, les animations de `Config/Npcs.Animations`, les photos d'avatar (60 et 420 px)
+   `Config/Sounds`, les animations R15 de `Config/Npcs.AnimationsR15`, les photos d'avatar (60 et 420 px)
    des joueurs deja presents. Jusqu'au 2026-11-20 le HUD attendait aussi cette etape (jusqu'a
    ~20 s de plus : carte 8 s + prechargement 12 s) : c'etait la cause des boutons qui mettaient
    longtemps a apparaitre.

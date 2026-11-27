@@ -229,7 +229,7 @@ comme en Edit ; l'appli Roblox les affiche. Juger les ombres dans l'appli, pas d
 | `Counter.IncomeSign` | Panneau "MONEY / HOUR" (texte `Board.Display.Value`, CustomerService) |
 | `Markers.SpawnPoint` | Apparition du joueur (juste apres la porte) |
 | `Markers.CustomerEntry`, `CustomerSpot1..5` | Arrivee des clients (trottoir) et places devant le comptoir (dehors) |
-| `Markers.CollectorHome`, `ShelfDrop`, `ServerHome`, `ServerPallet`, `ServerCounter` | Postes et trajets des employes R6 (bas du marqueur = sol). Operateurs : dans chaque mixeur |
+| `Markers.CollectorHome`, `ShelfDrop`, `ServerHome`, `ServerPallet`, `ServerCounter` | Postes et trajets des employes R15 (bas du marqueur = sol). Operateurs : dans chaque mixeur |
 | `Entrance.OwnerSign` | Panneau du proprietaire (TextLabels `OwnerText`, dehors + dedans) |
 | `OwnerBadge` | Cree en jeu (Lib/OwnerBadge, Model `Persistent`) : `Anchor.Badge` (BillboardGui 100 x 66 studs, ~ largeur de l'usine : `Ring.Avatar` = photo `rbxthumb://type=AvatarHeadShot`, `OwnerName`, `Rebirths` = "N Rebirths" en jaune plus petit, sans fond ni icone) pose 3 studs au-dessus de l'avant du toit de l'etage le plus haut (etage ferme compris), pas AlwaysOnTop (choix utilisateur), cache si la base est libre. Mis a jour par `FloorService.refreshAnnex` (achat d'etage, rebirth) |
 | `Floors.FloorN` | Les etages (FloorService, voir `tour-etages.md`) : `Tree`, `Production`, `Counter`, `Markers`... sont DANS chaque etage |

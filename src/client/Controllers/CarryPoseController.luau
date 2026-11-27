@@ -13,6 +13,11 @@
 --     pousse le plateau vers l'avant, penche la tete (le plateau, soude a la tete, bascule vers les
 --     caisses) en pliant un peu les genoux ; les fruits partent a Npcs.DumpReleaseAt, puis il
 --     baisse les bras.
+--   * appui sur le bouton du mixeur (Blender Operator R15, 2026-11-27 : PressStart / PressTime,
+--     NpcRig.Press) : bras droit leve vers l'avant, coude plie, qui se tend pour appuyer, redescend ;
+--   * depot des jus sur la table (Blender Operator R15 : DepositStart / DepositTime / DepositToss,
+--     NpcRig.Deposit) : deux bras tendus pendant qu'il se tourne, petit lancer vers le haut (les
+--     gobelets sautent de ses mains), puis bras baisses.
 -- Le serveur (ou CustomerController en local) pose le tag "CarryPoseRig" sur le modele. Ici on
 -- ecrase seulement l'angle des epaules apres les animations de Roblox (RunService.Stepped), pour
 -- tous les personnages proches. Passage d'une pose a l'autre en douceur.
@@ -70,6 +75,13 @@ local DUMP_ARMS = math.rad(100) -- bras qui poussent le plateau vers l'avant
 local DUMP_NECK = math.rad(30) -- tete (et plateau) penchee vers les caisses
 local DUMP_WAIST = math.rad(10)
 local DUMP_SQUAT = math.rad(14) -- petite flexion des genoux
+-- Appui sur le bouton (R15, memes angles et durees que l'ancien geste R6 de NpcRig.Press)
+local PRESS_UP = math.rad(80) -- bras leve devant soi
+local PRESS_PUSH = math.rad(65) -- bras qui appuie (descend un peu)
+local PRESS_ELBOW = math.rad(35) -- coude plie en levant le bras, tendu a l'appui
+-- Depot des jus (R15, memes angles que l'ancien geste R6 de NpcRig.Deposit)
+local DEPOSIT_HOLD = math.rad(85) -- bras tendus devant pendant qu'il se tourne
+local DEPOSIT_TOSS = math.rad(110) -- petit lancer vers le haut
 
 local rigs: { [Model]: Rig } = {}
 local started = false
@@ -90,7 +102,7 @@ end
 local function resolve(rig: Rig)
 	local model = rig.model
 	local torso = model:FindFirstChild("Torso")
-	if torso then
+	if torso then -- joueur avec un avatar R6 (les PNJ sont tous R15 depuis le 2026-11-27)
 		rig.right = findMotor(torso, "Right Shoulder")
 		rig.left = findMotor(torso, "Left Shoulder")
 		rig.r15 = false
@@ -187,6 +199,23 @@ local function smooth(x: number): number
 	return x * x * (3 - 2 * x)
 end
 
+local function quadOut(x: number): number
+	x = math.clamp(x, 0, 1)
+	return 1 - (1 - x) * (1 - x)
+end
+
+local function quadIn(x: number): number
+	x = math.clamp(x, 0, 1)
+	return x * x
+end
+
+-- Leger depassement a l'arrivee (comme Enum.EasingStyle.Back, Out)
+local function backOut(x: number): number
+	x = math.clamp(x, 0, 1)
+	local c1 = 1.70158
+	return 1 + (c1 + 1) * (x - 1) ^ 3 + c1 * (x - 1) ^ 2
+end
+
 -- Progression d'un geste (0..1) : attributs <name>Start / <name>Time, nil s'il n'y en a pas en cours.
 local function gestureProgress(model: Model, name: string): number?
 	local start, length = model:GetAttribute(name .. "Start"), model:GetAttribute(name .. "Time")
@@ -266,6 +295,43 @@ local function applyDump(body: Body, p: number): number
 	return DUMP_ARMS * (1 - smooth((p - release) / (1 - release)))
 end
 
+-- Appui sur le bouton a `t` secondes du debut (Npcs.PressSeconds au total). Renvoie (bras droit, coude).
+-- 0 -> 0.2 : le bras se leve (coude plie) ; 0.2 -> reach : il appuie (coude tendu) ; tenu 0.05 s ;
+-- puis il redescend jusqu'a la fin.
+local function pressPose(t: number, length: number): (number, number)
+	local reach = Npcs.PressReachSeconds
+	local up = math.min(0.2, reach)
+	if t < up then
+		local a = quadOut(t / up)
+		return PRESS_UP * a, PRESS_ELBOW * a
+	elseif t < reach then
+		local a = quadIn((t - up) / (reach - up))
+		return PRESS_UP + (PRESS_PUSH - PRESS_UP) * a, PRESS_ELBOW * (1 - a)
+	end
+	local down = reach + 0.05
+	if t < down then
+		return PRESS_PUSH, 0
+	end
+	return PRESS_PUSH * (1 - smooth((t - down) / math.max(0.05, length - down))), 0
+end
+
+-- Depot des jus a `t` secondes du debut. Renvoie l'angle des deux bras.
+-- 0 -> turn : bras tendus devant ; turn -> turn + toss : petit lancer (depasse un peu) ; tenu 0.15 s ;
+-- puis ils redescendent (0.3 s).
+local function depositPose(t: number, length: number, toss: number): number
+	local turn = Npcs.DepositTurnSeconds
+	if t < turn then
+		return DEPOSIT_HOLD * quadOut(t / turn)
+	elseif t < turn + toss then
+		return DEPOSIT_HOLD + (DEPOSIT_TOSS - DEPOSIT_HOLD) * backOut((t - turn) / toss)
+	end
+	local down = turn + toss + 0.15
+	if t < down then
+		return DEPOSIT_TOSS
+	end
+	return DEPOSIT_TOSS * (1 - smooth((t - down) / math.max(0.05, length - down)))
+end
+
 -- Fin du geste : articulations remises a zero (l'animation d'attente reprend la main).
 local function resetPick(body: Body)
 	for _, joint in { body.root, body.waist, body.neck, body.rightElbow } do
@@ -301,14 +367,19 @@ function CarryPoseController.Start()
 			local target = targetAngle(model)
 			local pick = if rig.r15 then gestureProgress(model, "Pick") else nil
 			local dump = if rig.r15 and pick == nil then gestureProgress(model, "Dump") else nil
-			if pick == nil and dump == nil and rig.picking then
+			local press = if rig.r15 and pick == nil and dump == nil then gestureProgress(model, "Press") else nil
+			local deposit = if rig.r15 and pick == nil and dump == nil and press == nil
+				then gestureProgress(model, "Deposit")
+				else nil
+			local gesture = pick ~= nil or dump ~= nil or press ~= nil or deposit ~= nil
+			if not gesture and rig.picking then
 				rig.picking = false
 				if rig.body then
 					resetPick(rig.body)
 				end
 				rig.angle = math.max(rig.angle, target) -- le bras droit est deja en haut : pas de saut
 			end
-			if target == 0 and rig.angle < 0.01 and pick == nil and dump == nil then
+			if target == 0 and rig.angle < 0.01 and not gesture then
 				rig.angle = 0
 				continue -- rien a porter : animations normales
 			end
@@ -347,6 +418,25 @@ function CarryPoseController.Start()
 						rig.angle = angle -- apres le geste, les bras repartent de la (pas de saut)
 						rightAngle = angle
 					end
+				elseif press then
+					if rig.body == nil then
+						rig.body = findBody(model)
+					end
+					local length = model:GetAttribute("PressTime") :: number
+					local elbow: number
+					rightAngle, elbow = pressPose(press * length, length)
+					rightAngle = math.max(rightAngle, angle)
+					local body = rig.body
+					if body and body.rightElbow then
+						rig.picking = true -- coude remis a zero a la fin
+						setTransform(body.rightElbow, CFrame.Angles(elbow, 0, 0))
+					end
+				elseif deposit then
+					local length = model:GetAttribute("DepositTime") :: number
+					local toss = model:GetAttribute("DepositToss")
+					angle = depositPose(deposit * length, length, if type(toss) == "number" then toss else 0.15)
+					rig.angle = angle -- apres le geste, les bras repartent de la (pas de saut)
+					rightAngle = angle
 				end
 				setTransform(right, CFrame.Angles(rightAngle, 0, 0))
 				if left then

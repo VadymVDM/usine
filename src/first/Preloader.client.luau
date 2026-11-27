@@ -141,10 +141,10 @@ do
 			holder(list, "Sound", "SoundId", sound.id)
 		end
 	end
-	-- Animations des PNJ (clients, employes)
+	-- Animations des PNJ (clients, employes ; R15 depuis le 2026-11-27)
 	local npcs = readConfig("Npcs")
-	if npcs and type(npcs.Animations) == "table" then
-		for _, id in npcs.Animations do
+	if npcs and type(npcs.AnimationsR15) == "table" then
+		for _, id in npcs.AnimationsR15 do
 			if type(id) == "string" then
 				holder(list, "Animation", "AnimationId", id)
 			end

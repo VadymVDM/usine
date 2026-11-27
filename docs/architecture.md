@@ -58,7 +58,7 @@ return MoneyService
   d'une base : `Machines.<id>` + mixeurs `Production.Blenders.BlenderN` et leurs operateurs). `TutorialArrow` = fleche 3D jaune
   du tutoriel (jeu + apercu Edit).
 - `src/server/Lib/` : aides serveur pas chargees par `Main` : `PlayerCheck` (personnage vivant,
-  distance, zone, delai), `NpcRig` (rigs R6 des employes et clients, marche avec PathfindingService,
+  distance, zone, delai), `NpcRig` (rigs R15 des employes et clients, marche avec PathfindingService,
   animations, objets portes).
 - `src/shared/Config/Tree.luau` : les 5 stades de l'arbre (points, rayon et hauteur de chute).
 - `src/shared/FruitModels.luau` : fruits = clones des fruits voxel `ReplicatedStorage.FruitAssets`
@@ -147,11 +147,11 @@ return MoneyService
   quand le joueur a sa base ET sa sauvegarde. TreeService reste le seul a creer / retirer les fruits
   au sol (`TakeAround`, `FindNearest`, `TakeFruit`). Chaque boucle protege son tour par `pcall`.
 - `CustomerService` (comptoir, ventes, tas d'argent, pad Auto Collect) depend de ProductionService ;
-  `WorkerService` (employes R6 serveur : Fruit Picker, Blender Operator) depend de
+  `WorkerService` (employes R15 serveur : Fruit Picker, Blender Operator) depend de
   TreeService, ProductionService et UpgradeService ; `AutoSellService` (pad Auto Sell : jus de la
   table -> comptoir, remplace le Waiter le 2026-11-20) depend de ProductionService, CustomerService,
   DataService et FloorService. Pas de dependance en cercle.
-- Les clients (PNJ) sont dessines par chaque client (`CustomerController`) a partir des modeles R6
+- Les clients (PNJ) sont dessines par chaque client (`CustomerController`) a partir des modeles R15
   faits par le serveur (`ReplicatedStorage.NpcTemplates`) ; les employes sont des Humanoid serveur
   (groupe de collision "Npc" : ils ne bloquent ni les joueurs ni entre eux).
 

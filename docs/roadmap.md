@@ -59,17 +59,18 @@ Methode decidee : une phase a la fois, l'utilisateur teste dans Studio, puis pha
       bleues qui se construisent, pads verts des employes, panneaux d'ameliorations a tuiles, salles
       fermees (portes rouges). `UpgradeService` (achats) + `MachineFxController` (effets) : l'achat du
       lot E est fait. Verifie en playtest (voir journal).
-- [x] **Comptoir**, **clients R6** (minuteur serveur + PNJ visuels), **tas de billets** a encaisser
+- [x] **Comptoir**, **clients R6 (R15 depuis le 2026-11-27)** (minuteur serveur + PNJ visuels), **tas de billets** a encaisser
       (E ou s'approcher), pad Robux "Auto Collect" (pass pas cree) — 2026-11-19, playtest 1 joueur
 - [x] **Touche E partout** (fruits, etagere, table a jus, comptoir, argent, machines, portes),
       **barre d'inventaire** en bas, jus portes dans les mains, machines fantomes "vraie machine
       teintee bleu + contour", usine agrandie avec zones delimitees — 2026-11-19
-- [x] **Employes R6** visibles qui travaillent : Fruit Picker, Blender Operator (Waiter remplace par le pad Auto Sell le 2026-11-20) — 2026-11-19
+- [x] **Employes R6 (R15 depuis le 2026-11-27)** visibles qui travaillent : Fruit Picker, Blender Operator (Waiter remplace par le pad Auto Sell le 2026-11-20) — 2026-11-19
 - [x] **Plan de l'usine en U** (bar a jus a droite, plus de z-fighting), decor inutile retire,
       pieds des panneaux, fleche jaune retiree, marche des employes (pathfinding, animation seulement
       en marchant), inventaire = barre Roblox de base, HUD plus petit sur PC, "+" -> packs d'argent,
       menu Settings branche (Music, Sounds, Low Quality, sauvegardes), ombres inutiles coupees — 2026-11-19 soir
-- [ ] Joueurs en R6 : reglage Game Settings > Avatar > R6 a faire par l'utilisateur
+- [x] ~~Joueurs en R6~~ : abandonne le 2026-11-27, c'est l'inverse : tous les PNJ passent en R15
+      comme les joueurs (employes, clients, apercu Edit)
 - [x] Vrais modeles de fruits : 100 fruits voxel + effets de rarete + effets d'apparition, arbre
       en 5 stades qui grandit (2026-11-19, playtest PC 1 joueur)
 - [ ] Meilleurs sons de jeu

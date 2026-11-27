@@ -1,7 +1,8 @@
 --!strict
--- Personnages non joueurs (PNJ) : employes et clients, tous en R6 avec les animations de base de
--- Roblox. Les rigs sont crees par le serveur (NpcRig) a partir de ces tenues, puis ranges dans
--- ReplicatedStorage.NpcTemplates (les clients copient les modeles "Customer<n>").
+-- Personnages non joueurs (PNJ) : employes et clients, tous en R15 (comme les joueurs) avec les
+-- animations R15 par defaut de Roblox (R6 jusqu'au 2026-11-27). Les rigs sont crees par le serveur
+-- (NpcRig) a partir de ces tenues, puis ranges dans ReplicatedStorage.NpcTemplates (les clients
+-- copient les modeles "Customer<n>").
 -- Ids = objets du catalogue Roblox (vetements classiques, cheveux, visages) ; 0 = rien.
 -- Doc : docs/systems/ameliorations-employes.md, docs/systems/clients.md
 
@@ -24,25 +25,24 @@ local SKINS = {
 
 local Npcs = {
 	TemplateFolder = "NpcTemplates", -- dossier dans ReplicatedStorage
-	-- Animations R6 de base de Roblox (celles du script Animate par defaut)
-	Animations = table.freeze({
-		Idle = "rbxassetid://180435571",
-		Walk = "rbxassetid://180426354",
-	}),
 	-- Animations R15 par defaut de Roblox (script Animate des joueurs, lues en Play le 2026-11-27) :
-	-- employes R15 (Employees.<role>.r15). Marche et course melangees selon la vitesse, comme Animate.
+	-- tous les PNJ. Marche et course melangees selon la vitesse, comme Animate (Util/R15Walk).
 	AnimationsR15 = table.freeze({
 		Idle = "rbxassetid://507766388",
 		Walk = "rbxassetid://913402848",
 		Run = "rbxassetid://913376220",
 	}),
-	WalkAnimSpeed = 14, -- vitesse (studs/s) pour laquelle l'animation de marche R6 est a vitesse 1
 	-- Ramassage d'un fruit par le Fruit Picker R15 (NpcRig.Pick, pose dessinee par CarryPoseController).
 	-- Fractions de la duree du geste : la main touche le fruit, puis le fruit arrive sur le plateau.
 	PickGrabAt = 0.42,
 	PickTrayAt = 0.78,
 	-- Depot a l'etagere (NpcRig.Dump) : fraction du geste ou les fruits quittent le plateau
 	DumpReleaseAt = 0.45,
+	-- Blender Operator R15 (NpcRig.Press / Deposit, pose dessinee par CarryPoseController), en secondes.
+	-- Memes durees que l'ancien geste R6 (tweens serveur) : BlenderFxController et WorkerService.onPour en dependent.
+	PressSeconds = 0.65, -- geste complet : bras leve (0.2), appui (0.1), tenu (0.05), redescend (0.3)
+	PressReachSeconds = 0.3, -- le doigt touche le bouton
+	DepositTurnSeconds = 0.3, -- se tourne vers la table en tendant les bras avant de lancer les gobelets
 	WaypointLookAhead = 2.5, -- distance (studs) a laquelle l'employe vise deja le point de passage suivant
 	StuckSeconds = 1.2, -- employe qui n'avance plus depuis X s : il est pose a l'arrivee (NpcRig)
 
@@ -53,9 +53,7 @@ local Npcs = {
 
 	-- Employes : nom affiche au-dessus (anglais), couleur du tablier / de la casquette
 	Employees = table.freeze({
-		-- r15 = vrai perso Roblox actuel (comme les joueurs) ; les autres restent R6 (gestes NpcRig.Press /
-		-- Deposit ecrits pour les epaules R6). Fruit Picker passe en R15 le 2026-11-27.
-		Collector = table.freeze({ title = "Fruit Picker", color = Color3.fromRGB(80, 190, 80), r15 = true }),
+		Collector = table.freeze({ title = "Fruit Picker", color = Color3.fromRGB(80, 190, 80) }),
 		Operator = table.freeze({ title = "Blender Operator", color = Color3.fromRGB(255, 150, 40) }), -- Operator1..4
 		Waiter = table.freeze({ title = "Waiter", color = Color3.fromRGB(70, 160, 255) }), -- 2026-11-20 (WorkerService)
 	}),

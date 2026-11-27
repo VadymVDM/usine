@@ -140,7 +140,7 @@ local Gameplay = {
 	PadDenyFlashSeconds = 0.6, -- pad / bouton rouge quand l'argent manque (client)
 	PromptCooldownSeconds = 0.25, -- delai minimum entre deux actions E d'un joueur
 
-	-- Employes R6 (WorkerService)
+	-- Employes R15 (WorkerService)
 	-- Fruits portes par le Fruit Picker avant d'aller a l'etagere : Upgrades "PickerCarry"
 	-- (2 au depart -> 6, panneau Fruit Picker). Avant le 2026-11-20 : toujours 6.
 	-- Vitesse de base du Fruit Picker (2026-11-20, demande : "30 % plus lent") : x0.7 sur sa marche

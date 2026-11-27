@@ -1,5 +1,5 @@
 --!strict
--- Employes R6 visibles qui travaillent vraiment (serveur) :
+-- Employes R15 visibles qui travaillent vraiment (serveur) :
 --   * Fruit Picker (Collector) : marche jusqu'aux fruits au sol, les pose sur son plateau (tete)
 --     (jusqu'a PickerCarry fruits : 2 -> 6), les porte a l'etagere et les pose dans les caisses ;
 --     sa vitesse (marche et pauses) = Gameplay.PickerBaseSpeed x PickerSpeed de l'etage. Les deux
@@ -385,7 +385,7 @@ for index = 1, Gameplay.MaxBlenders do
 	end
 end
 
--- Modele R6 a copier (Config/Npcs.Employees) et point d'apparition de chaque poste.
+-- Modele R15 a copier (Config/Npcs.Employees) et point d'apparition de chaque poste.
 local function rigRole(role: string): string
 	return if string.sub(role, 1, 8) == "Operator" then "Operator" else role
 end
@@ -430,7 +430,7 @@ local function applyStats(state: FloorWorkers, worker: Worker)
 end
 
 local function spawnWorker(state: FloorWorkers, role: string)
-	-- Lot 5 : les employes R6 n'existent que sur l'etage ou se trouve le joueur (les autres etages
+	-- Lot 5 : les employes n'existent que sur l'etage ou se trouve le joueur (les autres etages
 	-- produisent en nombres, Lib/FloorIncome)
 	if state.workers[role] ~= nil or not state.active or not rigsReady or not FloorService.IsLive(state.floor) then
 		return

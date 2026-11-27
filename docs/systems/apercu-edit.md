@@ -46,7 +46,8 @@ seulement au Play (BaseService, FloorService, TreeService, WorkerService...).
     etage 1 seulement : fleche jaune du tutoriel + anneau + ligne de chevrons vers Collect Cash,
     liasse Lucky Cash ; logo du proprietaire (avatar du compte connecte a Studio) en haut de la tour ;
   - PNJ immobiles (`Dynamic.PreviewNpcs`) : Fruit Picker, Waiter, 4 Blender Operators, 5 clients au
-    comptoir. Les pieds sont poses sur le sol (bas des jambes R6), pas via la boite englobante.
+    comptoir. Rigs R15 depuis le 2026-11-27 (comme le jeu ; tablier sur `UpperTorso`). Les pieds
+    sont poses sur le sol (bas de `LeftFoot` / `RightFoot`), pas via la boite englobante.
 - **Sans risque pour le jeu** : `_Preview` a `Archivable = false`. Verifie le 2026-11-27 : il
   n'existe ni cote serveur ni cote client pendant un Play, et il est toujours la apres le Stop
   (`Clone()` renvoie nil). D'apres les regles de Roblox, il n'est pas non plus sauvegarde avec la

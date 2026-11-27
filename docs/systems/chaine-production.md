@@ -34,7 +34,7 @@ bras tendus) et les pose sur le pad "Drop Juices" du comptoir (voir `clients.md`
 | `src/server/Services/TreeService.luau` | serveur | Chute, tirage selon Luck, garantie, "Tree full!", pommes de la premiere visite, decouvertes (seul a ecrire `DiscoveredFruits`), stade de l'arbre (`Tree.Body`) |
 | `src/client/Controllers/FruitFxController.luau` | client | Anime la chute des fruits (le serveur les pose deja a leur place) + effets d'apparition |
 | `src/server/Services/ProductionService.luau` | serveur | Inventaire (attributs joueur), prompts E de l'etagere, de la table et des mixeurs, caisses ("x12"), tapis -> bols, mixage, table a jus, jus dans les mains ; API pour le comptoir et les employes |
-| `src/server/Services/WorkerService.luau` | serveur | Employes R6 (Fruit Picker, operateurs des mixeurs) : voir `ameliorations-employes.md` |
+| `src/server/Services/WorkerService.luau` | serveur | Employes R15 (Fruit Picker, operateurs des mixeurs) : voir `ameliorations-employes.md` |
 | `src/client/Controllers/InventoryController.luau` | client | Fruits qui volent (sol -> plateau, plateau -> caisses), texte "+3 Apple" ; cache la barre Roblox (Backpack) |
 | `src/client/Controllers/TrayController.luau` | client | Plateau sur la tete de chaque joueur (attribut `TrayFruits`), fruits empiles en vrac, "12/20" / "FULL!" pour le joueur local |
 | `src/client/Controllers/CarryPoseController.luau` | client | Pose des bras : bras leves sous le plateau quand `TrayFruits` ou `HandJuices` n'est pas vide (joueurs), bras tendus devant si `CarryPose` (employes, clients) ; transition douce |

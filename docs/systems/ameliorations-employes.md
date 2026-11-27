@@ -1,8 +1,8 @@
 # Systeme : Machines, ameliorations et employes
 
 **Statut :** en cours (achats, pad de l'arbre, panneaux, mixeurs a 5 niveaux, decor par niveau,
-3 employes R6 : playtest Studio du 2026-11-19 soir a 1 joueur ; 2 joueurs et telephone non testes)
-**Derniere mise a jour :** 2026-11-27 (Fruit Picker en R15 : marche Roblox actuelle, geste de ramassage et de depot)
+employes R15 : playtest Studio du 2026-11-27 a 1 joueur ; 2 joueurs et telephone non testes)
+**Derniere mise a jour :** 2026-11-27 (tous les employes en R15 ; gestes Press / Deposit de l'operateur dessines par le client)
 
 ## Role
 
@@ -16,7 +16,7 @@ Tout ce qui s'achete avec l'argent du jeu dans l'usine. Regle du jeu (voir `game
 "Regle d'or du ressenti") : **acheter = construire**. Une machine pas encore achetee est la **vraie
 machine teintee bleu clair** (presque opaque, on voit ses details) avec un contour clair qui pulse
 par-dessus (comme sur la capture de reference de l'utilisateur) ; au premier achat, elle se
-construit piece par piece. Les employes sont de **vrais personnages R6** qui marchent, prennent et
+construit piece par piece. Les employes sont de **vrais personnages R15** (comme les joueurs) qui marchent, prennent et
 posent les objets.
 
 Refonte du 2026-11-19 soir (demande : "le truc luck, le truc H2O, le Juice Cooler, le Fast
@@ -80,9 +80,9 @@ Register, on comprend pas a quoi ca sert" ; "quand on ameliore, on ne voit pas d
 | Fichier | Cote | Role |
 |---|---|---|
 | `src/server/Services/UpgradeService.luau` | serveur | Seul a modifier `Data.Floors[n].Upgrades` (niveaux par etage ; prix x `Floors.UpgradePriceFactor`^(n-1), A VALIDER). Fantomes, prompt E + etiquette des machines, pads des employes, tuiles, achats, verifications |
-| `src/server/Services/WorkerService.luau` | serveur | Employes R6 : apparition a l'embauche, boucles de travail |
+| `src/server/Services/WorkerService.luau` | serveur | Employes R15 : apparition a l'embauche, boucles de travail |
 | `src/server/Services/PassPadService.luau` | serveur | Pad violet `Machines.SpeedBoost` (a la place du Waiter embauche) et pad `Billboard` de la cour : voir `pads-robux.md` |
-| `src/server/Lib/NpcRig.luau` | serveur | Rigs R6 / R15 (HumanoidDescription), animations de base de Roblox, marche (`MoveTo` + Pathfinding), objets portes, gestes (`Press`, `Deposit`, `Pick`, `Dump`), groupes de collision |
+| `src/server/Lib/NpcRig.luau` | serveur | Rigs R15 (HumanoidDescription), animations R15 des joueurs, marche (`MoveTo` + Pathfinding), objets portes, gestes (`Press`, `Deposit`, `Pick`, `Dump`), groupes de collision |
 | `src/client/Controllers/CarryPoseController.luau` | client | Bras sous le plateau / objets portes, et pose R15 du Fruit Picker pendant le ramassage et le depot |
 | `src/server/Services/ProductionService.luau` | serveur | Mixeurs possedes, taille du bol ; API caisses / table a jus / bols (`GetBowl`, `OperatorBlend`) pour les employes |
 | `src/shared/Util/MachineModels.luau` | partage | Liste des modeles achetables d'une base : `Machines.<id>` + `Production.Blenders.BlenderN` et `BlenderN.Operator` |
@@ -91,7 +91,8 @@ Register, on comprend pas a quoi ca sert" ; "quand on ameliore, on ne voit pas d
 | `src/client/Controllers/GhostVisibilityController.luau` | client | Cache en local (et sans collision) les "choses a construire" des autres bases : machines fantomes, pads d'achat, vitre rouge de l'etage ferme (ses dalles `Floor` restent : plafond de l'etage du dessous) |
 | `src/client/Controllers/LevelLookController.luau` | client | Decor par niveau : montre / cache les pieces `LookId` / `LookLevel` / `LookMaxLevel` selon l'attribut d'etage `Lv_<id>` (fondu + etincelles quand une piece apparait), cache le panneau d'un mixeur verrouille (`HideWhenLocked`), fait defiler les lattes du tapis (plus vite quand il est ameliore) et donne aux bandes `Belt` / `RowBelt` la meme vitesse de surface (le joueur qui monte dessus est emporte, 2026-11-27) |
 | `src/shared/Config/Upgrades.luau` | partage | Effets, prix (`prices` pour les mixeurs), phrase `desc`, format de l'effet (`format`), `builtAt`, `repeatPad`, prix Robux + `RobuxProducts` (produits des tuiles), messages ; `TreeDropSeconds`, `FormatValue`, `BuiltAt` |
-| `src/shared/Config/Npcs.luau` | partage | Tenues R6 (vetements gratuits du catalogue Roblox), couleurs et noms des postes |
+| `src/shared/Config/Npcs.luau` | partage | Tenues des PNJ R15 (vetements gratuits du catalogue Roblox), couleurs et noms des postes |
+| `src/shared/Util/R15Walk.luau` | partage | Melange marche / course des PNJ R15 selon la vitesse (formule du script Animate) : employes (NpcRig) et clients (CustomerController) |
 | `tools/build-map/02e-base-machines.luau` | Studio | Pads verts : "Upgrade Tree" (reste apres l'achat), Fruit Picker, pad Robux Auto Sell (ex-Waiter, sans UpgradeId) ; dossier `Looks` (panneau FRESH JUICE! qui grandit avec More Customers) |
 | `tools/build-map/02c-base-production.luau` | Studio | Les 4 mixeurs (UpgradeId Blender1..4, decor des niveaux 2 a 5), le pad de l'operateur de chaque mixeur, le decor du tapis par niveau, la table a jus en 3 tailles |
 | `tools/build-map/02d-base-counter.luau` | Studio | Panneau "MONEY / HOUR", decor du comptoir par niveau de Faster Customers |
@@ -164,7 +165,7 @@ Register, on comprend pas a quoi ca sert" ; "quand on ameliore, on ne voit pas d
   pieces `PadBase`, `PadTop` + `Tag`, `PadGlow` sans requete, `PadZone`) (marcher dessus = embaucher ; nom +
   prix au-dessus). Plus de silhouette d'employe en blocs ni de chariot de fruits / gobelets
   decoratifs (retires le 2026-11-19 soir : "il sert a rien", confondus avec de vrais fruits). A
-  l'embauche le pad disparait et le vrai employe R6 apparait a son poste (`Markers.<Role>Home`).
+  l'embauche le pad disparait et le vrai employe R15 apparait a son poste (`Markers.<Role>Home`).
 - Fantome (serveur) : chaque piece garde sa forme, sa couleur est melangee a 72 % avec du bleu
   clair (150, 205, 255), transparence 0.18, sans collision. Contour (client, Highlight, seulement
   dans SA base) : contour bleu tres clair + un peu de bleu qui pulse.
@@ -213,11 +214,11 @@ Register, on comprend pas a quoi ca sert" ; "quand on ameliore, on ne voit pas d
 | Blender2..4 | la machine teintee bleu (achat), puis son panneau suspendu | un mixeur de plus, puis son bol ; a acheter dans l'ordre (`requires`) |
 | Operator1..4 | Blender Operator (pad 5 x 5 devant le panneau de son mixeur, marcher dessus) | allee devant la rangee (z 84-89) | appuie sur le bouton de son mixeur quand le bol est plein (~1 s de reaction) |
 
-### Employes R6 (WorkerService, serveur)
+### Employes R15 (WorkerService, serveur)
 
-- Rigs : `Players:CreateHumanoidModelFromDescription(..., R6)` avec les tenues de `Npcs.luau`
+- Rigs : `Players:CreateHumanoidModelFromDescription(..., R15)` avec les tenues de `Npcs.luau`
   (t-shirt Roblox + jean noir), tablier et casquette de la couleur du poste, nom au-dessus
-  ("Fruit Picker", "Blender Operator" x 4). Animations R6 de base de Roblox (marche, attente)
+  ("Fruit Picker", "Blender Operator" x 4, "Waiter"). Animations R15 des joueurs (marche, attente)
   jouees par l'Animator du serveur (vues par tous). **La marche ne joue que pendant un trajet**
   (`NpcRig.MoveTo` la lance et l'arrete ; avant, l'evenement `Humanoid.Running` la lancait aussi a
   l'arret ou pendant un blocage : marche sur place, corrige le 2026-11-19 soir). Trajets calcules par
@@ -232,8 +233,12 @@ Register, on comprend pas a quoi ca sert" ; "quand on ameliore, on ne voit pas d
   naturelle, comme un vrai perso Roblox"). `Npcs.Employees.Collector.r15 = true` : rig R15 (comme
   les joueurs), tablier sur `UpperTorso`. Animations R15 par defaut de Roblox (`Npcs.AnimationsR15` :
   attente, marche, course) ; marche et course jouees ensemble et melangees selon `WalkSpeed`, avec
-  la meme formule que le script Animate (`NpcRig.startR15Walk`). Les autres employes restent R6
-  (gestes `Press` / `Deposit` ecrits pour les epaules R6).
+  la meme formule que le script Animate (`Util/R15Walk`, partage avec les clients).
+- **Tous les employes en R15 depuis le 2026-11-27** (Blender Operator et Waiter ensuite ; demande :
+  "passer TOUS les PNJ en R15, comme les joueurs"). Plus aucun rig R6 ni animation R6 (`Npcs.Animations`,
+  `Npcs.WalkAnimSpeed` et le drapeau `Employees.<role>.r15` supprimes). Tablier sur `UpperTorso`.
+  Waiter : plateau sur la tete (`HandJuices`, `HandStackController`, `HandStack.WorldSlot` lit la
+  tete) et bras leves dessous (`CarryPoseController`) : verifie en Play.
   - **Ramassage** (`NpcRig.Pick`) : il s'arrete a `Gameplay.PickerReach` (2.1) studs du fruit, du
     cote d'ou il arrive (`NpcRig.ReachPoint` ; avant : il marchait SUR le fruit puis pivotait d'un
     coup), se tourne en douceur, puis geste de `PickerPickSeconds` (0.65 s) / vitesse : genoux plies,
@@ -258,10 +263,10 @@ Register, on comprend pas a quoi ca sert" ; "quand on ameliore, on ne voit pas d
   (`Markers.ShelfDrop`) : les fruits volent dans leurs caisses (`WorldFx` "FruitsToBins").
 - **Blender Operator** (refonte du 2026-11-19 ; avant : un seul, qui portait les fruits de
   l'etagere au tapis et rendait le mixeur 2x plus rapide) : **un par mixeur** (`Operator1..4`,
-  modele R6 `Npcs.Employees.Operator`). Il reste debout a sa place (`BlenderNOperator`, dans
+  modele R15 `Npcs.Employees.Operator`). Il reste debout a sa place (`BlenderNOperator`, dans
   l'allee devant le bouton vert), face au panneau. Quand son bol est plein (ou a des fruits mais ne
   bouge plus depuis `OperatorIdleBlendSeconds` = 8 s), il attend `OperatorReactSeconds` (1 s, geste
-  compris), leve le bras droit vers le bouton (`NpcRig.Press` : C0 de l'epaule R6, replique) et
+  compris), leve le bras droit vers le bouton (`NpcRig.Press`, voir "Gestes de l'operateur") et
   lance le mixage (`ProductionService.OperatorBlend`, memes regles que le joueur). Table pleine :
   il reessaie 1.5 s plus tard. Le joueur peut toujours appuyer lui-meme.
 - **Depot des jus par l'operateur** (2026-11-27, demande "petite animation pour le blender operator
@@ -274,6 +279,17 @@ Register, on comprend pas a quoi ca sert" ; "quand on ameliore, on ne voit pas d
   les bras et se retourne vers son bouton. `busyUntil` empeche sa boucle de le retourner ou d'appuyer
   pendant le geste. Pas d'operateur (ou pas a sa place, ou deja occupe) : les gobelets sortent du bec
   comme avant. Les gobelets sont deja sur la table cote serveur : le geste ne ralentit rien.
+- **Gestes de l'operateur en R15 (2026-11-27)** : avant, `Press` et `Deposit` tournaient le C0 des
+  epaules R6 avec des tweens serveur (repliques image par image). Maintenant le serveur pose
+  seulement l'heure de depart (attributs `PressStart` / `PressTime`, `DepositStart` / `DepositTime`
+  / `DepositToss`, horloge `GetServerTimeNow`) et chaque client dessine les bras
+  (`CarryPoseController`, comme `Pick` / `Dump` du Fruit Picker). Le serveur tourne toujours le corps
+  (vers la table puis vers le bouton). Memes durees et angles qu'avant (`Npcs.PressSeconds` 0.65,
+  `PressReachSeconds` 0.3, `DepositTurnSeconds` 0.3 ; bras a 80 deg puis 65 deg pour l'appui,
+  85 deg puis 110 deg pour le lancer) : `BlenderFxController` (`PopDelay`) et `WorkerService.onPour`
+  (`busyUntil`) n'ont pas change. Appui : bras droit leve coude plie, coude qui se tend sur le
+  bouton, puis il redescend. Verifie en Play (mixeur 1, etage 2) : appui sur le bouton, puis 2.8 s
+  plus tard il se tourne, lance les gobelets depuis ses mains et revient.
 - **Embauche d'un operateur** : pad vert 5 x 5 devant le panneau (`BlenderN.Operator`) :
   **marcher dessus = embaucher**, comme les autres pads (2026-11-19, demande utilisateur : "un pad,
   on se met dessus, pas de E"). Plus de prompt E sur aucun pad ; l'ancien attribut `HirePrompt`

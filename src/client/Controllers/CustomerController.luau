@@ -33,6 +33,7 @@ local NumberFormat = require(Shared:WaitForChild("Util"):WaitForChild("NumberFor
 local SoundFx = require(Shared:WaitForChild("Util"):WaitForChild("SoundFx")) :: any
 local Remotes = require(Shared:WaitForChild("Network"):WaitForChild("Remotes")) :: any
 local FloorWatch = require(script.Parent.Parent:WaitForChild("Util"):WaitForChild("FloorWatch"))
+local R15Walk = require(Shared:WaitForChild("Util"):WaitForChild("R15Walk"))
 
 local MAX_SPOTS = 5
 local POLL_SECONDS = 0.5
@@ -160,6 +161,7 @@ type Customer = {
 	timer: number,
 	onTimer: (() -> ())?,
 	walkTrack: AnimationTrack?,
+	runTrack: AnimationTrack?, -- melangee a la marche selon la vitesse (R15Walk, comme le script Animate)
 	idleTrack: AnimationTrack?,
 	moving: boolean,
 	dirty: boolean,
@@ -399,7 +401,7 @@ local function computeHip(template: Model, clone: Model, hrp: BasePart): number
 	return hip
 end
 
-local function loadTrack(animator: Animator, name: string, id: string): AnimationTrack?
+local function loadTrack(animator: Animator, name: string, id: string, priority: Enum.AnimationPriority): AnimationTrack?
 	local anim = clipCache[name]
 	if anim == nil then
 		anim = Instance.new("Animation")
@@ -414,6 +416,7 @@ local function loadTrack(animator: Animator, name: string, id: string): Animatio
 	end
 	local loaded = track :: AnimationTrack
 	loaded.Looped = true
+	loaded.Priority = priority
 	return loaded
 end
 
@@ -466,14 +469,16 @@ local function createCustomer(
 		animator = Instance.new("Animator")
 		animator.Parent = humanoid
 	end
-	local walkTrack = loadTrack(animator :: Animator, "Walk", Npcs.Animations.Walk)
-	local idleTrack = loadTrack(animator :: Animator, "Idle", Npcs.Animations.Idle)
+	-- Animations R15 des joueurs (rigs R15 depuis le 2026-11-27 ; avant : R6)
+	local walkTrack = loadTrack(animator :: Animator, "Walk", Npcs.AnimationsR15.Walk, Enum.AnimationPriority.Movement)
+	local runTrack = loadTrack(animator :: Animator, "Run", Npcs.AnimationsR15.Run, Enum.AnimationPriority.Movement)
+	local idleTrack = loadTrack(animator :: Animator, "Idle", Npcs.AnimationsR15.Idle, Enum.AnimationPriority.Idle)
 	if idleTrack then
 		idleTrack:Play(0)
 	end
 
 	local head = model:FindFirstChild("Head")
-	local torso = model:FindFirstChild("Torso")
+	local torso = model:FindFirstChild("UpperTorso")
 	local customer: Customer = {
 		home = state,
 		model = model,
@@ -497,6 +502,7 @@ local function createCustomer(
 		timer = 0,
 		onTimer = nil,
 		walkTrack = walkTrack,
+		runTrack = runTrack,
 		idleTrack = idleTrack,
 		moving = false,
 		dirty = false,
@@ -608,18 +614,18 @@ end
 
 local function setMoving(c: Customer, moving: boolean)
 	c.moving = moving
-	local walk, idle = c.walkTrack, c.idleTrack
+	local walk, run, idle = c.walkTrack, c.runTrack, c.idleTrack
 	if moving then
 		if idle then
 			idle:Stop(0.15)
 		end
-		if walk then
-			walk:Play(0.15)
-			walk:AdjustSpeed(c.speed / Npcs.WalkAnimSpeed)
-		end
+		R15Walk.Play(walk, run, c.speed, 0.15)
 	else
 		if walk then
 			walk:Stop(0.15)
+		end
+		if run then
+			run:Stop(0.15)
 		end
 		if idle then
 			idle:Play(0.15)

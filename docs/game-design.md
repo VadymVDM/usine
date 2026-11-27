@@ -47,7 +47,9 @@ Regle d'or : tout ce qu'on achete sert a gagner plus d'argent. Rien ne se revend
 - Etagere : E = deposer tous les fruits ; chaque caisse affiche "x12". **Pas de vente de fruits crus.**
 - Comptoir : on peut poser beaucoup de jus (10 au depart, +5 par niveau) ; les ventes dependent de
   la vitesse et du nombre de clients.
-- **Tous les personnages en R6** avec les animations de base de Roblox : employes (tenue Roblox +
+- **Tous les PNJ en R15** (comme les joueurs ; R6 jusqu'au 2026-11-27, change a la demande de
+  l'utilisateur : "meme marche / course / attente que les joueurs") avec les animations R15 par
+  defaut de Roblox : employes (tenue Roblox +
   tablier / casquette de couleur) et clients (vetements gratuits du catalogue Roblox). On doit voir
   les employes travailler (marcher, prendre, porter, poser).
 - **Argent physique** : liasses de billets sur la table, qui s'envolent vers le joueur avec un

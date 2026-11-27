@@ -2,7 +2,18 @@
 
 **Statut :** en cours (fonctionne en playtest Studio a 1 joueur le 2026-11-19 ; 2 joueurs, telephone
 et vrai pass Robux non testes)
-**Derniere mise a jour :** 2026-11-20 (soir : un tas d'argent par etage, pass Billboard x2)
+**Derniere mise a jour :** 2026-11-27 (clients en R15 : marche / course des joueurs, cheveux bien places)
+
+> **Clients en R15 (2026-11-27, demande : "passer TOUS les PNJ en R15, comme les joueurs")** : les
+> modeles `NpcTemplates.Customer1..8` sont des rigs R15 (`NpcRig.Prepare`). `CustomerController`
+> joue les animations R15 des joueurs (`Npcs.AnimationsR15` : attente, marche, course) ; marche et
+> course jouees ensemble et melangees selon la vitesse du client (`Npcs.CustomerWalkSpeed` 10 x 0.92
+> a 1.08), meme formule que le script Animate et que les employes (`Util/R15Walk`). A 10 studs/s
+> c'est l'animation de course qui domine (comme un joueur a cette vitesse). Gobelet tenu a deux mains
+> (`CarryPose`, bras R15 vers l'avant, point de prise calcule depuis `UpperTorso`). Avant : rigs R6,
+> `Npcs.Animations` (R6) + `Npcs.WalkAnimSpeed`, supprimes. Le prechargement (`Preloader`) charge
+> les animations R15. Verifie en Play (etage 2) : marche, attente, prise du gobelet, depart,
+> cheveux a leur place.
 
 ## Role
 
@@ -26,7 +37,7 @@ et vrai pass Robux non testes)
 >   (`Annex.Terrace.QueuePath.Point1..8`, le client lit Point1..N) -> `ElevatorEntry`. Taille de la
 >   file = 10 + 6 x emplacements (max 40, `QUEUE_*` dans CustomerController) ; ecart entre deux
 >   clients = longueur du chemin / 40 : plus il y a de clients (Customers), plus la terrasse se remplit.
->   Jusqu'a 40 clients R6 dessines en plus : a surveiller sur telephone, cabine animee en local (`Annex.ElevatorBase.Cabin`, sinon cabine simple creee
+>   Jusqu'a 40 clients R15 dessines en plus : a surveiller sur telephone, cabine animee en local (`Annex.ElevatorBase.Cabin`, sinon cabine simple creee
 >   par le client), sortie sur le balcon, place reservee a l'embarquement ; depart : retour a la
 >   sortie de l'ascenseur et fondu.
 > - Cabine : duree = (3 + 0.6 x (etage - 2)) / (1 + 0.04 x ElevatorSpeed), descente x0.6 ; capacite
@@ -34,7 +45,7 @@ et vrai pass Robux non testes)
 > - Vente sur un etage 2+ sans client pret au comptoir : "+$" et son seuls (pas de teleportation).
 > - Les etages ou le joueur n'est pas vendent "en nombres" (voir `tour-etages.md`).
 
-Le joueur (ou le Waiter) pose les jus sur le comptoir ; des clients R6 viennent de la route, prennent
+Le joueur (ou le Waiter) pose les jus sur le comptoir ; des clients R15 viennent de la route, prennent
 un jus et laissent son prix sur la table a argent ; le joueur encaisse en se tenant sur le pad
 "Collect Cash".
 
@@ -43,11 +54,12 @@ un jus et laissent son prix sur la table a argent ; le joueur encaisse en se ten
 | Fichier | Cote | Role |
 |---|---|---|
 | `src/server/Services/CustomerService.luau` | serveur | Comptoir (prompt E), minuteur des ventes, tas de billets, encaissement, pad Robux Auto Collect. Seul a modifier le comptoir et le tas |
-| `src/client/Controllers/CustomerController.luau` | client | Clients R6 dessines par chaque client (file d'attente, prise du gobelet, "+$", depart) |
+| `src/client/Controllers/CustomerController.luau` | client | Clients R15 dessines par chaque client (file d'attente, prise du gobelet, "+$", depart) |
 | `src/client/Controllers/CashController.luau` | client | Billets 2D qui volent un par un du tas jusqu'au montant d'argent du HUD (bas gauche) ; a chaque billet un pop plus aigu, le HUD compte et rebondit, "+$X" a droite du montant ; ding a la fin |
 | `src/client/Controllers/MoneyHudController.luau` | client | Montant du HUD : compte en montant (Hold / Release pendant l'encaissement), rebond (Bump) ; voir `argent.md` |
-| `src/server/Lib/NpcRig.luau` | serveur | Fabrique les modeles R6 des clients (`ReplicatedStorage.NpcTemplates.Customer1..8`) |
+| `src/server/Lib/NpcRig.luau` | serveur | Fabrique les modeles R15 des clients (`ReplicatedStorage.NpcTemplates.Customer1..8`) |
 | `src/shared/Config/Npcs.luau` | partage | Tenues (vetements gratuits du catalogue Roblox), vitesse, file d'attente, distance d'affichage |
+| `src/shared/Util/R15Walk.luau` | partage | Melange marche / course R15 selon la vitesse (meme formule que les employes) |
 | `src/shared/Config/Upgrades.luau` | partage | CustomerSpeed, CustomerCount |
 | `src/shared/Util/RobuxPad.luau` | partage | Style commun des pads Robux (Auto Collect, Instant Sell...) : forme des pads verts en violet ; `SetPrice` ("R$ 149" / "ACTIVE") |
 | `tools/build-map/02d-base-counter.luau` | Studio | Comptoir, table a argent (velours rouge), pad Robux Auto Collect (forme des pads verts en violet : `Util/RobuxPad.Style`, depuis le 2026-11-20), panneau "MONEY / HOUR" (`Counter.IncomeSign`), decor du comptoir par niveau de Faster Customers (`Counter.SpeedDecor`) |
@@ -92,7 +104,7 @@ un jus et laissent son prix sur la table a argent ; le joueur encaisse en se ten
 - **Clients (client seulement, aucune charge serveur)** : pour chaque base avec proprietaire a moins
   de `CustomerRenderDistance` (220) : un client "devant" chaque place active et un client "qui
   attend" derriere (`CustomerQueueGap`). Ils arrivent de `Markers.CustomerEntry` (trottoir) en
-  marchant (animations R6 de base), regardent le comptoir, bulle "Juice?" si le comptoir est vide.
+  marchant (animations R15 des joueurs, marche + course melangees : `Util/R15Walk`), regardent le comptoir, bulle "Juice?" si le comptoir est vide.
   Sur "Sale" : le gobelet vole dans ses mains (bras tendus, `CarryPose`), "+$5" monte au-dessus de
   lui, il repart sur le trottoir et disparait ; celui qui attend avance.
 - **Tas d'argent** : de vraies liasses de billets (vert clair) et des pieces sur le tapis rouge de

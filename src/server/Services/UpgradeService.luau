@@ -8,7 +8,7 @@
 --     construites, leurs niveaux s'achetent sur leur panneau (prompt inactif) ;
 --   * Machines.<id>.Pad : pad vert des employes (marcher dessus = embaucher), cache une fois
 --     l'employe embauche. Les pieces "GhostOnly" (silhouette bleue de l'employe) disparaissent :
---     le vrai employe R6 apparait (WorkerService) ;
+--     le vrai employe R15 apparait (WorkerService) ;
 --   * pad "repeatPad" (Machines.Tree.Pad, "Upgrade Tree") : il reste la ; se tenir dessus achete
 --     1 niveau, puis 1 de plus toutes les Gameplay.PadRepeatSeconds tant qu'on reste dessus ;
 --   * Boards.<Board>.<id> : tuile d'un panneau (CLIQUER la tuile = acheter un niveau, bouton
