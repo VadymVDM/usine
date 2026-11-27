@@ -100,6 +100,37 @@ end
 ---------------------------------------------------------------------------------------------
 -- PNJ (immobiles). Meme tenue que Lib/NpcRig (EmployeeOutfit, tablier + casquette du poste).
 
+-- Pose chaque accessoire (cheveux, chapeau) sur son point d'accroche du corps.
+-- En mode Edit, la soudure de l'accessoire (AccessoryWeld) n'est resolue que par la physique du
+-- Play : la poignee restait a sa position brute, jusqu'a 30 studs de la tete, puis etait ancree la
+-- (cheveux par terre a cote des clients, signale le 2026-11-27).
+local function snapAccessories(rig: Model)
+	local bodyAttachments: { [string]: Attachment } = {}
+	for _, part in rig:GetChildren() do
+		if part:IsA("BasePart") then
+			for _, att in part:GetChildren() do
+				if att:IsA("Attachment") then
+					bodyAttachments[att.Name] = att
+				end
+			end
+		end
+	end
+	for _, accessory in rig:GetChildren() do
+		if accessory:IsA("Accessory") then
+			local handle = accessory:FindFirstChild("Handle")
+			if handle and handle:IsA("BasePart") then
+				for _, att in handle:GetChildren() do
+					local target = att:IsA("Attachment") and bodyAttachments[att.Name]
+					if target then
+						handle.CFrame = target.WorldCFrame * (att :: Attachment).CFrame:Inverse()
+						break
+					end
+				end
+			end
+		end
+	end
+end
+
 local function buildRig(outfit: any, shirtColor: Color3): Model?
 	for _, withAssets in { true, false } do
 		local desc = Instance.new("HumanoidDescription")
@@ -125,6 +156,7 @@ local function buildRig(outfit: any, shirtColor: Color3): Model?
 		end)
 		desc:Destroy()
 		if ok and rig then
+			snapAccessories(rig)
 			for _, item in rig:GetDescendants() do
 				if item:IsA("Script") or item:IsA("LocalScript") then
 					item:Destroy()

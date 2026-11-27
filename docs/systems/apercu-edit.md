@@ -75,6 +75,9 @@ En tete du script : `FLOORS` (10), `SLOT` (1), `REMOVE`. Le reste vient de la Co
   les scripts `tools/build-map/02*` recreent le moule et effaceraient ces retouches.
 - Pas montres (passagers ou lies a un joueur) : bulles d'attente des clients, textes "+$" des ventes,
   fruits dans les bols, prompts E, nametags, fleches 2D du HUD.
+- Cheveux / chapeaux des PNJ : en Edit, la soudure des accessoires n'est jamais calculee (seulement en
+  Play). `snapAccessories` pose chaque poignee sur son point d'accroche du corps AVANT l'ancrage
+  (corrige le 2026-11-27 : cheveux a ~30 studs de la tete, par terre). A garder si on touche `buildRig`.
 - Copies a garder en phase avec le jeu (les builders sont locaux dans leur module) : PNJ
   (`Lib/NpcRig`), fleche / anneau / ligne (`TutorialController`), liasse (`LuckyCashController`),
   billets (`CustomerService.addBill`). Mieux plus tard : sortir ces builders dans des modules partages.
