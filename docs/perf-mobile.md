@@ -55,12 +55,36 @@ presque toutes).
    Moins grave : le telephone coupe souvent les ombres en qualite basse.
 4. **110 PNJ R15** par base au max (2 050 pieces de corps) : a surveiller cote client et serveur.
 
-### Pistes (pas encore faites)
+### Corrections faites (2026-11-27 soir)
 
-- Mettre une `MaxDistance` (ex. 60 a 100 studs) sur toutes les `SurfaceGui` de tuiles et
-  panneaux. Gain attendu le plus gros, risque faible.
-- Couper les effets de rarete des fruits loin du joueur (ou n'en garder que pour les raretes
-  hautes), et limiter `Fire`.
+`src/client/Controllers/WorldDetailController.luau` (client seulement), reglages dans
+`src/shared/Config/Gameplay.luau` :
+
+- **Ecrans 3D** : toute `SurfaceGui` du Workspace sans distance max en recoit une :
+  plus grand cote du panneau x 10 studs, entre 80 et 300 (tuile de 7 studs : 80 ; enseigne
+  de 32 studs : 300). Les murs des classements (deja a 300) ne bougent pas.
+- **Effets de rarete des fruits** : l'Attachment `RarityFx` est tague (`FruitModels.RarityFxTag`).
+  Particules et lumiere coupees au-dela de 60 studs de la camera, remises en dessous (marge de
+  8 studs pour ne pas clignoter).
+- Les ombres sont deja limitees a l'etage du joueur par `ShadowController` (l'apercu mesure ne
+  passe pas par lui : les ombres mesurees ci-dessus sont plus fortes que dans le jeu).
+
+Re-mesure, meme methode, base au max :
+
+| Vue | Avant (tris / appels) | Apres (tris / appels) |
+|---|---|---|
+| Exterieur, tour entiere | 1 175 000 / 2 144 | 927 000 / **290** |
+| Hauteur du joueur, pres du rez-de-chaussee | 20 000 / 1 049 | 9 000 / **242** |
+| Dans l'etage 1 | 47 700 / 446 | 28 600 / **299** |
+
+Effets de rarete actifs : 786 emetteurs avant, 0 vu de l'exterieur et 2 dans l'etage 1 apres.
+Verifie en Play : un fruit rare a 200 studs a ses effets coupes (0/2), a 10 studs rallumes (2/2).
+0 erreur de script.
+
+### Pistes restantes
+
+- Triangles vus de l'exterieur : encore ~930 000 pour une tour au max (geometrie : 110 PNJ R15,
+  pieces des etages). A regarder si un vrai telephone rame en regardant la tour de loin.
 - `CastShadow = false` sur les petites pieces (decor, fruits, caisses).
 - Refaire la mesure apres chaque piste, puis tester sur un vrai telephone (console developpeur :
   taper `/console` dans le chat du jeu publie).

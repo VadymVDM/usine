@@ -6,11 +6,14 @@
 -- Pivot = centre-bas du modele : l'appelant fait model:PivotTo(CFrame.new(pointAuSol)).
 -- Doc : docs/systems/fruits.md, docs/systems/chaine-production.md
 
+local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Fruits = require(script.Parent.Config.Fruits)
 
 local FruitModels = {}
+
+FruitModels.RarityFxTag = "RarityFx" -- tag CollectionService de l'Attachment des effets de rarete
 
 FruitModels.FruitSize = 1.9 -- hauteur totale d'un fruit voxel (corps + queue ; 1.5 avant le 2026-11-19 soir)
 FruitModels.CupHeight = 1.6 -- hauteur totale d'un gobelet (couvercle + paille)
@@ -237,6 +240,9 @@ local function addRarityFx(model: Model, body: BasePart, rarity: number)
 	end
 	local attachment = Instance.new("Attachment")
 	attachment.Name = "RarityFx"
+	-- Tag : WorldDetailController coupe ces effets loin de la camera (perf mobile, 2026-11-27).
+	-- Le tag suit les Clone() et la replication.
+	CollectionService:AddTag(attachment, FruitModels.RarityFxTag)
 	-- centre du fruit (le pivot est en bas)
 	attachment.CFrame = body.PivotOffset * CFrame.new(0, FruitModels.FruitSize * 0.4, 0)
 	attachment.Parent = body

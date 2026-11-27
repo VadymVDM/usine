@@ -239,6 +239,10 @@ Pas d'ombre sur les fruits (`CastShadow = false`).
 
 ## Effets
 
+- **Perf mobile (2026-11-27)** : l'Attachment `RarityFx` porte le tag `FruitModels.RarityFxTag`.
+  `WorldDetailController` (client) coupe ses particules et sa lumiere au-dela de
+  `Gameplay.RarityFxMaxDistance` (60 studs) de la camera et les rallume en s'approchant. Il est le
+  seul a changer `Enabled` sur ces effets. Detail : `docs/perf-mobile.md`.
 - **Rarete** (`FruitModels`, sur chaque fruit : au sol, dans les mains, sur le tapis) : voir le
   tableau des valeurs plus haut. Textures Roblox (`rbxasset://textures/particles/...`) : etincelles
   `sparkles_main`, flammes `fire_main`, halo `explosion01_core_main`. Regle trouvee en test (plein

@@ -189,6 +189,15 @@ local Gameplay = {
 	-- (sur la route), plafonnee a MaxWalkSpeed (filet de securite).
 	MaxWalkSpeed = 400,
 	BillboardSellMultiplier = 2, -- pass Billboard : prix de vente des jus x2 (CustomerService, en plus du rebirth)
+
+	-- Performance mobile (WorldDetailController, 2026-11-27). Doc : docs/perf-mobile.md
+	-- Ecrans 3D (SurfaceGui) sans distance max : visibles jusqu'a (plus grand cote du panneau x
+	-- PerStud) studs, entre Min et Max. Ex. tuile de 7 studs : 80 ; enseigne de 32 studs : 300.
+	SurfaceGuiDistancePerStud = 10,
+	SurfaceGuiMinDistance = 80,
+	SurfaceGuiMaxDistance = 300,
+	-- Effets de rarete des fruits (particules + lumiere) : coupes au-dela de cette distance camera.
+	RarityFxMaxDistance = 60,
 }
 
 return table.freeze(Gameplay)
