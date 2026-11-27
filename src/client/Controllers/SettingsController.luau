@@ -84,7 +84,11 @@ local addedConnection: RBXScriptConnection? = nil
 local hiddenDecor: Instance? = nil
 local decorParent: Instance? = nil
 
+-- Attribut KeepInLowQuality = true : effet utile au jeu (ligne de guidage du tutoriel), jamais eteint
 local function isEmitter(item: Instance): boolean
+	if item:GetAttribute("KeepInLowQuality") == true then
+		return false
+	end
 	return item:IsA("ParticleEmitter") or item:IsA("Trail") or item:IsA("Beam") or item:IsA("Sparkles") or item:IsA("Smoke") or item:IsA("Fire")
 end
 

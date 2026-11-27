@@ -244,6 +244,8 @@ local function buildGuide(): ({ Beam }, Attachment, Attachment)
 	beam.Transparency = NumberSequence.new(0) -- opaque partout (demande : "retire la transparence")
 	beam.Attachment0 = to
 	beam.Attachment1 = from
+	-- Le mode Low Quality (SettingsController) eteint les Beams : celui-ci guide le joueur, il reste
+	beam:SetAttribute("KeepInLowQuality", true)
 	return { beam }, from, to
 end
 

@@ -8,6 +8,8 @@
 Apres la cinematique (`cinematique.md`), le joueur fait UNE chose a la fois, dans l'ordre demande par
 l'utilisateur, avec un texte court tout en haut de l'ecran (a la hauteur de la barre "< Floors >") et,
 selon la cible, une ligne + fleche 3D dans le monde ou une fleche a l'ecran sur un bouton.
+La ligne (Beam `TutorialLine`) porte l'attribut `KeepInLowQuality` : le mode Low Quality ne l'eteint
+pas (2026-11-27).
 Le bouton vise grossit et retrecit doucement en boucle (+8 %, `Tutorial.ButtonPulse` /
 `ButtonPulseSpeed`, 2026-11-23). La pulsation multiplie l'UIScale du bouton par-dessus le survol
 (UI/ButtonFx) et le rebond de l'Index (DiscoveryController) ; attribut `PulseFactor` sur l'UIScale
