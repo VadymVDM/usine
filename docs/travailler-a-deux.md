@@ -44,6 +44,23 @@ la sauvegarde des joueurs ou a 2 joueurs, utiliser la place partagee.
    (installe par `start-rojo.bat` ; rouvrir la place apres une mise a jour du bouton).
    Doc : `docs/systems/apercu-edit.md`.
 
+## Quand un seul des deux travaille
+
+Avec Team Create, la place partagee garde tout entre deux sessions (sauvegarde automatique dans le
+cloud). Celui qui est seul peut donc travailler directement dedans, Rojo connecte.
+
+**En arrivant**
+1. `git pull --rebase` **avant** de connecter Rojo. Sinon Rojo remet dans la place une vieille version
+   du code et efface ce que l'autre y avait synchronise.
+2. `start-rojo.bat`, ouvrir la place partagee, Rojo > Connect (mode Edit), accepter.
+3. Si l'autre est connecte (son avatar en haut a droite de Studio) : Rojo > Disconnect et passer
+   dans sa place perso pour coder (section "Chaque jour").
+
+**En partant**
+1. Code : commit + `git push`.
+2. Studio : Fichier > Sauvegarder sur Roblox (force la sauvegarde de la carte), puis Rojo > Disconnect.
+3. Prevenir l'autre en une ligne : ce qui a change (code et carte).
+
 ## Mettre le code dans la place partagee (tester ensemble, publier)
 
 Une seule personne a la fois, et on previent l'autre.
