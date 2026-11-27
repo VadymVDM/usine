@@ -94,7 +94,8 @@ end
 
 -- Dernier etage de la tour (demande utilisateur du 2026-11-27 : "supprimer ce qui sert a aller a
 -- l'etage superieur, l'ascenseur s'arrete au dernier etage"). L'escalier qui monte est deja retire
--- par les tags (Config/Floors.Tags). Ici : plus de lampes ni de poutres (ciel ouvert) et un toit
+-- par les tags (Config/Floors.Tags). Ici : plus de lampes, de poutres ni de fils / chaines de
+-- panneaux (ciel ouvert) et un toit
 -- sur la cage vitree de l'ascenseur (elle s'arrete la au lieu de rester ouverte vers le haut).
 local SHAFT_ROOF_THICKNESS = 0.6
 local SHAFT_ROOF_OVERHANG = 0.4
@@ -109,6 +110,28 @@ local function trimTopFloor(floor: Model)
 		local folder = building:FindFirstChild(name)
 		if folder then
 			folder:Destroy()
+		end
+	end
+	-- Ce qui pendait aux poutres (demande du 2026-11-27) : chaines des panneaux de zones
+	-- (Building.Zones.*.SignChain) et fils des panneaux des mixeurs (Boards.BlenderSign*.Wire)
+	local zones = building:FindFirstChild("Zones")
+	if zones then
+		for _, d in zones:GetDescendants() do
+			if d:IsA("BasePart") and d.Name == "SignChain" then
+				d:Destroy()
+			end
+		end
+	end
+	local boards = floor:FindFirstChild("Boards")
+	if boards then
+		for _, sign in boards:GetChildren() do
+			if string.sub(sign.Name, 1, 11) == "BlenderSign" then
+				for _, d in sign:GetChildren() do
+					if d:IsA("BasePart") and d.Name == "Wire" then
+						d:Destroy()
+					end
+				end
+			end
 		end
 	end
 	local elevator = building:FindFirstChild("Elevator")

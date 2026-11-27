@@ -181,9 +181,9 @@ dernier etage". Rien dans le modele `FloorTemplate` ne change, tout se fait a l'
 - `Lib/FloorAssembly` (`trimTopFloor`, etage ouvert seulement) : retire `Building.Lamps` et
   `Building.Beams` (poutres du plafond, demande du 2026-11-27 ; ciel ouvert, rien au-dessus) et pose un toit `Building.Elevator.ShaftRoof` sur les 4 poteaux de la cage
   vitree (meme couleur / matiere que les poteaux, debord 0.4, epaisseur 0.6).
-- Garde : garde-corps du trou d'arrivee. Les fils des panneaux des mixeurs (`Boards.BlenderSign*.Wire`)
-  et les chaines des panneaux de zones (`Zones.*.SignChain`) restent : sans poutres, ils montent
-  dans le vide (a decider).
+- Retire aussi ce qui pendait aux poutres : fils des panneaux des mixeurs (`Boards.BlenderSign*.Wire`)
+  et chaines des panneaux de zones (`Building.Zones.*.SignChain`). Les panneaux restent (sans attache).
+- Garde : garde-corps du trou d'arrivee (et l'escalier qui y arrive depuis l'etage 9).
 - `FloorAssembly.Build(..., floorsConfig?)` : les apercus Edit (`preview-factory`, `preview-tower`)
   passent une copie fraiche de `Config/Floors` (sinon le cache de require de Studio garde l'ancienne). Pas d'etage 11 ferme (deja le cas : FloorService s'arrete a MaxFloors).
 
