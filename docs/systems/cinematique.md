@@ -235,6 +235,11 @@ Revoir la cinematique : panneau admin > Player > **Replay Intro** (ou, cote serv
   - Attention pendant un test MCP : un appel `execute_luau` qui dure pendant la fin de la
     cinematique remet le type de camera du debut de l'appel (`Scriptable`) : remettre `Custom` a la
     main. Ce n'est pas le jeu.
+- **Charge pour un telephone (2026-11-27, 21 h, Play Studio PC, qualite 21 puis 3)** : rejouee en
+  entier, 28.1 s, 0 erreur. 12 000 a 91 000 triangles et 19 a 115 appels de dessin selon la phase
+  (repere Roblox : 800 000 / 600), memes chiffres en qualite 3 (montagnes toujours la, ombres a 0).
+  A-coups de ~50 ms (copie du decor) et ~80 ms (arrivee), sous le blanc. Tableau par phase :
+  `docs/perf-mobile.md`. Pas un test sur vrai telephone.
 - Version ~20 s (2026-11-22, 2e refonte) : captures figees de chaque moment (marche, "!", arbre au
   loin, Wow bras en V, course, pelle arrachee, lame dans le trou, motte sur la lame, jet sur le tas,
   pelle replantee + chute, arbre brandi) ; passage complet en temps reel 19.9 s, camera `Custom` et
@@ -252,8 +257,8 @@ Revoir la cinematique : panneau admin > Player > **Replay Intro** (ou, cote serv
 
 - **27 s sans Skip** pour un joueur qui vient d'arriver : c'est long (choix de l'utilisateur de ne
   pas avoir de Skip). A surveiller dans les stats de premiere session.
-- Version du 2026-11-27 pas vue sur telephone : le decor a double (2 621 pieces, copie de 87 ms sur
-  PC, plus sur un telephone, sous le blanc) ; a faible qualite graphique Roblox coupe de lui-meme le
+- Version du 2026-11-27 pas vue sur un vrai telephone (charge mesuree et legere, voir Tests) : le
+  decor a double (2 621 pieces, copie de 87 ms sur PC, plus sur un telephone, sous le blanc) ; a faible qualite graphique Roblox coupe de lui-meme le
   flou, les ombres et ce qui est loin (les montagnes a 600-880 studs peuvent disparaitre).
 - Marche et course en R6 : la jambe pointe vers le pied (pas de genou ni de cheville), pas teste.
   Avatars tres grands ou tres petits : reglages mis a l'echelle de la jambe, pas testes.
