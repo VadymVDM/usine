@@ -52,6 +52,12 @@ seulement au Play (BaseService, FloorService, TreeService, WorkerService...).
   (`Clone()` renvoie nil). D'apres les regles de Roblox, il n'est pas non plus sauvegarde avec la
   place (pas teste en sauvegardant).
 - Modifier l'apercu **ne change pas le jeu** (pas encore de report vers le moule).
+- **Cache de require (2026-11-27)** : copier un module (`freshRequire`) ne rafraichit pas les modules
+  qu'il demande lui-meme. `FloorAssembly` lisait donc une vieille `Config/Floors` (l'apercu montrait
+  encore l'escalier du dernier etage). Corrige : l'outil passe `freshRequire(Config.Floors)` a
+  `FloorAssembly.Build`. Meme risque pour les autres modules reutilises (TreeBuilder, MachineModels...) :
+  si l'apercu ne suit pas une modif, rouvrir la place. Le bouton embarque l'outil : apres
+  `rojo build ... --plugin`, rouvrir la place pour charger la nouvelle version.
 
 ## Remotes
 

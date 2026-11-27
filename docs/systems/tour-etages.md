@@ -178,11 +178,14 @@ dernier etage". Rien dans le modele `FloorTemplate` ne change, tout se fait a l'
 - `Config/Floors.Tags(MaxFloors)` ne met plus de tag `StairA/B` : l'escalier qui monte est detruit,
   sa voie garde la dalle pleine (`OnlySolid*`). Nouveaux tags `Top` (n = MaxFloors) / `NotTop`,
   libres pour de futures variantes `OnlyTop` / `OnlyNotTop` dans le modele.
-- `Lib/FloorAssembly` (`trimTopFloor`, etage ouvert seulement) : retire `Building.Lamps` (ciel
-  ouvert, rien au-dessus) et pose un toit `Building.Elevator.ShaftRoof` sur les 4 poteaux de la cage
+- `Lib/FloorAssembly` (`trimTopFloor`, etage ouvert seulement) : retire `Building.Lamps` et
+  `Building.Beams` (poutres du plafond, demande du 2026-11-27 ; ciel ouvert, rien au-dessus) et pose un toit `Building.Elevator.ShaftRoof` sur les 4 poteaux de la cage
   vitree (meme couleur / matiere que les poteaux, debord 0.4, epaisseur 0.6).
-- Garde : poutres du haut (`Beams`, elles portent les panneaux et chaines), garde-corps du trou
-  d'arrivee. Pas d'etage 11 ferme (deja le cas : FloorService s'arrete a MaxFloors).
+- Garde : garde-corps du trou d'arrivee. Les fils des panneaux des mixeurs (`Boards.BlenderSign*.Wire`)
+  et les chaines des panneaux de zones (`Zones.*.SignChain`) restent : sans poutres, ils montent
+  dans le vide (a decider).
+- `FloorAssembly.Build(..., floorsConfig?)` : les apercus Edit (`preview-factory`, `preview-tower`)
+  passent une copie fraiche de `Config/Floors` (sinon le cache de require de Studio garde l'ancienne). Pas d'etage 11 ferme (deja le cas : FloorService s'arrete a MaxFloors).
 
 ## Modeles dans Studio (lot 1, fait le 2026-11-20)
 

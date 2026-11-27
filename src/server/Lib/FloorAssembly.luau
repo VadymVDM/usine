@@ -94,7 +94,7 @@ end
 
 -- Dernier etage de la tour (demande utilisateur du 2026-11-27 : "supprimer ce qui sert a aller a
 -- l'etage superieur, l'ascenseur s'arrete au dernier etage"). L'escalier qui monte est deja retire
--- par les tags (Config/Floors.Tags). Ici : plus de lampes (ciel ouvert, rien au-dessus) et un toit
+-- par les tags (Config/Floors.Tags). Ici : plus de lampes ni de poutres (ciel ouvert) et un toit
 -- sur la cage vitree de l'ascenseur (elle s'arrete la au lieu de rester ouverte vers le haut).
 local SHAFT_ROOF_THICKNESS = 0.6
 local SHAFT_ROOF_OVERHANG = 0.4
@@ -104,9 +104,12 @@ local function trimTopFloor(floor: Model)
 	if not building then
 		return
 	end
-	local lamps = building:FindFirstChild("Lamps")
-	if lamps then
-		lamps:Destroy()
+	-- Lampes et poutres du plafond (Beams, demande du 2026-11-27) : rien au-dessus, ciel ouvert
+	for _, name in { "Lamps", "Beams" } do
+		local folder = building:FindFirstChild(name)
+		if folder then
+			folder:Destroy()
+		end
 	end
 	local elevator = building:FindFirstChild("Elevator")
 	if not elevator or elevator:FindFirstChild("ShaftRoof") then
@@ -142,10 +145,14 @@ local function trimTopFloor(floor: Model)
 end
 
 -- Clone le modele pour l'etage n de la base (pivot de la base = basePivot). closed = etage a acheter.
-function FloorAssembly.Build(template: Model, n: number, closed: boolean, basePivot: CFrame): Model
+-- floorsConfig (optionnel) : Config/Floors a utiliser. Les outils d'apercu en mode Edit passent une
+-- copie fraiche : sinon le cache de require de Studio garde une vieille version de Config/Floors
+-- apres un Rojo sync (vu le 2026-11-27 : l'apercu montrait encore l'escalier du dernier etage).
+function FloorAssembly.Build(template: Model, n: number, closed: boolean, basePivot: CFrame, floorsConfig: any?): Model
+	local F = if floorsConfig then floorsConfig else Floors
 	local floor = template:Clone()
 	floor.Name = "Floor" .. n
-	resolveVariants(floor, Floors.Tags(n, closed))
+	resolveVariants(floor, F.Tags(n, closed))
 	if closed then
 		for _, child in floor:GetChildren() do
 			if child ~= floor.PrimaryPart then
@@ -156,12 +163,12 @@ function FloorAssembly.Build(template: Model, n: number, closed: boolean, basePi
 		if building then
 			keepSlabsOnly(building)
 		end
-	elseif n >= Floors.MaxFloors then
+	elseif n >= F.MaxFloors then
 		trimTopFloor(floor)
 	end
 	floor:SetAttribute("FloorIndex", n)
 	floor:SetAttribute("Closed", closed)
-	floor:PivotTo(basePivot * CFrame.new(0, Floors.FloorHeight * (n - 1), 0))
+	floor:PivotTo(basePivot * CFrame.new(0, F.FloorHeight * (n - 1), 0))
 	return floor
 end
 

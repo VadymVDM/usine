@@ -28,6 +28,8 @@ local function freshRequire(module: ModuleScript): any
 	return result
 end
 local FloorAssembly = freshRequire(ServerScriptService.Server.Lib.FloorAssembly)
+-- Passee a FloorAssembly.Build : son propre require(Config.Floors) peut etre une vieille version en cache
+local FloorsConfig = freshRequire(game:GetService("ReplicatedStorage").Shared.Config.Floors)
 
 local baseTemplate = ServerStorage:FindFirstChild("BaseTemplate") :: Model
 local floorTemplate = ServerStorage:FindFirstChild("FloorTemplate") :: Model
@@ -41,7 +43,7 @@ local floors = base:FindFirstChild("Floors") :: Folder
 local counts = {}
 for n = 1, OWNED + 1 do
 	local closed = n > OWNED
-	local floor = FloorAssembly.Build(floorTemplate, n, closed, base:GetPivot())
+	local floor = FloorAssembly.Build(floorTemplate, n, closed, base:GetPivot(), FloorsConfig)
 	local parts = 0
 	for _, d in floor:GetDescendants() do
 		if d:IsA("BasePart") then

@@ -52,6 +52,8 @@ local Util = Shared:WaitForChild("Util")
 local Server = ServerScriptService:WaitForChild("Server")
 local Client = StarterPlayer:WaitForChild("StarterPlayerScripts"):WaitForChild("Client")
 local FloorAssembly = freshRequire(Server.Lib.FloorAssembly)
+-- Passee a FloorAssembly.Build : son propre require(Config.Floors) peut etre une vieille version en cache
+local FloorsConfig = freshRequire(Config.Floors)
 local TreeBuilder = freshRequire(Server.Lib.TreeBuilder)
 local OwnerBadge = freshRequire(Server.Lib.OwnerBadge)
 local Upgrades = freshRequire(Config.Upgrades)
@@ -834,7 +836,7 @@ base.Parent = workspace
 
 local parts = 0
 for n = 1, FLOORS do
-	local floor = FloorAssembly.Build(floorTemplate, n, false, base:GetPivot())
+	local floor = FloorAssembly.Build(floorTemplate, n, false, base:GetPivot(), FloorsConfig)
 	maxOut(floor, n)
 	for _, d in floor:GetDescendants() do
 		if d:IsA("BasePart") then
