@@ -147,13 +147,15 @@ local function applyLowQuality(on: boolean)
 				muteEmitter(item)
 			end
 		end)
-		-- Decor de la carte (forets, collines) : cache localement
+		-- Forets de la carte : cachees localement. Les collines (Decor.Hills) restent : tres
+		-- legeres (60 x 3 blocs) et elles ferment l'horizon (2026-11-27).
 		local map = workspace:FindFirstChild("Map")
 		local decor = map and map:FindFirstChild("Decor")
-		if decor then
-			hiddenDecor = decor
-			decorParent = map
-			decor.Parent = nil
+		local trees = decor and decor:FindFirstChild("Trees")
+		if trees then
+			hiddenDecor = trees
+			decorParent = decor
+			trees.Parent = nil
 		end
 	else
 		for item, props in savedLighting do

@@ -196,10 +196,11 @@ Regle : une seule apparence. Toute interface nouvelle prend police, couleurs et 
 - **Interrupteurs Settings** : le bouton du pack (relief avec ombre, qui restait verte sous OFF et
   rouge sous ON) est cache ; a la place un `PackStyle.button` vert ON / rouge OFF, comme YES / NO.
   Depuis le 2026-11-23, seul Low Quality garde un interrupteur.
-- **Low Quality** : coupe ombres, effets d'eclairage, brume, decor de la carte et eteint les
+- **Low Quality** : coupe ombres, effets d'eclairage, brume, forets (`Map.Decor.Trees`) et eteint les
   effets (ParticleEmitter, Trail, Beam, Sparkles, Smoke, Fire) du workspace. Exception : un effet
   avec l'attribut `KeepInLowQuality = true` reste allume (2026-11-27 : ligne de chevrons du
-  tutoriel `TutorialLine`, qui montre ou aller).
+  tutoriel `TutorialLine`, qui montre ou aller). Les collines `Map.Decor.Hills` restent visibles
+  (2026-11-27 : avant, tout `Map.Decor` disparaissait et on croyait les Hills absentes en Play).
 - **Curseurs de volume Settings** (2026-11-23, Music et Sounds) : dans la case du bouton du pack
   (cache) : pourcentage, barre sombre, remplissage vert, bouton rond ; zone de prise large pour le
   doigt, la liste ne defile pas pendant le glissement. Le volume suit en direct (attribut
