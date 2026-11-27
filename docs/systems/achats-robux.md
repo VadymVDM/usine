@@ -241,6 +241,8 @@ game.ServerStorage.Debug.Call:Invoke("Shop", "FreeBoost", "<Nom>", 0) -- boost g
     s'arretait la : si le serveur avait rate la possession (achat sur le site / un autre serveur,
     Roblox injoignable a l'arrivee), le joueur restait bloque. Maintenant `Owns` est redemande a
     chaque fermeture de la fenetre, achete ou non (les effets des services sont tous idempotents).
+    Et AVANT d'ouvrir la fenetre : `Lib/PurchasePrompt.GamePass` appelle `GamePass.ActivateIfOwned` ;
+    si Roblox dit "possede", le pass est active (memes effets qu'un achat) sans fenetre.
   - `GamePass.Owns` : 3 nouveaux essais (1 s, 2 s, 4 s) si Roblox ne repond pas, et un "oui" est
     garde en memoire pour la session (avant : un seul echec = pass perdu jusqu'au retour).
   - Keep Cash : un recu d'un palier moins cher que celui du joueur ne donne plus de rebirth
