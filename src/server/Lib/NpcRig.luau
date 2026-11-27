@@ -317,6 +317,7 @@ function NpcRig.Spawn(role: string, cframe: CFrame, parent: Instance): Npc?
 		humanoid:SetStateEnabled(state, false)
 	end
 	CollectionService:AddTag(model, CARRY_TAG)
+	CollectionService:AddTag(model, Npcs.FarHideTag)
 	model.Parent = parent
 	pcall(function()
 		root:SetNetworkOwner(nil)

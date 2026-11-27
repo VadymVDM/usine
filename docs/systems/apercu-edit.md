@@ -80,6 +80,9 @@ En tete du script : `FLOORS` (10), `SLOT` (1), `REMOVE`. Le reste vient de la Co
 
 ## Problemes connus / a faire
 
+- Les PNJ de l'apercu portent le tag `Npcs.FarHideTag` comme ceux du jeu (2026-11-27) : sans
+  effet en mode Edit ; en Play (test de performance `tools/perf`), ils sont caches loin de la camera.
+
 - **Chaque dev construit son propre apercu** : `_Preview` n'est ni dans Git, ni sauvegarde, ni partage
   par Team Create (verifie le 2026-11-27 : construit dans une fenetre, absent dans une 2e fenetre de la
   meme place). D'ou le bouton.

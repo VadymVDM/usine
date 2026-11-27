@@ -31,6 +31,9 @@
         },
         "BuildMap": {
           "$path": "tools/build-map"
+        },
+        "Perf": {
+          "$path": "tools/perf"
         }
       }
     },

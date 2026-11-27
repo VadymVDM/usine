@@ -233,6 +233,10 @@ game.ServerStorage.Debug.Call:Invoke("Customer", "Do", "<Nom>", "SetAutoCollect"
 
 ## Problemes connus / a faire
 
+- **Clients et distance (2026-11-27)** : en plus de `CustomerRenderDistance`, chaque client porte
+  le tag `Npcs.FarHideTag` : `WorldDetailController` le rend invisible loin de la camera (120
+  studs sur telephone). Son gobelet (modele a part) reste visible. Detail : `docs/perf-mobile.md`.
+
 - Pass Auto Collect pas cree sur Roblox (prix a valider, phase 3).
 - MONEY / HOUR : teste le 2026-11-19 soir (quelques pommes vendues -> "$1.5K") ; a regarder en
   jeu long (valeur stable ?). Le chiffre ne compte que les ventes, pas l'argent encaisse.

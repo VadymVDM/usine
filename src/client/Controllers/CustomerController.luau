@@ -720,6 +720,7 @@ local function createCustomer(
 
 	model.Name = "Customer"
 	model.PrimaryPart = hrp
+	CollectionService:AddTag(model, Npcs.FarHideTag) -- invisible loin de la camera (WorldDetailController)
 	model:PivotTo(CFrame.new(startPos.X, startPos.Y + hip, startPos.Z) * CFrame.Angles(0, startYaw, 0))
 	model.Parent = folder
 

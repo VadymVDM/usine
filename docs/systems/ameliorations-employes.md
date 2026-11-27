@@ -405,6 +405,12 @@ game.ServerStorage.Debug.Call:Invoke("Upgrade", "Reset", "<Nom>")              -
 
 ## Problemes connus / a faire
 
+- **Employes invisibles loin de la camera (2026-11-27)** : `NpcRig.Spawn` pose le tag
+  `Npcs.FarHideTag` ; le client les rend invisibles au-dela de `Gameplay.NpcMaxDistance` (260
+  studs, 120 sur telephone ou en Low Quality, la hauteur comptant 2.5 fois). Rien ne change cote
+  serveur. Detail et mesures : `docs/perf-mobile.md`. Verifie sur les PNJ de l'apercu, pas encore
+  sur de vrais employes en mouvement.
+
 - Waiter (2026-11-20) : teste en Studio (1 joueur, PC) : pad vert a cote de Take Juices, achat en
   marchant dessus, pad violet qui apparait, pas de fenetre Robux a l'embauche, fenetre apres
   descendre / remonter, 9 jus portes, vitesse 7.5. Pas teste : telephone, 2 joueurs, etages 2+,

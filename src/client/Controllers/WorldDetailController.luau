@@ -8,17 +8,30 @@
 --   2. Effets de rarete des fruits (Attachment tague FruitModels.RarityFxTag : particules + lumiere) :
 --      coupes au-dela de Gameplay.RarityFxMaxDistance de la camera, remis en s'approchant.
 --      Ce controleur est le seul a changer Enabled sur ces effets.
+--   3. PNJ (employes, clients : modeles tagues Npcs.FarHideTag) : invisibles au-dela de
+--      Gameplay.NpcMaxDistance de la camera (NpcMaxDistancePhone sur telephone ou en Low Quality).
+--      Test du 2026-11-27 (soir) : 110 PNJ par tour au maximum = 440 000 triangles et ~200 appels
+--      de dessin, que la qualite basse n'allege pas. On met Transparency = 1 (en local) sur leurs
+--      pieces et decalcomanies, et on remet la valeur d'avant en s'approchant. Pas
+--      LocalTransparencyModifier : CustomerController, CameraFadeController et Fx/Reveal l'animent.
 
 local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Gameplay = require(Shared:WaitForChild("Config"):WaitForChild("Gameplay"))
+local Npcs = require(Shared:WaitForChild("Config"):WaitForChild("Npcs"))
 local FruitModels = require(Shared:WaitForChild("FruitModels"))
 
 local CHECK_SECONDS = 0.3 -- frequence du test de distance des effets de rarete
 local HYSTERESIS = 8 -- studs : evite que l'effet clignote a la limite
+local NPC_HYSTERESIS = 15 -- studs : meme chose pour les PNJ (ils marchent)
+local NPC_HIDES_PER_CHECK = 40 -- PNJ caches au plus par passage (etale le travail a l'arrivee)
+local IS_STUDIO = RunService:IsStudio()
 
 local WorldDetailController = {}
 
@@ -87,6 +100,104 @@ local function updateRarity()
 	end
 end
 
+-- 3. PNJ loin de la camera ------------------------------------------------------------------
+
+type HiddenNpc = {
+	saved: { [Instance]: number }, -- piece ou decalcomanie -> Transparency d'avant
+	added: RBXScriptConnection,
+}
+
+local npcTracked: { [Model]: true } = {}
+local npcHidden: { [Model]: HiddenNpc } = {}
+
+local function hideNpcItem(saved: { [Instance]: number }, item: Instance)
+	if (item:IsA("BasePart") or item:IsA("Decal")) and saved[item] == nil and item.Transparency < 1 then
+		saved[item] = item.Transparency
+		item.Transparency = 1
+	end
+end
+
+local function hideNpc(model: Model)
+	local saved: { [Instance]: number } = {}
+	for _, item in model:GetDescendants() do
+		hideNpcItem(saved, item)
+	end
+	npcHidden[model] = {
+		saved = saved,
+		-- Pieces qui arrivent apres coup (streaming, accessoire, objet porte)
+		added = model.DescendantAdded:Connect(function(item: Instance)
+			hideNpcItem(saved, item)
+		end),
+	}
+end
+
+local function showNpc(model: Model)
+	local hidden = npcHidden[model]
+	if hidden == nil then
+		return
+	end
+	npcHidden[model] = nil
+	hidden.added:Disconnect()
+	for item, transparency in hidden.saved do
+		-- Seulement si personne d'autre n'y a touche entre-temps
+		if (item:IsA("BasePart") or item:IsA("Decal")) and item.Transparency == 1 then
+			item.Transparency = transparency
+		end
+	end
+end
+
+local function trackNpc(instance: Instance)
+	if instance:IsA("Model") and instance:IsDescendantOf(Workspace) then
+		npcTracked[instance] = true
+	end
+end
+
+local function untrackNpc(instance: Instance)
+	if instance:IsA("Model") then
+		npcTracked[instance] = nil
+		-- Rend ses pieces visibles : un modele sorti par le streaming revient avec les memes
+		-- pieces, il resterait invisible pour toujours.
+		showNpc(instance)
+	end
+end
+
+local function npcMaxDistance(): number
+	local player = Players.LocalPlayer
+	local phone = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+	if
+		phone
+		or player:GetAttribute("SettingLowQuality") == true
+		-- Studio seulement : le test de performance (tools/perf) simule un telephone
+		or (IS_STUDIO and player:GetAttribute("PerfAsPhone") == true)
+	then
+		return Gameplay.NpcMaxDistancePhone
+	end
+	return Gameplay.NpcMaxDistance
+end
+
+local function updateNpcs()
+	local camera = Workspace.CurrentCamera
+	if camera == nil then
+		return
+	end
+	local origin = camera.CFrame.Position
+	local near = npcMaxDistance()
+	local far = near + NPC_HYSTERESIS
+	local weight = Gameplay.NpcVerticalWeight
+	local hides = 0
+	for model in npcTracked do
+		local offset = model:GetPivot().Position - origin
+		local distance = math.sqrt(offset.X * offset.X + offset.Z * offset.Z + (offset.Y * weight) ^ 2)
+		local hidden = npcHidden[model] ~= nil
+		if hidden and distance < near then
+			showNpc(model)
+		elseif not hidden and distance > far and hides < NPC_HIDES_PER_CHECK then
+			hides += 1
+			hideNpc(model)
+		end
+	end
+end
+
 function WorldDetailController:Init() end
 
 function WorldDetailController:Start()
@@ -109,9 +220,18 @@ function WorldDetailController:Start()
 	for _, item in CollectionService:GetTagged(tag) do
 		trackRarity(item)
 	end
+	-- 3. PNJ loin de la camera
+	local npcTag = Npcs.FarHideTag
+	CollectionService:GetInstanceAddedSignal(npcTag):Connect(trackNpc)
+	CollectionService:GetInstanceRemovedSignal(npcTag):Connect(untrackNpc)
+	for _, item in CollectionService:GetTagged(npcTag) do
+		trackNpc(item)
+	end
+
 	task.spawn(function()
 		while true do
 			updateRarity()
+			updateNpcs()
 			task.wait(CHECK_SECONDS)
 		end
 	end)

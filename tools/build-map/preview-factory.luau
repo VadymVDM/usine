@@ -24,6 +24,7 @@ local FLOORS = 10
 local SLOT = 1
 local REMOVE = false
 
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -268,6 +269,8 @@ local function placeNpc(template: Model?, ground: Vector3, facing: Vector3?, par
 	if lowest ~= math.huge then
 		rig:PivotTo(rig:GetPivot() + Vector3.new(0, ground.Y + 0.05 - lowest, 0))
 	end
+	-- Comme les PNJ du jeu : invisibles loin de la camera en Play (WorldDetailController)
+	CollectionService:AddTag(rig, Npcs.FarHideTag)
 	rig.Parent = parent
 end
 

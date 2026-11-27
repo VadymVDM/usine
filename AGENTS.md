@@ -57,6 +57,9 @@ Ces regles s'appliquent a tout agent (Claude Code, Codex, Cursor...). Les suivre
     charges par le jeu). Pour en lancer un en mode Edit :
     `require(game.ServerScriptService.DevTools.BuildMap["03-decor"]:Clone())`. Ne plus copier
     ces scripts dans un dossier temporaire de `src/` (le supprimer coupait la synchro Rojo).
+  - `tools/perf/` -> `ServerScriptService.DevTools.Perf` (test de performance relancable, jamais
+    charge par le jeu). Apres un changement qui touche le rendu (carte, PNJ, effets, ecrans 3D) :
+    le relancer et comparer aux tableaux de `docs/perf-mobile.md` ("Relancer le test").
 - Workspace (carte, machines placees a la main) et ServerStorage ne sont pas geres par Rojo :
   ils vivent dans le fichier .rbxl. Ne pas ajouter de mapping pour eux sans en discuter.
 - Ne jamais activer Script Sync de Studio et Rojo sur les memes scripts.

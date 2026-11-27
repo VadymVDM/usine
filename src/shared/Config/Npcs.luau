@@ -25,6 +25,9 @@ local SKINS = {
 
 local Npcs = {
 	TemplateFolder = "NpcTemplates", -- dossier dans ReplicatedStorage
+	-- Tag (CollectionService) de chaque PNJ du monde, employe ou client : le client les rend
+	-- invisibles quand ils sont loin de la camera (WorldDetailController, docs/perf-mobile.md).
+	FarHideTag = "FarHideNpc",
 	-- Animations R15 par defaut de Roblox (script Animate des joueurs, lues en Play le 2026-11-27) :
 	-- tous les PNJ. Marche et course melangees selon la vitesse, comme Animate (Util/R15Walk).
 	AnimationsR15 = table.freeze({

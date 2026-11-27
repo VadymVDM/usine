@@ -1,5 +1,7 @@
 # Performance mobile : mesures
 
+**Pour refaire le test : aller a "Relancer le test" en bas de ce fichier** (scripts `tools/perf/`).
+
 Mesures faites dans Studio sur PC (pas sur un vrai telephone). Elles disent **combien le jeu
 demande** au telephone (triangles, appels de dessin, particules), pas les FPS reels d'un telephone.
 
@@ -193,11 +195,11 @@ c'est 60 % des triangles et plus de la moitie des appels de dessin d'une tour au
 | Une tour au max vue de dehors | OK | limite (au niveau du repere Roblox) |
 | Route avec plusieurs tours au max | limite | rame |
 
-### Piste n°1 (pas faite)
+### Piste n°1 : faite le soir meme (voir "Correction du 2026-11-27 (21 h 30)")
 
 Cacher cote client les PNJ loin de la camera (comme les effets de rarete dans
 `WorldDetailController`) : enleve ~440 000 triangles et ~200 appels de dessin par tour au max.
-Piste n°2 : unions des etages (135 000 a 400 000 triangles par tour).
+Piste n°2 (pas faite) : unions des etages (135 000 a 400 000 triangles par tour).
 
 ### Pas verifie
 
@@ -207,3 +209,109 @@ Piste n°2 : unions des etages (135 000 a 400 000 triangles par tour).
   triangles et d'appels restent justes, aucun FPS de PC n'est donne ici.
 - Vrai profil neuf (cinematique rejouee avec `IntroPending`), R6, 2 joueurs et plus.
 - Tours au max passees par le vrai jeu (ombres par etage de `ShadowController`, PNJ qui bougent).
+
+## Correction du 2026-11-27 (21 h 30) : PNJ invisibles loin de la camera
+
+`src/client/Controllers/WorldDetailController.luau` (client seulement), reglages dans
+`src/shared/Config/Gameplay.luau` :
+
+- Chaque PNJ du monde porte le tag `Npcs.FarHideTag` ("FarHideNpc") : employes (`NpcRig.Spawn`,
+  serveur), clients (`CustomerController`, client), PNJ de l'apercu (`preview-factory`).
+- Toutes les 0.3 s, distance camera -> PNJ, la hauteur comptant 2.5 fois plus
+  (`NpcVerticalWeight` : un PNJ 2 etages plus haut est derriere des plafonds). Au-dela de
+  `NpcMaxDistance` (260 studs) le PNJ devient invisible ; `NpcMaxDistancePhone` (120) sur un
+  appareil tactile sans clavier ou en Low Quality. Marge de 15 studs pour ne pas clignoter,
+  40 PNJ caches au plus par passage.
+- Moyen : `Transparency = 1` en local sur ses pieces et decalcomanies, valeur d'avant remise en
+  s'approchant (seulement si personne d'autre n'y a touche). Pas `LocalTransparencyModifier` :
+  les clients, la camera et les effets d'apparition l'animent deja.
+- Un PNJ sorti par le streaming ou detruit est d'abord remis visible.
+
+Avant / apres, meme script (`tools/perf`), 4 tours au maximum + la vraie base, triangles / appels
+de dessin sans les ombres :
+
+| Vue | Qualite 21 avant -> apres | Qualite 3 avant -> apres | Qualite 1 avant -> apres |
+|---|---|---|---|
+| Route, le long de la route | 2 349 000 / 762 -> 1 172 000 / 366 | **1 269 000 / 641 -> 334 000 / 209** | 1 138 000 / 564 -> 258 000 / 187 |
+| Vue aerienne (pire cas) | 7 602 000 / 1 934 -> 5 861 000 / 774 | 2 495 000 / 1 290 -> 903 000 / 457 | 900 000 / 509 -> 377 000 / 207 |
+| Tour, dehors, de derriere | 6 767 000 / 1 533 -> 4 666 000 / 472 | 3 566 000 / 1 237 -> 2 038 000 / 390 | 2 496 000 / 851 -> 1 662 000 / 278 |
+| Tour, devant le rez-de-chaussee | 307 000 / 246 -> 224 000 / 195 | 278 000 / 229 -> 180 000 / 167 | 244 000 / 206 -> 166 000 / 161 |
+| Tour, dans l'etage 1 | 364 000 / 405 -> 323 000 / 342 | 344 000 / 400 -> 321 000 / 338 | 334 000 / 395 -> 320 000 / 335 |
+| Tour, dans un etage du milieu | 256 000 / 372 -> 255 000 / 298 | 239 000 / 367 -> 252 000 / 293 | 231 000 / 364 -> 247 000 / 289 |
+| Route, fond de carte | 136 000 / 133 -> 113 000 / 115 | 125 000 / 123 -> 104 000 / 104 | 121 000 / 117 -> 100 000 / 102 |
+| Vue de jeu normale | 59 000 / 112 -> 55 000 / 109 | 47 000 / 80 -> 42 000 / 78 | 60 000 / 76 -> 52 000 / 75 |
+
+- Sur la route avec 4 tours au max, en qualite telephone : 4 fois moins de triangles, 3 fois moins
+  d'appels de dessin. On repasse sous le repere Roblox (800 000 / 600).
+- Verifie en Play : sur 458 PNJ, 28 proches intacts (0 piece restee invisible), 418 loin tous
+  invisibles, 12 dans la marge. 0 erreur de script. Cinematique inchangee (28.3 s).
+- **Ce qui reste lourd** : les 980 unions par tour. Tour vue de derriere apres correction : les PNJ
+  font 0 triangle, les unions 770 000 (qualite 3) a 858 000 (qualite 21). C'est la piste suivante.
+- **A savoir sur ces mesures** : la tour au maximum du test a 50 clients (5 par etage). Le vrai jeu
+  n'en dessine pas autant : `CustomerController` ne montre que les clients de l'etage actif, a
+  moins de 220 studs. Une vraie tour au max a ~60 employes + quelques clients : le poids "avant"
+  des PNJ est un peu surestime, le gain reel aussi.
+- Petit defaut accepte : un objet porte qui n'est pas dans le modele du PNJ (gobelet d'un client)
+  reste visible quand le PNJ est cache. A plus de 120 studs, ca ne se voit presque pas.
+- Pas verifie : vrai telephone ; employes du vrai jeu (le profil de test n'en a pas : verifie sur
+  les PNJ de l'apercu, memes rigs, immobiles) ; 2 joueurs.
+
+## Relancer le test (scripts `tools/perf/`)
+
+Deux scripts, synchronises par Rojo dans `ServerScriptService.DevTools.Perf`, jamais charges par
+le jeu :
+
+| Fichier | Cote | Role |
+|---|---|---|
+| `tools/perf/perf-server.luau` | serveur | Installe le module client, construit des tours au maximum, relance la cinematique, cadence du serveur, remise en etat de Studio |
+| `tools/perf/perf-client.luau` | client | Mesures : vues de la carte et d'une tour par niveau de qualite, origine des triangles, cinematique par phase, cout des scripts |
+
+Marche a suivre (MCP `execute_luau`, un appel par ligne ; Rojo connecte, Studio au premier plan
+si possible) :
+
+1. Lancer le Play.
+2. Serveur : `return require(game.ServerScriptService.DevTools.Perf["perf-server"]).Setup({ 2, 3, 5, 6 })`
+   (liste des emplacements ou poser une tour au maximum ; `{}` = aucune tour ; jamais l'emplacement
+   de la base du joueur, attribut `BaseId`).
+3. Client, attendre ~6 s puis : `return require(game.ReplicatedStorage:WaitForChild("PerfClient")).Game()`.
+   Si la reponse est "EN COURS", rappeler `.Result()`. Une ligne par vue, une colonne par qualite :
+   `triangles / appels de dessin, rendu processeur du PC, PNJ affiches`.
+4. Client : `.Breakdown()` = d'ou viennent les triangles de la tour (PNJ, unions, blocs...).
+5. Cinematique : client `.IntroArm(3)` (niveau de qualite), serveur `.ReplayIntro()`, client
+   `.Result()` (deux fois si "EN COURS").
+6. Cout des scripts, dans un Play SANS tour : client `.Scripts(require("@rbx/LibMP"))`.
+7. Client `.Finish()`, Stop, puis en mode Edit :
+   `return require(game.ServerScriptService.DevTools.Perf["perf-server"]:Clone()).EditCheck()`
+   (qualite de Studio remise a 21, camera libre, aucun reste).
+
+Comparer aux tableaux de ce fichier. Valeurs de reference apres la correction du 2026-11-27 :
+
+- Avec 4 tours au maximum : colonne "apres" du tableau ci-dessus.
+- Sans tour (`Setup({})`, profil de test avec sa vraie base de 10 etages), qualite 21 / qualite 3 :
+
+| Vue | Qualite 21 | Qualite 3 |
+|---|---|---|
+| Vue de jeu normale | 49 000 / 104 | 36 000 / 76 |
+| Route, le long de la route | 31 000 / 50 | 27 000 / 47 |
+| Route, fond de carte | 49 000 / 62 | 42 000 / 54 |
+| Vue aerienne (pire cas) | 269 000 / 209 | 139 000 / 90 |
+| Tour, dehors, de derriere | 135 000 / 101 | 132 000 / 83 |
+| Tour, devant le rez-de-chaussee | 31 000 / 90 | 19 000 / 79 |
+| Tour, dans l'etage 1 | 18 000 / 212 | 17 000 / 207 |
+| Tour, dans un etage du milieu | 14 000 / 140 | 14 000 / 134 |
+
+  Scripts : 0.99 ms par image (serveur + client, PC). Serveur : 60 / s.
+- Cinematique : tableau par phase du test de 21 h (12 000 a 91 000 triangles, 19 a 115 appels).
+
+A savoir :
+
+- Qualite 3 et 1 = telephone simule : niveau de qualite bas + attribut local `PerfAsPhone`, qui
+  fait prendre au jeu ses distances "telephone" (Studio seulement).
+- Ce sont des charges, pas des FPS. Le rendu processeur donne un ordre de grandeur relatif (a
+  comparer d'un test a l'autre sur le meme PC), rien de plus.
+- Les vues sont ecrites pour la carte actuelle (bases en x = -200, 0, 200 et z = +-90). Si la
+  carte change : `MAP_VIEWS` et `towerViews` dans `perf-client.luau`. Si `Intro.Times` change :
+  `INTRO_PHASES`.
+- Un appel `execute_luau` qui se termine remet le type de camera du debut de l'appel : le script
+  repose sa camera a chaque image et la rend 0.5 s apres le dernier appel.
+- `Scripts` avec des tours au maximum ne marche pas (le MicroProfiler ne garde qu'une image).

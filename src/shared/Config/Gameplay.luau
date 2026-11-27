@@ -198,6 +198,14 @@ local Gameplay = {
 	SurfaceGuiMaxDistance = 300,
 	-- Effets de rarete des fruits (particules + lumiere) : coupes au-dela de cette distance camera.
 	RarityFxMaxDistance = 60,
+	-- PNJ (employes, clients ; tag Npcs.FarHideTag) : invisibles au-dela de cette distance camera.
+	-- Test du 2026-11-27 : 110 PNJ par tour au maximum = 440 000 triangles et ~200 appels de dessin.
+	-- "Phone" : appareil tactile sans clavier, ou reglage Low Quality.
+	NpcMaxDistance = 260,
+	NpcMaxDistancePhone = 120,
+	-- La hauteur compte plus que la distance au sol : un PNJ 2 etages plus haut est derriere des
+	-- plafonds. Distance = racine(dx2 + dz2 + (dy x ce nombre)2).
+	NpcVerticalWeight = 2.5,
 }
 
 return table.freeze(Gameplay)
