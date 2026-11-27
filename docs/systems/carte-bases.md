@@ -39,6 +39,7 @@ propre et se promene ; il recoit la premiere base qui se libere.
 | `tools/build-map/preview-factory.luau` | Studio | Apercu de toute l'usine "tout achete" en mode Edit (`Workspace._Preview`, non archivable : jamais sauvegarde ni copie dans le Play). Voir `apercu-edit.md` |
 | `tools/build-map/02g-base-boards.luau` | Studio | Panneaux d'ameliorations (tuiles colorees) : Conveyor (mur du fond), Juice Table (mur de droite), Customers (facade), un panneau suspendu au-dessus de chaque mixeur |
 | `tools/build-map/03-decor.luau` | Studio | Foret, arbres, buissons, collines (hors des bases) |
+| `tools/build-map/09-mountains.luau` | Studio | **En attente (2026-11-27)** : montagnes low-poly enneigees + volcan (lave, fumee) en anneau a 1500-2300 studs, `Map.Mountains` (modeles Persistent, sans collision ni ombre). Echantillon montre puis retire de la carte a la demande de l'utilisateur ; pas dans la place. `SAMPLE = true` = volcan + 1 montagne |
 | `tools/build-map/04-lighting.luau` | Studio | Eclairage |
 | `tools/build-map/05-shadows.luau` | Studio | Coupe les ombres inutiles (decor, petites pieces...), a lancer en dernier |
 | `src/client/Controllers/ShadowController.luau` | client | Seul l'etage du joueur projette des ombres (evite les ombres des etages du dessus) |
