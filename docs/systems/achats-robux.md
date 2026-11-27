@@ -188,7 +188,7 @@ de la Config) : changer l'un = changer l'autre (Creator Hub > Monetization).
 | D46 | Gift - Waiter Speed x10 | 149 | Gift the Waiter Speed x10 pass to another player. | `shoe.png` | `Shop.Passes` SpeedBoost `giftProductId` (cadeau, 2026-11-23) || 3734927704 |
 | D47 | Gift - Billboard | 99 | Gift the Billboard pass to another player. | `cash.png` | `Shop.Passes` Billboard `giftProductId` (cadeau, 2026-11-23) || 3734927718 |
 | D48 | Gift - Thief | 149 | Gift the Thief pass to another player. | `thief.png` | `Shop.Passes` Thief `giftProductId` (cadeau, 2026-11-23) || 3734927725 |
-| D49 | Steal | 19 | Steal juices from another player's stand. | `thief.png` | `Shop.Steal` (vol a l'unite, ThiefService, 2026-11-27) || 3736758899 |
+| D51 | Steal | 19 | Steal juices from another player's stand. | `thief.png` | `Shop.Steal` (vol a l'unite, ThiefService, 2026-11-27) || 3736758899 |
 | D49 | Gift - Rebirth Master | 199 | Gift the Rebirth Master pass to another player. | `rebirth.png` | `Shop.Passes` RebirthMaster `giftProductId` (cadeau, 2026-11-23) || 3734927736 |
 | D35 | Lucky Cash (Floor 1) | 9 | You found a secret cash stash! Take it all. | `cash.png` | `LuckyCash.Products[1]` (etage 1 seul, cree le 2026-11-22) || 3734874589 |
 | D20 | Rebirth & Keep Cash I | 49 | Rebirth and keep all your cash. | `rebirth.png` | `Rebirth.KeepCashProducts[1]` (1er rebirth) || 3734031157 |
