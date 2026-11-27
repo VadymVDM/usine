@@ -28,6 +28,7 @@
 local CollectionService = game:GetService("CollectionService")
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
+local GuiService = game:GetService("GuiService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -49,7 +50,9 @@ local TEXT_STROKE = Color3.fromRGB(20, 16, 28)
 local DIRT = Color3.fromRGB(150, 105, 62)
 local DIRT_DARK = Color3.fromRGB(110, 76, 46)
 local SPARKLE_GOLD = Color3.fromRGB(255, 225, 80)
-local KEEP_GUIS = { IntroGui = true, IntroBubbles = true, TouchGui = true } -- jamais caches par l'intro
+-- Jamais coupes par l'intro. TouchGui (joystick, saut) appartient aux scripts de controle de Roblox :
+-- on le cache par GuiService.TouchControlsEnabled (lockPlayer), pas en touchant a son ScreenGui.
+local KEEP_GUIS = { IntroGui = true, IntroBubbles = true, TouchGui = true }
 local TIMES = Intro.Times
 local SHOVEL_LENGTH = 5.2 * Intro.ShovelScale -- poignee -> bout de la lame (studs)
 local LOWER_HAND = 1.6 -- main gauche plus bas sur le manche (studs depuis la poignee)
@@ -750,10 +753,11 @@ type Lock = {
 	connections: { RBXScriptConnection },
 	anchored: BasePart?, -- racine du vrai personnage, ancree localement pendant l'intro
 	prompts: boolean,
+	touch: boolean, -- GuiService.TouchControlsEnabled d'avant l'intro
 }
 
 local function lockPlayer(): Lock
-	local lock: Lock = { restore = {}, connections = {}, anchored = nil, prompts = true }
+	local lock: Lock = { restore = {}, connections = {}, anchored = nil, prompts = true, touch = true }
 	local playerGui = player:WaitForChild("PlayerGui")
 	local function guard(gui: Instance)
 		if not gui:IsA("ScreenGui") or KEEP_GUIS[gui.Name] then
@@ -791,6 +795,18 @@ local function lockPlayer(): Lock
 		lock.prompts = (ProximityPromptService :: any).Enabled;
 		(ProximityPromptService :: any).Enabled = false
 	end)
+	-- Telephone : joystick et bouton de saut caches pendant la cinematique (2026-11-27, demande de
+	-- l'utilisateur), rendus a la fin. Recaches si un autre script les rallume entre-temps.
+	lock.touch = GuiService.TouchControlsEnabled
+	GuiService.TouchControlsEnabled = false
+	table.insert(
+		lock.connections,
+		GuiService:GetPropertyChangedSignal("TouchControlsEnabled"):Connect(function()
+			if GuiService.TouchControlsEnabled then
+				GuiService.TouchControlsEnabled = false
+			end
+		end)
+	)
 	return lock
 end
 
@@ -809,6 +825,7 @@ local function unlockPlayer(lock: Lock)
 	pcall(function()
 		(ProximityPromptService :: any).Enabled = lock.prompts
 	end)
+	GuiService.TouchControlsEnabled = lock.touch -- apres le Disconnect (sinon recache tout de suite)
 end
 
 ---------------------------------------------------------------------------------------------

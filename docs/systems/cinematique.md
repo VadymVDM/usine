@@ -55,8 +55,13 @@ grand arbre = origine, la marche va vers +X, les cameras sont cote +Z.
    `HoldingSapling = Setup == 0`. Sans sauvegarde chargee : pas d'attribut, pas d'intro.
 2. Client (`IntroPending` vrai, personnage present, avatar charge ou 1.5 s max) :
    - ecran blanc tout de suite, HUD et ScreenGuis caches (ceux que le Preloader rallume pendant
-     l'intro sont recaches puis rendus a la fin ; `TouchGui` jamais touche), touches E coupees
-     (`ProximityPromptService.Enabled`), racine du vrai personnage ancree en local (il ne bouge pas) ;
+     l'intro sont recaches puis rendus a la fin ; le ScreenGui `TouchGui` n'est jamais touche),
+     touches E coupees (`ProximityPromptService.Enabled`), racine du vrai personnage ancree en local
+     (il ne bouge pas) ;
+   - **telephone : joystick et bouton de saut caches (2026-11-27)** par
+     `GuiService.TouchControlsEnabled = false` (API officielle : Roblox desactive lui-meme `TouchGui`),
+     recache si un autre script le rallume, valeur d'avant remise dans `unlockPlayer` (fin normale
+     ET cinematique qui plante) ;
    - decor `IntroSet` clone a `Intro.SetOrigin` (y = 1200, loin de la carte), chez ce joueur seulement ;
    - acteur = copie locale du personnage (`Archivable`), sans scripts, Animator, tags ni attributs,
      racine ancree. **Animations faites en code** : angles des articulations ecrits a chaque image
@@ -252,8 +257,13 @@ Revoir la cinematique : panneau admin > Player > **Replay Intro** (ou, cote serv
     "Wow!" pile au-dessus de la tete. Capture : `2026-11-27-bandes-iphone-wow.jpg` ;
   - fin : `IntroGui`, `IntroBubbles`, `IntroSet` supprimes, camera `Custom`, 0 erreur de script.
   - Pas teste sur un vrai telephone (le simulateur ne fait pas la vraie encoche) ni en portrait.
-  - Vu au passage : sur telephone, le joystick et le bouton de saut (`TouchGui`, jamais cache par
-    l'intro) restent affiches par-dessus la cinematique.
+  - Vu au passage : le joystick et le bouton de saut restaient affiches par-dessus la
+    cinematique. Corrige le meme soir (voir "Joystick cache") ;
+- **Joystick cache (2026-11-27, 23 h 15, simulateur iPhone 17 Pro, Play)** : avant l'intro
+  `TouchControlsEnabled` vrai, `TouchGui` actif ; pendant (fige a 8 s) faux et `TouchGui` coupe,
+  plus de joystick ni de saut a l'ecran (`2026-11-27-sans-joystick-pendant.jpg`) ; apres la fin,
+  tout revenu (`JumpButton` visible, personnage libre, `2026-11-27-joystick-apres.jpg`) ; 0 erreur.
+  Pas teste sur un vrai telephone ni avec une manette.
 - **Charge pour un telephone (2026-11-27, 21 h, Play Studio PC, qualite 21 puis 3)** : rejouee en
   entier, 28.1 s, 0 erreur. 12 000 a 91 000 triangles et 19 a 115 appels de dessin selon la phase
   (repere Roblox : 800 000 / 600), memes chiffres en qualite 3 (montagnes toujours la, ombres a 0).
