@@ -287,7 +287,9 @@ ne change), triangles / appels de dessin :
 - **Ce qui pese encore en qualite telephone** : les fruits entiers (`Body`). `Breakdown` en
   qualite 3 : les unions d'une tour vue de derriere font 770 000 triangles, et les mini fruits
   n'y comptent pour rien. Pistes : les cacher loin de la camera (ca se voit : les fruits au sol
-  disparaissent de loin) ou refaire les maillages des fruits plus simples. Pas fait, a decider.
+  disparaissent de loin) ou refaire les maillages des fruits plus simples. Pas fait.
+  **Decide par l'utilisateur le 2026-11-27 : les cacher, mais d'assez loin pour que personne ne
+  les voie disparaitre.** Prompt pret pour un nouveau chat : `docs/prompts/perf-fruits-entiers.md`.
 - Pas verifie : vrai telephone ; gobelets en mouvement dans le vrai jeu (verifie sur les gobelets
   immobiles de l'apercu).
 
