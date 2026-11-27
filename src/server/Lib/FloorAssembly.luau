@@ -100,7 +100,7 @@ end
 local SHAFT_ROOF_THICKNESS = 0.6
 local SHAFT_ROOF_OVERHANG = 0.4
 
-local function trimTopFloor(floor: Model)
+local function trimTopFloor(floor: Model, F: any)
 	local building = floor:FindFirstChild("Building")
 	if not building then
 		return
@@ -137,6 +137,19 @@ local function trimTopFloor(floor: Model)
 	local elevator = building:FindFirstChild("Elevator")
 	if not elevator or elevator:FindFirstChild("ShaftRoof") then
 		return
+	end
+	-- Cage coupee a mi-hauteur (demande du 2026-11-27) : poteaux et vitres s'arretent a
+	-- F.TopShaftHeight au-dessus du sol de l'etage (pivot du modele = sol), le bas ne bouge pas
+	local cutY = floor:GetPivot().Position.Y + F.TopShaftHeight
+	for _, child in elevator:GetChildren() do
+		if child:IsA("BasePart") and (child.Name == "ShaftPost" or child.Name == "ShaftGlass") then
+			local bottom = child.Position.Y - child.Size.Y / 2
+			local top = child.Position.Y + child.Size.Y / 2
+			if top > cutY and bottom < cutY then
+				child.Size = Vector3.new(child.Size.X, cutY - bottom, child.Size.Z)
+				child.CFrame = child.CFrame + Vector3.new(0, (cutY - top) / 2, 0)
+			end
+		end
 	end
 	-- Toit pose sur le haut des 4 poteaux de la cage (memes couleur et matiere)
 	local minV, maxV, post = nil :: Vector3?, nil :: Vector3?, nil :: BasePart?
@@ -187,7 +200,7 @@ function FloorAssembly.Build(template: Model, n: number, closed: boolean, basePi
 			keepSlabsOnly(building)
 		end
 	elseif n >= F.MaxFloors then
-		trimTopFloor(floor)
+		trimTopFloor(floor, F)
 	end
 	floor:SetAttribute("FloorIndex", n)
 	floor:SetAttribute("Closed", closed)

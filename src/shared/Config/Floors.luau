@@ -9,6 +9,9 @@ local Floors = {}
 
 Floors.MaxFloors = 10
 Floors.FloorHeight = 36 -- etage n : sol a y = FloorHeight * (n - 1) dans le repere de la base
+-- Dernier etage : la cage vitree de l'ascenseur s'arrete a mi-hauteur (demande du 2026-11-27),
+-- hauteur au-dessus du sol de l'etage
+Floors.TopShaftHeight = 18
 
 -- Zone STAIRS (sur chaque etage) et les 2 voies d'escalier. L'escalier qui monte de l'etage n est
 -- sur la voie A si n est impair, B si n est pair ; il part de StairStartX (sol) et arrive a

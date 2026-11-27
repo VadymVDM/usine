@@ -2,7 +2,7 @@
 
 **Statut :** code (lots 0 a 6 faits le 2026-11-20, verifies dans Studio par script) ; en attente du
 test en jeu de l'utilisateur. Restent : 2 vrais joueurs, vrai telephone, chiffres A VALIDER.
-**Derniere mise a jour :** 2026-11-27 (dernier etage : plus d'escalier ni de lampes, toit sur la cage d'ascenseur)
+**Derniere mise a jour :** 2026-11-27 (dernier etage : plus d'escalier ni de lampes, cage d'ascenseur coupee a mi-hauteur avec un toit)
 
 ## Role
 
@@ -181,6 +181,9 @@ dernier etage". Rien dans le modele `FloorTemplate` ne change, tout se fait a l'
 - `Lib/FloorAssembly` (`trimTopFloor`, etage ouvert seulement) : retire `Building.Lamps` et
   `Building.Beams` (poutres du plafond, demande du 2026-11-27 ; ciel ouvert, rien au-dessus) et pose un toit `Building.Elevator.ShaftRoof` sur les 4 poteaux de la cage
   vitree (meme couleur / matiere que les poteaux, debord 0.4, epaisseur 0.6).
+- Cage d'ascenseur coupee a **mi-hauteur** (demande du 2026-11-27, "l'ascenseur s'arrete a la
+  moitie de l'etage") : poteaux `ShaftPost` et vitres `ShaftGlass` raccourcis par le haut a
+  `Config/Floors.TopShaftHeight` (18 studs au-dessus du sol de l'etage), le toit `ShaftRoof` pose dessus.
 - Retire aussi ce qui pendait aux poutres : fils des panneaux des mixeurs (`Boards.BlenderSign*.Wire`)
   et chaines des panneaux de zones (`Building.Zones.*.SignChain`). Les panneaux restent (sans attache).
 - Garde : garde-corps du trou d'arrivee (et l'escalier qui y arrive depuis l'etage 9).
