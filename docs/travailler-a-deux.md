@@ -53,6 +53,17 @@ Une seule personne a la fois, et on previent l'autre.
 3. Rojo > Disconnect juste apres.
 4. Publier seulement si les deux sont d'accord (et jamais par un agent sans demande explicite).
 
+## Attention : Team Create pas actif (verifie le 2026-11-27)
+
+- La place partagee n'est **pas** en Team Create : en Edit, `Players` est vide (aucun collaborateur) et
+  une fenetre ouverte a neuf ne voit pas les changements non sauvegardes d'une autre fenetre
+  (murs `Map.Bounds` a 800 dans la fenetre de Natixe, a 80 dans une fenetre ouverte apres).
+- Consequence : chaque Studio a sa propre copie. Un changement de carte n'existe pour l'autre
+  qu'apres **Fichier > Sauvegarder sur Roblox**, et **le dernier qui sauvegarde ecrase l'autre**.
+- A faire : activer Team Create (bouton "Collaborer" en haut a droite de Studio). En attendant :
+  une seule personne modifie la carte a la fois, sauvegarde sur Roblox, previent l'autre, qui
+  ferme et rouvre la place.
+
 ## La carte
 
 - La carte se modifie **seulement dans la place partagee**. Ce qui est construit dans une place
